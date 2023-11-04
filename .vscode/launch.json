@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: parser",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mh_file_parser/parser.py",
+            "args": [
+                "./sampledata/example-10mins-ch1-t2.ptu"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug parser-rs",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/parser-rs/target/debug/main",
+            "args": [],
+            "cwd": "${workspaceFolder}/parser-rs",
+            "preLaunchTask": "rust: cargo build",
+            "sourceLanguages": [
+                "rust"
+            ]
+        }
+    ]
+}
