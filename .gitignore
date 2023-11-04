@@ -1,0 +1,22 @@
+Read_PTU.py
+outputfile-py.txt
+outputfile-rs.txt
+out.txt
+stage_move.py
+ptudemo.cc
+
+# python generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# venv
+.venv
+
+
+# Added by cargo
+
+/target
