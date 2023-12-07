@@ -7,3 +7,5 @@
 #   all-features: false
 
 -e file:.
+numpy==1.26.2
+pyarrow==14.0.1

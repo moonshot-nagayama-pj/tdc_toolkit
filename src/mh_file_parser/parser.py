@@ -35,7 +35,7 @@ class TimeTaggedData:
 def readHT2(inputfile: io.BufferedReader, version, numRecords, globRes):
     truetime = 0
     # [channel: [timetag]]
-    tmp: list(list(int)) = [[] for i in range(0, 65)]  # max 64ch + sync
+    tmp: list[list[int]] = [[] for i in range(0, 65)]  # max 64ch + sync
     oflcorrection = 0
     T2WRAPAROUND_V1 = 33552000
     T2WRAPAROUND_V2 = 33554432
@@ -66,11 +66,12 @@ def readHT2(inputfile: io.BufferedReader, version, numRecords, globRes):
                         oflcorrection += T2WRAPAROUND_V2 * timetag
             # if channel >= 1 and channel <= 15: # markers
             #     truetime = oflcorrection + timetag
-            # if channel == 0: # sync
-            #     truetime = oflcorrection + timetag
+            if channel == 0:  # sync
+                truetime = oflcorrection + timetag
+            tmp[0].append(truetime * 0.2)
         else:  # regular input channel
             truetime = oflcorrection + timetag
-            tmp[channel].append(truetime)
+            tmp[channel + 1].append(truetime * 0.2)
         if recNum % 100000 == 0:
             sys.stdout.write(
                 "\rProgress: %.1f%%" % (float(recNum) * 100 / float(numRecords))
