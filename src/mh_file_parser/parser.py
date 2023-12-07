@@ -9,6 +9,8 @@ import sys
 import struct
 import io
 
+from traitlets import Any
+
 # Tag Types
 tyEmpty8 = struct.unpack(">i", bytes.fromhex("FFFF0008"))[0]
 tyBool8 = struct.unpack(">i", bytes.fromhex("00000008"))[0]
@@ -24,8 +26,8 @@ tyBinaryBlob = struct.unpack(">i", bytes.fromhex("FFFFFFFF"))[0]
 
 
 class TimeTaggedData:
-    names: list(str)
-    values: list(any)
+    names: list[str]
+    values: list[Any]
     numRecords: int
     globRes: float
 
