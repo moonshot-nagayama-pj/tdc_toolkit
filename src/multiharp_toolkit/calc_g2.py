@@ -2,7 +2,7 @@ import argparse
 import json
 from os import path
 import os
-from mh_file_parser import parse
+from .parser import parse
 import polars as pl
 import plotly.express as px
 

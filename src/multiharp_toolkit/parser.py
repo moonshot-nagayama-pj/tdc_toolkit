@@ -9,7 +9,7 @@ import sys
 import struct
 import io
 
-from traitlets import Any
+from typing import Any
 
 # Tag Types
 tyEmpty8 = struct.unpack(">i", bytes.fromhex("FFFF0008"))[0]
