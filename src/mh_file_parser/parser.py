@@ -68,7 +68,7 @@ def readHT2(inputfile: io.BufferedReader, version, numRecords, globRes):
             #     truetime = oflcorrection + timetag
             if channel == 0:  # sync
                 truetime = oflcorrection + timetag
-            tmp[0].append(truetime * 0.2)
+                tmp[0].append(truetime * 0.2)
         else:  # regular input channel
             truetime = oflcorrection + timetag
             tmp[channel + 1].append(truetime * 0.2)
