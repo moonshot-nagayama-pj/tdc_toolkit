@@ -25,6 +25,7 @@ jsonschema==4.19.2
 jsonschema-specifications==2023.7.1
 jupyter-client==8.5.0
 jupyter-core==5.5.0
+kaleido==0.2.1
 kiwisolver==1.4.5
 matplotlib==3.8.1
 matplotlib-inline==0.1.6

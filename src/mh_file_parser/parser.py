@@ -40,19 +40,12 @@ def readHT2(inputfile: io.BufferedReader, version, numRecords, globRes):
     T2WRAPAROUND_V1 = 33552000
     T2WRAPAROUND_V2 = 33554432
     for recNum in range(0, numRecords):
-        try:
-            recordData = "{0:0{1}b}".format(
-                struct.unpack("<I", inputfile.read(4))[0], 32
-            )
-        except:
-            raise RuntimeError(
-                "The file ended earlier than expected, at record %d/%d."
-                % (recNum, numRecords)
-            )
+        data = struct.unpack("<I", inputfile.read(4))[0]
 
-        special = int(recordData[0:1], base=2)
-        channel = int(recordData[1:7], base=2)
-        timetag = int(recordData[7:32], base=2)
+        # ビット操作を使用して値を取り出す
+        special = (data >> 31) & 0x01  # 最上位ビット
+        channel = (data >> 25) & 0x3F  # 次の6ビット
+        timetag = data & 0x1FFFFFF
         if special == 1:
             if channel == 0x3F:  # Overflow
                 # Number of overflows in nsync. If old version, it's an
@@ -74,7 +67,7 @@ def readHT2(inputfile: io.BufferedReader, version, numRecords, globRes):
             tmp[channel + 1].append(truetime * 0.2)
         if recNum % 100000 == 0:
             sys.stdout.write(
-                "\rProgress: %.1f%%" % (float(recNum) * 100 / float(numRecords))
+                "\rLoading file: %.1f%%" % (float(recNum) * 100 / float(numRecords))
             )
             sys.stdout.flush()
     return tmp
@@ -170,7 +163,6 @@ def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
     # get important variables from headers
     ret.numRecords = tagValues[tagNames.index("TTResult_NumberOfRecords")]
     ret.globRes = tagValues[tagNames.index("MeasDesc_GlobalResolution")]
-    print("Writing %d records, this may take a while..." % ret.numRecords)
     print({"globRes": ret.globRes, "numRecords": ret.numRecords})
     ret.events = readHT2(inputfile, version, ret.numRecords, ret.globRes)
     return ret
