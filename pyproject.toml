@@ -9,6 +9,7 @@ dependencies = [
     "pandas>=2.1.2",
     "polars>=0.19.12",
     "plotly>=5.18.0",
+    "maturin>=1.4.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.11"
