@@ -14,6 +14,6 @@ pyo3 = "0.20.0"
 [build-dependencies]
 bindgen = "0.69.1"
 
-#[features]
-#extension-module = ["pyo3/extension-module"]
-#default = ["extension-module"]
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
