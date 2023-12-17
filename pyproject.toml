@@ -1,6 +1,6 @@
 [project]
 name = "multiharp-toolkit"
-version = "0.1.0"
+version = "0.1.1"
 description = "Add your description here"
 authors = [{ name = "zigen", email = "hrlclb@gmail.com" }]
 dependencies = [
