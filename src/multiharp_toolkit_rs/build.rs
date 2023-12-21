@@ -2,23 +2,24 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // this requires the MHLib_v3.x.x_64bit directory to be in the same directory as the Cargo.toml file
-    let lib_dir = format!(
-        "{}/MHLib_v3.1.0.0_64bit/library",
-        env::var("CARGO_MANIFEST_DIR").unwrap()
-    );
-    // Tell cargo to look for shared libraries in the specified directory
-    println!("cargo:rustc-link-search={}", lib_dir);
-
-    // Tell cargo to tell rustc to link the system bzip2
-    // shared library.
-    // println!("cargo:rustc-link-lib=mhlib");
-    println!("cargo:rustc-link-lib=dylib=mhlib");
-
-    // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=wrapper.h");
+    let os = env::consts::OS;
 
-    println!("cargo:rustc-link-arg=-Wl,-rpath={}", lib_dir);
+    if os == "linux" {
+        // this requires the MHLib_v3.x.x_64bit directory to be in the same directory as the Cargo.toml file
+        let lib_dir = format!(
+            "{}/MHLib_v3.1.0.0_64bit/library",
+            env::var("CARGO_MANIFEST_DIR").unwrap()
+        );
+        println!("cargo:rustc-link-search={}", lib_dir);
+        println!("cargo:rustc-link-lib=dylib=mhlib");
+        println!("cargo:rustc-link-arg=-Wl,-rpath={}", lib_dir);
+    }
+
+    if os == "windows" {
+        println!("cargo:rustc-link-search=native=C:\\Program Files\\PicoQuant\\MultiHarp-MHLibv31");
+        println!("cargo:rustc-link-lib=dylib=mhlib64");
+    }
 
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
