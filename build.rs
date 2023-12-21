@@ -5,9 +5,10 @@ fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
     let os = env::consts::OS;
 
+    let mut lib_dir = String::from("");
     if os == "linux" {
         // this requires the MHLib_v3.x.x_64bit directory to be in the same directory as the Cargo.toml file
-        let lib_dir = format!(
+        lib_dir = format!(
             "{}/MHLib_v3.1.0.0_64bit/library",
             env::var("CARGO_MANIFEST_DIR").unwrap()
         );
@@ -17,7 +18,8 @@ fn main() {
     }
 
     if os == "windows" {
-        println!("cargo:rustc-link-search=native=C:\\Program Files\\PicoQuant\\MultiHarp-MHLibv31");
+        lib_dir = String::from("C:\\Program Files\\PicoQuant\\MultiHarp-MHLibv31");
+        println!("cargo:rustc-link-search=native={}", lib_dir);
         println!("cargo:rustc-link-lib=dylib=mhlib64");
     }
 
@@ -28,6 +30,7 @@ fn main() {
         // The input header we would like to generate
         // bindings for.
         .header("wrapper.h")
+        .clang_arg(format!("-I{}", lib_dir))
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))

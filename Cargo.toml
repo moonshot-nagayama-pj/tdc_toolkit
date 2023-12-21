@@ -1,11 +1,11 @@
 [package]
-name = "multiharp_toolkit_rs"
+name = "multiharp_toolkit"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-name = "multiharp_toolkit_rs"
+name = "multiharp_toolkit"
 crate-type = ["cdylib"]
 
 [dependencies]

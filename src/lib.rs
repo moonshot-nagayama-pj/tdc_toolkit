@@ -128,8 +128,8 @@ fn is_measurement_running(device_index: u8) -> PyResult<bool> {
 }
 
 #[pymodule]
-#[pyo3(name = "multiharp_toolkit_rs")]
-fn multiharp_toolkit(_py: Python, m: &PyModule) -> PyResult<()> {
+#[pyo3(name = "_mhtk_rs")]
+fn _mhtk_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_library_version, m)?)?;
     m.add_function(wrap_pyfunction!(open_device, m)?)?;
     m.add_function(wrap_pyfunction!(initialize, m)?)?;
