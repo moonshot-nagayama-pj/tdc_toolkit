@@ -9,7 +9,8 @@ MHLIB=MHLib_v3.1.0.0_64bit
 
 function download() {
   if [ ! -f "src/multiharp_toolkit_rs/$ZIP_FILE" ]; then
-    wget https://www.picoquant.com/dl_software/MultiHarp150/$ZIP_FILE -O src/multiharp_toolkit_rs/$ZIP_FILE
+    curl -O https://www.picoquant.com/dl_software/MultiHarp150/$ZIP_FILE 
+    mv $ZIP_FILE src/multiharp_toolkit_rs/$ZIP_FILE
   fi
 }
 
