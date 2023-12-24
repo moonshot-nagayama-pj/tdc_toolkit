@@ -8,10 +8,14 @@ fn main() {
     let mut lib_dir = String::from("");
     if os == "linux" {
         // this requires the MHLib_v3.x.x_64bit directory to be in the same directory as the Cargo.toml file
-        lib_dir = format!(
-            "{}/MHLib_v3.1.0.0_64bit/library",
-            env::var("CARGO_MANIFEST_DIR").unwrap()
+        let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
+        let lib_dir_path = PathBuf::from(manifest_dir).join("MHLib_v3.1.0.0_64bit/library");
+        assert!(
+            lib_dir_path.exists(),
+            "Library directory does not exist: {}",
+            lib_dir_path.display()
         );
+        lib_dir = lib_dir_path.to_string_lossy().into_owned();
         println!("cargo:rustc-link-search={}", lib_dir);
         println!("cargo:rustc-link-lib=dylib=mhlib");
         println!("cargo:rustc-link-arg=-Wl,-rpath={}", lib_dir);
