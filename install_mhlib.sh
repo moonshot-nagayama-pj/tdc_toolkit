@@ -1,6 +1,16 @@
 #!/bin/bash
 set -eux
 
+# Check for required utilities
+if ! command -v unzip &> /dev/null; then
+    echo "unzip could not be found"
+    exit 1
+fi
+if ! command -v tar &> /dev/null; then
+    echo "tar could not be found"
+    exit 1
+fi
+
 ZIP_FILE=MultiHarp150_160_V3_1.zip
 MHLIB_DIR=MHLib\ v3.1.0.0
 DEMO_DIR=MultiHarp\ v3.1.0.0
