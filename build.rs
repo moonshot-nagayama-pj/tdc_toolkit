@@ -4,7 +4,10 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
     let os = env::consts::OS;
-
+    let arch = env::consts::ARCH;
+    if arch != "x86_64" || (os != "linux" && os != "windows") {
+        return;
+    }
     let mut lib_dir = String::from("");
     if os == "linux" {
         // this requires the MHLib_v3.x.x_64bit directory to be in the same directory as the Cargo.toml file
