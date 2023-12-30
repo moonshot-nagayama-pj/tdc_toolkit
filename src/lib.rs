@@ -18,6 +18,9 @@ mod mhlib_wrapper_py;
 ))]
 use mhlib_wrapper_py::*;
 
+mod parser;
+mod parser_py;
+
 #[pymodule]
 #[pyo3(name = "_mhtk_rs")]
 fn _mhtk_rs(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -49,6 +52,8 @@ fn _mhtk_rs(_py: Python, m: &PyModule) -> PyResult<()> {
         m.add_function(wrap_pyfunction!(read_fifo, m)?)?;
         m.add_function(wrap_pyfunction!(is_measurement_running, m)?)?;
     }
+
+    m.add_function(wrap_pyfunction!(parser_py::parse_rs, m)?)?;
 
     Ok(())
 }

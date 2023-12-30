@@ -1,8 +1,6 @@
-import argparse
-import json
 from os import path
-import os
-from .parser import parse
+import os, sys, json, argparse
+from multiharp_toolkit.parser import parse
 import polars as pl
 import plotly.express as px
 
@@ -87,7 +85,6 @@ def calc_g2(df, peak_start_1, peak_end_1, peak_start_2, peak_end_2):
     num_records = len(df["ch"])
     df_ch = df["ch"].to_list()
     df_timestamp = df["timestamp"].to_list()
-    import sys
 
     for i, ch in enumerate(df_ch):
         timestamp = df_timestamp[i]
@@ -237,4 +234,5 @@ def main():
 
 
 if __name__ == "__main__":
+    print("__main__")
     main()
