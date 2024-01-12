@@ -5,6 +5,7 @@ use nom::error::ErrorKind;
 use nom::multi::many_till;
 use nom::number::complete::{le_f64, le_i32, le_i64, le_u32, le_u64};
 use nom::IResult;
+use pyo3::prelude::*;
 use std::str;
 
 #[derive(Debug)]
@@ -13,15 +14,16 @@ pub enum TagType {
     Bool8(bool),
     Int8(i64),
     BitSet64(u64),
-    Color8,
+    // Color8,
     Float8(f64),
     DateTime(NaiveDateTime),
-    Float8Array,
+    // Float8Array,
     AnsiString(String),
-    WideString,
-    BinaryBlob,
+    // WideString,
+    // BinaryBlob,
 }
 
+#[pyclass]
 #[derive(Debug)]
 pub struct PQTimeTaggedData {
     pub version: String,
@@ -35,6 +37,7 @@ pub struct TagHeader {
     pub typ: TagType,
 }
 
+#[pyclass]
 #[derive(Debug)]
 pub struct EventRecord {
     pub special: u8,
@@ -115,7 +118,6 @@ fn debug_type(tag: &TagType) -> String {
         TagType::Empty8 => "<empty Tag>".to_string(),
         TagType::Bool8(b) => (if *b { "True" } else { "False" }).to_string(),
         TagType::DateTime(t) => t.format("%a %b %d %H:%M:%S %Y").to_string(),
-        _ => format!("unknown: {:?}", tag),
     }
 }
 fn parse_tag_header(input: &[u8]) -> IResult<&[u8], TagHeader> {
@@ -190,7 +192,7 @@ fn parse_ht2_event_records(
                             overflow_correction += T2WRAPAROUND_V2 * timetag;
                             println!("{} OFL *  {:x}", idx, timetag);
                         }
-                    } else if channel >= 1 && channel <= 15 { // marker
+                    } else if (1..=15).contains(&channel) { // marker
                     }
                     if channel == 0 {
                         // sync

@@ -8,5 +8,15 @@
 
 -e file:.
 kaleido==0.2.1
+maturin==1.4.0
 numpy==1.26.2
+packaging==23.2
+pandas==2.1.4
+plotly==5.18.0
+polars==0.20.3
 pyarrow==14.0.1
+python-dateutil==2.8.2
+pytz==2023.3.post1
+six==1.16.0
+tenacity==8.2.3
+tzdata==2023.3
