@@ -131,8 +131,6 @@ jobs:
           key: ${{ runner.os }}-mhlib-zip
       - name: install MHLib
         run: |
-          # Downloading MHLib
-
           # Unzipping MHLib
           Expand-Archive -Path MultiHarp150_160_V3_1.zip 
 
