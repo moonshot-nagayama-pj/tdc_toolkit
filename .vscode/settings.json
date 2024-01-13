@@ -1,5 +1,9 @@
 {
     "rust-analyzer.linkedProjects": [
         "./Cargo.toml",
-    ]
+    ],
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.analysis.stubPath": "src/multiharp_toolkit"
 }
