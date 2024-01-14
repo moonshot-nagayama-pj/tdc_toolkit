@@ -82,7 +82,6 @@ pub fn open_device(device_index: u8) -> Result<String, String> {
     let mut vec_serial: [u8; 9] = [0; 9];
     unsafe {
         let ret = MH_OpenDevice(device_index.into(), vec_serial.as_mut_ptr() as *mut i8);
-        println!("ret: {}", ret);
         handle_error(ret)?;
         Ok(convert_into_string(&vec_serial))
     }

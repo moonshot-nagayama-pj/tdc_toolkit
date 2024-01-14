@@ -239,9 +239,11 @@ pub fn get_warnings(device_index: u8) -> PyResult<String> {
 }
 
 #[pyfunction]
-pub fn read_fifo(device_index: u8) -> PyResult<u32> {
-    let mut buffer = [0u32; 131072];
-    mhlib_wrapper::read_fifo(device_index, buffer.as_mut_ptr()).map_err(convert_into_py_err)
+pub fn read_fifo(device_index: u8) -> PyResult<(u32, Vec<u32>)> {
+    let mut buffer = Vec::from([0u32; 1048576]);
+    mhlib_wrapper::read_fifo(device_index, buffer.as_mut_ptr())
+        .map_err(convert_into_py_err)
+        .map(|len| (len, buffer))
 }
 
 #[pyfunction]

@@ -1,6 +1,6 @@
 from os import path
 import os, sys, json, argparse
-from multiharp_toolkit.parser import parse
+from .ptu_parser import parse
 import polars as pl
 import plotly.express as px
 

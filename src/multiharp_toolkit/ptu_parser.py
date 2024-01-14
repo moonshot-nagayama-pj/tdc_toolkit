@@ -30,12 +30,72 @@ class TimeTaggedData:
     values: list[Any]
     numRecords: int
     globRes: float
+    events: list[list[int | float]]  # [channel: [timetag]]
+
+
+class Parser:
+    events: list[list[int | float]]  # [channel: [timetag]]
+    truetime: float
+    oflcorrection: float
+    ptu_version: int
+    T2WRAPAROUND_V1 = 33552000
+    T2WRAPAROUND_V2 = 33554432
+
+    def __init__(self, ptu_version=2) -> None:
+        self.truetime = 0
+        self.oflcorrection = 0
+        self.ptu_version = ptu_version
+        self.events = [[] for i in range(0, 65)]  # max 64ch + sync
+
+    def __repr__(self) -> str:
+        num_ev_str = ",".join(
+            [
+                f"{ch}:{len(events)}events"
+                for ch, events in enumerate(self.events)
+                if len(events) > 0
+            ]
+        )
+        return f"Parser(events: {num_ev_str}, v{self.ptu_version}, ofl: {self.oflcorrection})"
+
+    def parse_records(self, inputfile: io.BufferedReader, num_records: int):
+        for i in range(0, num_records):
+            data = struct.unpack("<I", inputfile.read(4))[0]
+            self.parse_record(data)
+            if i % 100000 == 0:
+                sys.stdout.write(
+                    "\rLoading file: %.1f%%" % (float(i) * 100 / float(num_records))
+                )
+                sys.stdout.flush()
+
+    def parse_record(self, data: int):
+        special = (data >> 31) & 0x01  # 最上位ビット
+        channel = (data >> 25) & 0x3F  # 次の6ビット
+        timetag = data & 0x1FFFFFF
+        if special == 1:
+            if channel == 0x3F:  # Overflow
+                # Number of overflows in nsync. If old version, it's an
+                # old style single overflow
+                if self.ptu_version == 1:
+                    self.oflcorrection += Parser.T2WRAPAROUND_V1
+                else:
+                    if timetag == 0:  # old style overflow, shouldn't happen
+                        self.oflcorrection += Parser.T2WRAPAROUND_V2
+                    else:
+                        self.oflcorrection += Parser.T2WRAPAROUND_V2 * timetag
+            # if channel >= 1 and channel <= 15: # markers
+            #     truetime = oflcorrection + timetag
+            if channel == 0:  # sync
+                self.truetime = self.oflcorrection + timetag
+                self.events[0].append(self.truetime * 0.2)
+        else:  # regular input channel
+            truetime = self.oflcorrection + timetag
+            self.events[channel + 1].append(truetime * 0.2)
 
 
 def readHT2(inputfile: io.BufferedReader, version, numRecords, globRes):
     truetime = 0
     # [channel: [timetag]]
-    tmp: list[list[int]] = [[] for i in range(0, 65)]  # max 64ch + sync
+    tmp: list[list[int | float]] = [[] for i in range(0, 65)]  # max 64ch + sync
     oflcorrection = 0
     T2WRAPAROUND_V1 = 33552000
     T2WRAPAROUND_V2 = 33554432
