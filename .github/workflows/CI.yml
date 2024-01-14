@@ -54,7 +54,7 @@ jobs:
           # install MHLib silently. see the detail here: https://jrsoftware.org/ishelp/index.php?topic=setupcmdline
           cd '.\MultiHarp150_160_V3_1\MHLib v3.1.0.0\Windows\installation' 
           .\setup.exe /VERYSILENT /NORESTART /LOG=$PWD\log.txt /SUPPRESSMSGBOXES
-          Start-Sleep 20
+          Start-Sleep 10
           echo "-PWD-------"
           ls $PWD
           echo "-TEMP------"
