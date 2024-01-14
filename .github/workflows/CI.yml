@@ -57,15 +57,8 @@ jobs:
           Start-Sleep 10
           echo "-PWD-------"
           ls $PWD
-          echo "-TEMP------"
-          ls $Env:TEMP
-          echo "-------"
-          ls "C:\Program Files\"
-          echo "C:----"
-          ls "C:\"
-          echo "D:----"
-          ls "D:\"
-          
+          cat "$PWD\log.txt"
+
 
       - uses: actions/cache@v3
         with:
