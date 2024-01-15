@@ -8,7 +8,7 @@ import time
 import sys
 import struct
 import io
-
+from multiharp_toolkit._mhtk_rs import PtuParser
 from typing import Any
 
 # Tag Types
@@ -177,12 +177,25 @@ def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
     ret = TimeTaggedData()
     ret.names = tagNames
     ret.values = tagValues
+    ret.events = [[] for i in range(0, 65)]
 
     # get important variables from headers
     ret.numRecords = tagValues[tagNames.index("TTResult_NumberOfRecords")]
     ret.globRes = tagValues[tagNames.index("MeasDesc_GlobalResolution")]
     print({"globRes": ret.globRes, "numRecords": ret.numRecords})
+
     ctx = Parser(ptu_version=2)
     ctx.parse_records(inputfile, ret.numRecords)
     ret.events = ctx.events
+
+    # p = PtuParser()
+    # lst = []
+    # for i in range(0, ret.numRecords):
+    #     data = struct.unpack("<I", inputfile.read(4))[0]
+    #     lst.append(data)
+    # p.parse_records(lst)
+    # evs = p.get_events()
+    # for i in range(0,65):
+    #     ret.events[i] = [ev * 0.2 for ev in evs[i]]
+
     return ret

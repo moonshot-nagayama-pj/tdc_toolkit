@@ -23,4 +23,6 @@ def test_parse_ptu_file(filename):
     for ch in range(0, 65):
         assert len(result.events[ch]) == len(expected_events[ch])
         for i in range(len(result.events[ch])):
-            assert result.events[ch][i] == expected_events[ch][i]
+            assert (
+                result.events[ch][i] == expected_events[ch][i]
+            ), f"faled at ch: {ch}, index: {i}"

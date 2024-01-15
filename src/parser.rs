@@ -6,6 +6,7 @@ use nom::multi::many_till;
 use nom::number::complete::{le_f64, le_i32, le_i64, le_u32, le_u64};
 use nom::IResult;
 use pyo3::prelude::*;
+use std::collections::HashMap;
 use std::str;
 
 #[derive(Debug)]
@@ -180,30 +181,21 @@ fn parse_ht2_event_records(
             Err(nom::Err::Error(_)) => return Ok((i, acc)),
             Err(e) => return Err(e),
             Ok((li, value)) => {
-                let special = (value >> 31) as u8;
-                let channel = ((value >> 26) as u8) & 0x7F;
-                let timetag = (value & 0x01FFFFFF) as u64;
+                let special = ((value >> 31) & 0x01) as u8;
+                let mut channel = ((value >> 25) & 0x3F) as u8;
+                let timetag = (value & 0x1FFFFFF) as u64;
                 if special == 1 {
                     if channel == 0x3F {
                         if timetag == 0 {
                             overflow_correction = T2WRAPAROUND_V2;
-                            println!("{} OFL *  {:x}", idx, 1);
                         } else {
                             overflow_correction += T2WRAPAROUND_V2 * timetag;
-                            println!("{} OFL *  {:x}", idx, timetag);
                         }
                     } else if (1..=15).contains(&channel) { // marker
                     }
                     if channel == 0 {
                         // sync
                         let truetime = overflow_correction + timetag;
-                        println!(
-                            "{} CHN {} {} {:.0}",
-                            idx,
-                            0,
-                            truetime,
-                            (truetime as f32 * global_resolution as f32 * 1e12).round() as i32
-                        );
                         acc.push(EventRecord {
                             special,
                             channel,
@@ -213,13 +205,6 @@ fn parse_ht2_event_records(
                 } else {
                     // photon
                     let truetime = overflow_correction + timetag;
-                    println!(
-                        "{} CHN {} {} {}",
-                        idx,
-                        channel + 1,
-                        truetime,
-                        (truetime as f64 * global_resolution * 1e12).round()
-                    );
                     acc.push(EventRecord {
                         special,
                         channel,
@@ -266,4 +251,63 @@ pub fn parse_t2_ptu(input: &[u8]) -> IResult<&[u8], PQTimeTaggedData> {
             events: rec,
         },
     ))
+}
+
+#[pyclass]
+pub struct PtuParser {
+    events: HashMap<u8, Vec<u64>>, // contains truetime in global res
+    overflow_correction: u64,
+}
+
+#[pymethods]
+impl PtuParser {
+    #[new]
+    fn new() -> Self {
+        let mut s = Self {
+            events: HashMap::new(),
+            overflow_correction: 0u64,
+        };
+        for ch in 0..65 {
+            s.events.insert(ch, Vec::new());
+        }
+        s
+    }
+
+    fn parse_records(&mut self, records: Vec<u32>) {
+        for record in records {
+            self.parse_record(record);
+        }
+    }
+
+    fn parse_record(&mut self, data: u32) {
+        let special = (data >> 31) & 0x01;
+        let mut channel = ((data >> 25) & 0x3F) as u8;
+        let timetag = (data & 0x1FFFFFF) as u64;
+        if special == 1 {
+            if channel == 0x3F {
+                if timetag == 0 {
+                    self.overflow_correction += T2WRAPAROUND_V2;
+                } else {
+                    self.overflow_correction += T2WRAPAROUND_V2 * timetag;
+                }
+            }
+            if channel == 0 {
+                let truetime = self.overflow_correction + timetag;
+                let v = self.events.get_mut(&channel).unwrap();
+                v.push(truetime);
+            }
+        } else {
+            channel += 1;
+            let truetime = self.overflow_correction + timetag;
+            let v = self.events.get_mut(&channel).unwrap();
+            v.push(truetime);
+        }
+    }
+
+    fn get_events(&self) -> HashMap<u8, Vec<u64>> {
+        self.events.clone()
+    }
+    fn get_oflcorrection(&self) -> u64 {
+        self.overflow_correction
+    }
 }

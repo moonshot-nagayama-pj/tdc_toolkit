@@ -1,4 +1,5 @@
 use crate::parser;
+pub use parser::PtuParser;
 use parser::{parse_t2_ptu, PQTimeTaggedData};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
