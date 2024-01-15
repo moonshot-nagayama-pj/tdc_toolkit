@@ -56,7 +56,7 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy -- -D warnings
       - run: cargo test
-      - run: pip install -r requirements.lock
+      - run: pip install -r requirements-dev.lock
       - run: pytest src/multiharp_toolkit
 
   build-on-linux:
