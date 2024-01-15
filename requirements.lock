@@ -6,6 +6,7 @@
 #   features: []
 #   all-features: false
 
+-e file:.
 iniconfig==2.0.0
 kaleido==0.2.1
 maturin==1.4.0
