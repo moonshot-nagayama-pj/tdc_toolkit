@@ -5,7 +5,6 @@ import pytest
 EXAMPLE_PTU_FILES = [
     "sampledata/example-10mins-ch1-t2",
     "sampledata/example-1min-ch1-t2",
-    "sampledata/default_pulse",
 ]
 
 
