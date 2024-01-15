@@ -490,10 +490,10 @@ pub fn get_warnings(device_index: u8) -> Result<String, String> {
     }
 }
 
-pub fn read_fifo(device_index: u8, buffer: *mut u32) -> Result<u32, String> {
+pub fn read_fifo(device_index: u8, buffer: &mut [u32]) -> Result<u32, String> {
     let mut num_records: i32 = 0;
     unsafe {
-        let ret = MH_ReadFiFo(device_index.into(), buffer, &mut num_records);
+        let ret = MH_ReadFiFo(device_index.into(), buffer.as_mut_ptr(), &mut num_records);
         handle_error(ret)?;
         Ok(num_records as u32)
     }

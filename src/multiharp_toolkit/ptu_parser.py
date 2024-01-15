@@ -35,14 +35,12 @@ class TimeTaggedData:
 
 class Parser:
     events: list[list[int | float]]  # [channel: [timetag]]
-    truetime: float
     oflcorrection: float
     ptu_version: int
     T2WRAPAROUND_V1 = 33552000
     T2WRAPAROUND_V2 = 33554432
 
     def __init__(self, ptu_version=2) -> None:
-        self.truetime = 0
         self.oflcorrection = 0
         self.ptu_version = ptu_version
         self.events = [[] for i in range(0, 65)]  # max 64ch + sync
@@ -85,8 +83,8 @@ class Parser:
             # if channel >= 1 and channel <= 15: # markers
             #     truetime = oflcorrection + timetag
             if channel == 0:  # sync
-                self.truetime = self.oflcorrection + timetag
-                self.events[0].append(self.truetime * 0.2)
+                truetime = self.oflcorrection + timetag
+                self.events[0].append(truetime * 0.2)
         else:  # regular input channel
             truetime = self.oflcorrection + timetag
             self.events[channel + 1].append(truetime * 0.2)
