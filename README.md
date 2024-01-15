@@ -18,12 +18,20 @@ $ rye sync
 $ python -m ensurepip
 ```
 
+if you're using devcontainer on Apple silicon,
+```sh
+$ python -m pip install polars-lts-cpu
+```
+
 if you don't use rye, create virtualenv and install dependencies.
 ```sh
 $ python -m venv .venv
 
 # activate the venv. if you use vscode and the python extension, it runs this automatically.
 $ source .venv/bin/activate
+
+# and install dependencies
+$ pip install -r requirements-dev.lock
 ```
 
 then confirm you are usuing the correct python interpreter.
