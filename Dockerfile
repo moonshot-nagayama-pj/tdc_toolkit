@@ -3,10 +3,10 @@ FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/base:ubuntu-22.04
 # This Dockerfile is configured for development purposes, not production.
 # The apt cache is retained to facilitate the addition of more tools via apt during development.
 RUN apt update -y && apt remove -y python3.10 python3.10-minimal libpython3.10-minimal && sudo apt autoremove -y && \
- apt install -y \ 
+ apt install -y \
  llvm-dev libclang-dev clang lld file git \
  libusb-1.0-0-dev libusb-1.0-0 usbutils curl tig \
- libffi-dev pkg-config libreadline-dev
+ libffi-dev pkg-config libreadline-dev vim tig
 
 # based on https://github.com/docker-library/python/blob/ab3d095cb74ee82f11b6dc59f113ad01b60d41c1/3.12/bookworm/Dockerfile
 
@@ -60,6 +60,7 @@ RUN set -eux; \
 		--with-lto \
 		--with-system-expat \
 		--without-ensurepip \
+    --with-readline \
 	; \
 	nproc="$(nproc)"; \
 	EXTRA_CFLAGS="$(dpkg-buildflags --get CFLAGS)"; \
@@ -132,3 +133,5 @@ RUN wget https://static.rust-lang.org/rustup/archive/1.26.0/x86_64-unknown-linux
  chmod +x rustup-init && \
  ./rustup-init -y
 
+RUN curl -sSf https://rye-up.com/get | RYE_INSTALL_OPTION="-y" bash 
+RUN echo "source $HOME/.rye/env" >> $HOME/.profile 

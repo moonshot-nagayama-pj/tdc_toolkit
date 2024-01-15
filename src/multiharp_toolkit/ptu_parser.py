@@ -35,14 +35,12 @@ class TimeTaggedData:
 
 class Parser:
     events: list[list[int | float]]  # [channel: [timetag]]
-    truetime: float
     oflcorrection: float
     ptu_version: int
     T2WRAPAROUND_V1 = 33552000
     T2WRAPAROUND_V2 = 33554432
 
     def __init__(self, ptu_version=2) -> None:
-        self.truetime = 0
         self.oflcorrection = 0
         self.ptu_version = ptu_version
         self.events = [[] for i in range(0, 65)]  # max 64ch + sync
@@ -85,52 +83,11 @@ class Parser:
             # if channel >= 1 and channel <= 15: # markers
             #     truetime = oflcorrection + timetag
             if channel == 0:  # sync
-                self.truetime = self.oflcorrection + timetag
-                self.events[0].append(self.truetime * 0.2)
+                truetime = self.oflcorrection + timetag
+                self.events[0].append(truetime * 0.2)
         else:  # regular input channel
             truetime = self.oflcorrection + timetag
             self.events[channel + 1].append(truetime * 0.2)
-
-
-def readHT2(inputfile: io.BufferedReader, version, numRecords, globRes):
-    truetime = 0
-    # [channel: [timetag]]
-    tmp: list[list[int | float]] = [[] for i in range(0, 65)]  # max 64ch + sync
-    oflcorrection = 0
-    T2WRAPAROUND_V1 = 33552000
-    T2WRAPAROUND_V2 = 33554432
-    for recNum in range(0, numRecords):
-        data = struct.unpack("<I", inputfile.read(4))[0]
-
-        # ビット操作を使用して値を取り出す
-        special = (data >> 31) & 0x01  # 最上位ビット
-        channel = (data >> 25) & 0x3F  # 次の6ビット
-        timetag = data & 0x1FFFFFF
-        if special == 1:
-            if channel == 0x3F:  # Overflow
-                # Number of overflows in nsync. If old version, it's an
-                # old style single overflow
-                if version == 1:
-                    oflcorrection += T2WRAPAROUND_V1
-                else:
-                    if timetag == 0:  # old style overflow, shouldn't happen
-                        oflcorrection += T2WRAPAROUND_V2
-                    else:
-                        oflcorrection += T2WRAPAROUND_V2 * timetag
-            # if channel >= 1 and channel <= 15: # markers
-            #     truetime = oflcorrection + timetag
-            if channel == 0:  # sync
-                truetime = oflcorrection + timetag
-                tmp[0].append(truetime * 0.2)
-        else:  # regular input channel
-            truetime = oflcorrection + timetag
-            tmp[channel + 1].append(truetime * 0.2)
-        if recNum % 100000 == 0:
-            sys.stdout.write(
-                "\rLoading file: %.1f%%" % (float(recNum) * 100 / float(numRecords))
-            )
-            sys.stdout.flush()
-    return tmp
 
 
 def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
@@ -139,6 +96,7 @@ def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
         print("ERROR: Magic invalid, this is not a PTU file.")
         return None
 
+    # e.g. 1.1.02
     version = inputfile.read(8).decode("utf-8").strip("\0")
     # Write the header data to outputfile and also save it in memory.
     # There's no do ... while in Python, so an if statement inside the while loop
@@ -224,5 +182,7 @@ def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
     ret.numRecords = tagValues[tagNames.index("TTResult_NumberOfRecords")]
     ret.globRes = tagValues[tagNames.index("MeasDesc_GlobalResolution")]
     print({"globRes": ret.globRes, "numRecords": ret.numRecords})
-    ret.events = readHT2(inputfile, version, ret.numRecords, ret.globRes)
+    ctx = Parser(ptu_version=2)
+    ctx.parse_records(inputfile, ret.numRecords)
+    ret.events = ctx.events
     return ret

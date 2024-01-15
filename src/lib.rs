@@ -4,7 +4,7 @@ use pyo3::prelude::*;
     all(target_arch = "x86_64", target_os = "windows"),
     all(target_arch = "x86_64", target_os = "linux")
 ))]
-mod mhlib_wrapper;
+pub mod mhlib_wrapper;
 
 #[cfg(any(
     all(target_arch = "x86_64", target_os = "windows"),
