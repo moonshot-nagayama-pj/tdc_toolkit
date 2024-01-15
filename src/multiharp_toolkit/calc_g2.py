@@ -174,6 +174,7 @@ def main():
     print("result json: ", result_file_name)
     with open(filepath, "rb") as f:
         result = parse(f)
+    assert result is not None, "Failed to parse"
 
     print(
         "\nevent counts: ",
