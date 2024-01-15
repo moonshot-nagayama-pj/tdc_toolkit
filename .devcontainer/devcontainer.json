@@ -14,7 +14,9 @@
 				"1YiB.rust-bundle",
 				"tamasfe.even-better-toml",
 				"ms-python.python",
-				"llvm-vs-code-extensions.vscode-clangd"
+				"llvm-vs-code-extensions.vscode-clangd",
+				"ms-python.black-formatter",
+				"vadimcn.vscode-lldb"
 			]
 		}
 	},

@@ -10,7 +10,7 @@
 			"group": "build",
 			"label": "rust: cargo build",
 			"options": {
-				"cwd": "${workspaceFolder}/parser-rs"
+				"cwd": "${workspaceFolder}"
 			}
 		},
 		

@@ -17,12 +17,12 @@
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "Debug parser-rs",
+            "name": "Debug measure-rs",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/parser-rs/target/debug/main",
+            "program": "${workspaceFolder}/target/debug/cli",
             "args": [],
-            "cwd": "${workspaceFolder}/parser-rs",
+            "cwd": "${workspaceFolder}",
             "preLaunchTask": "rust: cargo build",
             "sourceLanguages": [
                 "rust"
