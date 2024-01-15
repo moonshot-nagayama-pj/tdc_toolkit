@@ -6,7 +6,6 @@
 #   features: []
 #   all-features: false
 
--e file:.
 asttokens==2.4.1
 attrs==23.1.0
 comm==0.1.4
