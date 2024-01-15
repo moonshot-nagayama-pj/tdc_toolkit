@@ -10,6 +10,7 @@ dependencies = [
     "polars>=0.20.3",
     "plotly>=5.18.0",
     "maturin>=1.4.0",
+    "pytest>=7.4.4",
 ]
 readme = "README.md"
 requires-python = ">= 3.11"

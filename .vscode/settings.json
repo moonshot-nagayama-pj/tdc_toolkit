@@ -6,5 +6,10 @@
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.useLibraryCodeForTypes": true,
     "python.analysis.stubPath": "src/multiharp_toolkit",
-    "black-formatter.importStrategy": "fromEnvironment"
+    "black-formatter.importStrategy": "fromEnvironment",
+    "python.testing.pytestArgs": [
+        "src"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

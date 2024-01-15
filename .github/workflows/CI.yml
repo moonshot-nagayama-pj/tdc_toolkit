@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 jobs:
-  test-rust-lib:
+  test-lib:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -56,6 +56,9 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy -- -D warnings
       - run: cargo test
+      - run: pip install -r requirements.lock
+      - run: pytest src/multiharp_toolkit
+
   build-on-linux:
     runs-on: ubuntu-latest
     steps:
