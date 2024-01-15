@@ -96,7 +96,7 @@ def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
         print("ERROR: Magic invalid, this is not a PTU file.")
         return None
 
-    version = int(inputfile.read(8).decode("utf-8").strip("\0"))
+    version = inputfile.read(8).decode("utf-8").strip("\0")
     # Write the header data to outputfile and also save it in memory.
     # There's no do ... while in Python, so an if statement inside the while loop
     # breaks out of it
