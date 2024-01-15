@@ -98,6 +98,7 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: 'true'
           manylinux: 'off' 
+      - run: pip install -r requirements-dev.lock
       - run: pytest src/multiharp_toolkit
       - name: Upload wheels
         uses: actions/upload-artifact@v3
