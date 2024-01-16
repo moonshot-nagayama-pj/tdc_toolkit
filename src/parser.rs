@@ -170,19 +170,18 @@ const T2WRAPAROUND_V2: u64 = 33554432;
 fn parse_ht2_event_records(
     input: &[u8],
     num_records: usize,
-    global_resolution: f64,
+    _global_resolution: f64,
 ) -> IResult<&[u8], Vec<EventRecord>> {
     let mut overflow_correction: u64 = 0;
     let mut acc = Vec::with_capacity(num_records);
     let mut i = input;
-    let mut idx = 0;
     loop {
         match le_u32(i) {
             Err(nom::Err::Error(_)) => return Ok((i, acc)),
             Err(e) => return Err(e),
             Ok((li, value)) => {
                 let special = ((value >> 31) & 0x01) as u8;
-                let mut channel = ((value >> 25) & 0x3F) as u8;
+                let channel = ((value >> 25) & 0x3F) as u8;
                 let timetag = (value & 0x1FFFFFF) as u64;
                 if special == 1 {
                     if channel == 0x3F {
@@ -212,7 +211,6 @@ fn parse_ht2_event_records(
                     })
                 }
                 i = li;
-                idx += 1;
             }
         }
     }
