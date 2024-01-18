@@ -86,12 +86,14 @@ def calc_g2(df, peak_start_1, peak_end_1, peak_start_2, peak_end_2):
     df_ch = df["ch"].to_list()
     df_timestamp = df["timestamp"].to_list()
 
+    ch2_found = False
     for i, ch in enumerate(df_ch):
         timestamp = df_timestamp[i]
         if ch == 0:
             sync_start = timestamp
             n_sync += 1
             ch1_found = False
+            ch2_found = False
             continue
         diff = timestamp - sync_start
         if ch == 1:
@@ -100,9 +102,12 @@ def calc_g2(df, peak_start_1, peak_end_1, peak_start_2, peak_end_2):
                 ch1_found = True
         if ch == 2:
             if peak_start_2 < diff < peak_end_2:
-                n_sync_2 += 1
+                if not ch2_found:
+                    n_sync_2 += 1
+                    ch2_found = True
                 if ch1_found:
                     n_sync_1_2 += 1
+                    ch1_found = False
         if i % 100000 == 0:
             sys.stdout.write(
                 "\rCount events...: %.1f%%" % (float(i) * 100 / float(num_records))
