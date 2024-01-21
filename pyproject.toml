@@ -7,7 +7,7 @@ dependencies = [
     "pyarrow>=14.0.2",
     "kaleido>=0.2.1",
     "pandas>=2.1.2",
-    "polars>=0.20.3",
+    "polars>=0.20.5",
     "plotly>=5.18.0",
     "maturin>=1.4.0",
 ]
