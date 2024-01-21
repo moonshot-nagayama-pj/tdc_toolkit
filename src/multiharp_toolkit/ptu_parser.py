@@ -35,15 +35,21 @@ class TimeTaggedData:
 
 class Parser:
     events: list[list[int | float]]  # [channel: [timetag]]
+    timestamps: list[float]  # for combined channel mode
+    channels: list[int]  # for combined channel mode
     oflcorrection: float
     ptu_version: int
     T2WRAPAROUND_V1 = 33552000
     T2WRAPAROUND_V2 = 33554432
+    combined_channel = bool
 
     def __init__(self, ptu_version=2) -> None:
         self.oflcorrection = 0
         self.ptu_version = ptu_version
-        self.events = [[] for i in range(0, 65)]  # max 64ch + sync
+        self.events = [[] for i in range(0, 65)]  # max 64ch
+        self.channels = []
+        self.timestamps = []
+        self.combined_channel = False
 
     def __repr__(self) -> str:
         num_ev_str = ",".join(
@@ -54,6 +60,12 @@ class Parser:
             ]
         )
         return f"Parser(events: {num_ev_str}, v{self.ptu_version}, ofl: {self.oflcorrection})"
+
+    def reset(self):
+        self.oflcorrection = 0
+        self.channels = []
+        self.timestamps = []
+        self.events = [[] for i in range(0, 65)]  # max 64ch
 
     def parse_records(self, inputfile: io.BufferedReader, num_records: int):
         for i in range(0, num_records):
@@ -84,10 +96,17 @@ class Parser:
             #     truetime = oflcorrection + timetag
             if channel == 0:  # sync
                 truetime = self.oflcorrection + timetag
-                self.events[0].append(truetime * 0.2)
+                self.append_events(0, truetime)
         else:  # regular input channel
             truetime = self.oflcorrection + timetag
-            self.events[channel + 1].append(truetime * 0.2)
+            self.append_events(channel + 1, truetime)
+
+    def append_events(self, channel: int, timestamp: float):
+        if self.combined_channel:
+            self.channels.append(channel)
+            self.timestamps.append(timestamp * 0.2)
+        else:
+            self.events[channel].append(timestamp * 0.2)
 
 
 def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
