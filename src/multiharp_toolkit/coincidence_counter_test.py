@@ -7,10 +7,7 @@ from .coincidence_counter import (
 
 
 def test_init():
-    counter = CoincidenceCounter(
-        histogram_targets=[0, 1, 2], coincidence_targets=[[0, 1], [0, 2], [0, 1, 2]]
-    )
-    assert len(counter.histograms) == 1
+    counter = CoincidenceCounter(coincidence_targets=[[0, 1], [0, 2], [0, 1, 2]])
 
 
 def test_process_simple_count():
