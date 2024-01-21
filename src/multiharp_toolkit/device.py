@@ -13,6 +13,7 @@ class DeviceInputChannelConfig(TypedDict):
     edge_trigger_level: int
     edge_trigger: "mh.Edge"
     channel_offset: int
+    enable: bool
 
 
 class DeviceConfig(TypedDict):
@@ -20,6 +21,7 @@ class DeviceConfig(TypedDict):
     sync_edge_trigger_level: int  # mV
     sync_edge: "mh.Edge"
     sync_channel_offset: int  # ps
+    sync_channel_enable: bool
     inputs: list[DeviceInputChannelConfig]
 
 
@@ -37,11 +39,11 @@ class Device:
     def __open(self):
         if self.is_open:
             return
-        i = self.device_index
-        mh.open_device(i)
+        dev_id = self.device_index
+        mh.open_device(dev_id)
         self.is_open = True
-        mh.initialize(i)
-        num_inputs = mh.get_number_of_input_channels(i)
+        mh.initialize(dev_id,mh.Mode.T2, mh.RefSource.InternalClock)
+        num_inputs = mh.get_number_of_input_channels(dev_id)
         c = self.config
 
         if num_inputs != len(self.config["inputs"]):
@@ -51,15 +53,17 @@ class Device:
                 len(self.config["inputs"]),
             )
 
-        mh.set_sync_divider(i, c["sync_divider"])
-        mh.set_sync_edge_trigger(i, c["sync_edge_trigger_level"], c["sync_edge"])
-        mh.set_sync_channel_offset(i, 0)
+        mh.set_sync_divider(dev_id, c["sync_divider"])
+        mh.set_sync_edge_trigger(dev_id, c["sync_edge_trigger_level"], c["sync_edge"])
+        mh.set_sync_channel_offset(dev_id, 0)
+        mh.set_sync_channel_enable(dev_id, c["sync_channel_enable"])
         for ch in range(0, num_inputs):
             ch_config = self.config["inputs"][ch]
             mh.set_input_edge_trigger(
-                i, ch, ch_config["edge_trigger"], ch_config["edge_trigger"]
+                dev_id, ch, ch_config["edge_trigger_level"], ch_config["edge_trigger"]
             )
-            mh.set_input_channel_offset(i, ch, ch_config["channel_offset"])
+            mh.set_input_channel_offset(dev_id, ch, ch_config["channel_offset"])
+            mh.set_input_channel_enable(dev_id, ch, ch_config["enable"])
 
     def __close(self):
         mh.close_device(self.device_index)
@@ -76,21 +80,21 @@ class Device:
         self.__close()
 
     def start_measurement(self, meas_time: int):
-        i = self.device_index
+        dev_id = self.device_index
         progress = 0
         self.oflcorrection = 0
         channels = []
         timestamps = []
         filename = f".arrows/{int(time.time())}-{meas_time}.arrow"
-        mh.start_measurement(i, meas_time)
+        mh.start_measurement(dev_id, meas_time)
         batches = []
         while True:
-            flags = mh.get_flags(i)
+            flags = mh.get_flags(dev_id)
             if flags & 2:
                 print("fifo overrun")
-                mh.stop_measurement(i)
+                mh.stop_measurement(dev_id)
 
-            num_records, data = mh.read_fifo(i)
+            num_records, data = mh.read_fifo(dev_id)
             if num_records > 0:
                 for i in range(0, num_records):
                     result = self.parse_record(data[i])
@@ -114,12 +118,12 @@ class Device:
                 sys.stdout.write("\rProgress:%9u" % progress)
                 sys.stdout.flush()
             else:
-                status = mh.ctc_status(i)
+                status = mh.ctc_status(dev_id)
                 if status > 0:
                     print("done")
                     break
 
-        mh.stop_measurement(i)
+        mh.stop_measurement(dev_id)
         with pa.ipc.new_file(filename, schema=TimeTagDataSchema) as f:
             for batch in batches:
                 f.write_batch(batch)
@@ -170,8 +174,9 @@ if __name__ == "__main__":
         "sync_divider": 1,
         "sync_edge": mh.Edge.Falling,
         "sync_edge_trigger_level": -70,
+        "sync_channel_enable": True,
         "inputs": [
-            {
+            { "enable": True,
                 "channel_offset": 0,
                 "edge_trigger": mh.Edge.Falling,
                 "edge_trigger_level": -70,
