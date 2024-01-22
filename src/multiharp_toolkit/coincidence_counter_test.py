@@ -1,3 +1,4 @@
+from multiharp_toolkit.util_types import Channel
 import pytest
 from .coincidence_counter import (
     CoincidenceCounter,
@@ -5,13 +6,21 @@ from .coincidence_counter import (
     CoincidenceCounterState,
 )
 
+coincidence_channels: list[list[ChannelInfo | Channel]] = [
+    [
+        ChannelInfo(0),
+        ChannelInfo(1, 1.0, 2.0),
+        ChannelInfo(2, 3.0, 4.0),
+    ]
+]
+
 
 def test_init():
     counter = CoincidenceCounter(coincidence_targets=[[0, 1], [0, 2], [0, 1, 2]])
 
 
 def test_process_simple_count():
-    counter = CoincidenceCounter(histogram_targets=[0, 1, 2])
+    counter = CoincidenceCounter(coincidence_channels)
     counter.process(0, 10.0)
     assert counter.number_of_counts == {0: 1, 1: 0, 2: 0}
 
@@ -29,7 +38,7 @@ def test_process_simple_count():
 
 
 def test_process_ignore_unknown_ch():
-    counter = CoincidenceCounter(histogram_targets=[0, 1, 2])
+    counter = CoincidenceCounter(coincidence_channels)
 
     assert counter.number_of_counts == {0: 0, 1: 0, 2: 0}
     counter.process(10, 10.0)
@@ -37,11 +46,10 @@ def test_process_ignore_unknown_ch():
 
 
 def test_process_timediff():
-    counter = CoincidenceCounter(histogram_targets=[0, 1, 2])
+    counter = CoincidenceCounter(coincidence_channels)
     events = [(0, 10.0), (1, 20.0), (0, 30.0), (1, 40.0), (2, 45.0), (0, 50.0)]
     counter.process_events(events)
     assert counter.number_of_counts == {0: 3, 1: 2, 2: 1}
-    assert counter.histograms[0].timediffs == {1: [10.0, 10.0], 2: [15.0]}
 
 
 def test_count_coincidence():

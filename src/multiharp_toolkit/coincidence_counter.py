@@ -1,4 +1,4 @@
-from .util_types import Channel, TimeTag
+from multiharp_toolkit.util_types import Channel, TimeTag
 
 
 class ChannelInfo:
@@ -15,10 +15,6 @@ class ChannelInfo:
 
     def in_peak_window(self, truetime: TimeTag) -> bool:
         return self.peak_start < truetime < self.peak_end
-
-    @property
-    def is_ready(self) -> bool:
-        return self.peak_start > 0 and self.peak_end > 0
 
 
 class CoincidenceCounterState:
@@ -65,65 +61,22 @@ class CoincidenceCounterState:
             self.count += 1
             self.i = 0
 
-    @property
-    def is_ready(self) -> bool:
-        for c in self.channels[1:]:
-            if not c.is_ready:
-                return False
-        return True
-
-
-class HistogramState:
-    timediffs: dict[Channel, list[TimeTag]]
-    channels: list[Channel]
-
-    # state
-    base_ch: Channel
-    base_start: TimeTag
-    last_truetime: TimeTag
-
-    def __init__(self, base_ch: Channel, channels: list[Channel]) -> None:
-        self.base_ch = base_ch
-        self.channels = channels
-        self.base_start = 0
-        self.last_truetime = 0
-        self.timediffs = {}
-        for ch in self.channels:
-            self.timediffs[ch] = []
-
-    def process(self, ch: Channel, truetime: TimeTag):
-        self.last_truetime = truetime
-        if ch == self.base_ch:
-            self.base_start = truetime
-        elif ch in self.timediffs:
-            self.timediffs[ch].append(truetime - self.base_start)
-
 
 class CoincidenceCounter:
     number_of_counts: dict[Channel, int]  # key, int
     peak_windows: dict[Channel, tuple[TimeTag, TimeTag]]  # (peak start, peak end) in ps
 
-    histograms: list[HistogramState]
     coincidence_counters: list[CoincidenceCounterState]
 
     def __init__(
         self,
-        histogram_targets: list[Channel] = [],  # the first element must be base channel
-        coincidence_targets: list[list[ChannelInfo | Channel]] = [],
+        coincidence_targets: list[list[ChannelInfo | Channel]]
+        | list[list[ChannelInfo]] = [],
     ):
         self.number_of_counts = {}
-        self.histograms = []
         self.peak_windows = dict()
         self.coincidence_counters = []
         target_channels: list[Channel] = []
-
-        if len(histogram_targets) > 0:
-            assert (
-                len(set(histogram_targets)) >= 2
-            ), "must specify histogram targets at least 2 channels"
-            base_ch, *channels = histogram_targets
-            self.histograms.append(HistogramState(base_ch, channels))
-            target_channels += histogram_targets
 
         for target in coincidence_targets:
             assert (
@@ -138,6 +91,16 @@ class CoincidenceCounter:
         for ch in set(target_channels):
             self.number_of_counts[ch] = 0
 
+    def process_arrow(self, arrow_file_path):
+        data: pa.RecordBatchFileReader = pa.ipc.open_file(arrow_file_path)
+        for i in range(0, data.num_record_batches):
+            batch = data.get_batch(i)
+            channels = batch["ch"].tolist()
+            timestamps = batch["timestamp"].tolist()
+            for i, ch in enumerate(channels):
+                timestamp = timestamps[i]
+                self.process(ch, timestamp)
+
     def process_events(self, events: list[tuple[Channel, TimeTag]]):
         for ev in events:
             self.process(*ev)
@@ -146,26 +109,8 @@ class CoincidenceCounter:
         if ch not in self.number_of_counts:
             return
         self.number_of_counts[ch] += 1
-        for h in self.histograms:
-            h.process(ch, truetime)
         for c in self.coincidence_counters:
-            if c.is_ready:
-                c.process(ch, truetime)
-
-    def setup_peakwindows(self):
-        for c in self.coincidence_counters:
-            for i, ch_info in enumerate(c.channels):
-                if i == 0:  # this is base channel
-                    continue
-                if not ch_info.is_ready:
-                    ch = ch_info.ch
-                    if ch not in self.peak_windows:
-                        raise RuntimeError(
-                            f"ch({ch}) does not have a specific peak window."
-                        )
-                    peak_start, peak_end = self.peak_windows[ch]
-                    ch_info.peak_start = peak_start
-                    ch_info.peak_end = peak_end
+            c.process(ch, truetime)
 
     @property
     def coincidence_counts(self) -> dict[str, int]:
@@ -186,3 +131,43 @@ def extract(lst: list[int | list[int]]) -> tuple[list[int], list[list[int]]]:
                 s.add(i)
             coincidence_tuples.append(e)
     return (list(s), coincidence_tuples)
+
+
+if __name__ == "__main__":
+    import pyarrow as pa
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser(description="count coincidence from arrow file")
+    parser.add_argument("inputfile", type=str, help="path to the .arrow file")
+    parser.add_argument(
+        "--sync-ch", type=int, help="sync channel", default=0, required=False
+    )
+
+    def parse_channel_and_peak(value):
+        v = value.split(",")
+        return [int(v[0]), float(v[1]), float(v[2])]
+
+    parser.add_argument(
+        "--channel",
+        nargs="+",
+        type=parse_channel_and_peak,
+        help="specify channel and peak window in ps: --channel [ch],[peak_start],[peak_end]. for example: --channel 1,500,600 2,700,800",
+    )
+
+    args = parser.parse_args()
+    print(args)
+    sync_ch = args.sync_ch
+    channels = args.channel
+    counter = CoincidenceCounter(
+        [
+            [ChannelInfo(sync_ch)]
+            + [ChannelInfo(*channels[i]) for i in range(0, len(channels))]
+        ]
+    )
+    counter.process_arrow(args.inputfile)
+    print("coincidence counts:")
+    for k, v in counter.coincidence_counts.items():
+        print(k, v)
+    print("\nch | count")
+    for k, v in counter.number_of_counts.items():
+        print(k, "  ", v)
