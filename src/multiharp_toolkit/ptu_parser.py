@@ -4,12 +4,9 @@
 # This is demo code. Use at your own risk. No warranties.
 # Keno Goertz, PicoQUant GmbH, February 2018
 
-import time
-import sys
-import struct
-import io
-from multiharp_toolkit._mhtk_rs import PtuParser
+import time, sys, struct, io
 from typing import Any
+
 
 # Tag Types
 tyEmpty8 = struct.unpack(">i", bytes.fromhex("FFFF0008"))[0]
@@ -206,15 +203,62 @@ def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
     ctx = Parser(ptu_version=2)
     ctx.parse_records(inputfile, ret.numRecords)
     ret.events = ctx.events
-
-    # p = PtuParser()
-    # lst = []
-    # for i in range(0, ret.numRecords):
-    #     data = struct.unpack("<I", inputfile.read(4))[0]
-    #     lst.append(data)
-    # p.parse_records(lst)
-    # evs = p.get_events()
-    # for i in range(0,65):
-    #     ret.events[i] = [ev * 0.2 for ev in evs[i]]
-
     return ret
+
+
+if __name__ == "__main__":
+    from argparse import ArgumentParser
+    from multiharp_toolkit.util_types import TimeTagDataSchema
+    import os
+    import pyarrow as pa
+    import pyarrow.compute as pc
+
+    parser = ArgumentParser(
+        description="parse .ptu file and save .arrow file under .arrows folder"
+    )
+    parser.add_argument("inputfile", type=str, help=".ptu file path")
+
+    args = parser.parse_args()
+    ptu_file_path = args.inputfile
+    if not ptu_file_path.endswith(".ptu"):
+        print("specify .ptu file")
+        exit(1)
+    if not os.path.exists(ptu_file_path):
+        print("ptu file does not exist")
+        exit(1)
+
+    arrow_file_path = os.path.join(
+        ".arrows", os.path.basename(ptu_file_path).replace(".ptu", ".arrow")
+    )
+    if os.path.exists(arrow_file_path):
+        print("arrow file is alread exist:", arrow_file_path)
+        exit(0)
+    if not os.path.exists(".arrows"):
+        os.mkdir(".arrows")
+    print(".ptu file: ", ptu_file_path)
+    print(".arrow file path: ", arrow_file_path)
+
+    with open(ptu_file_path, "rb") as f:
+        print("load ptu file")
+        data = parse(f)
+        if data is None:
+            print("failed to parse ptu file")
+            exit(1)
+    ch_arr = []
+    ev_arr = []
+    for i in range(0, 65):
+        ch_arr += [i] * len(data.events[i])
+        ev_arr += data.events[i]
+
+    table = pa.table({"ch": ch_arr, "timestamp": ev_arr}, schema=TimeTagDataSchema)
+
+    si = pc.sort_indices(table, sort_keys=[("timestamp", "ascending")])
+    batches = table.take(si).to_batches(max_chunksize=100000)
+    print("\nwrite...", arrow_file_path)
+    with pa.OSFile(arrow_file_path, mode="w") as f:
+        with pa.output_stream(arrow_file_path) as f:
+            f.writable()
+            with pa.ipc.new_file(f, TimeTagDataSchema) as writer:
+                for batch in batches:
+                    writer.write_batch(batch)
+            f.seekable()
