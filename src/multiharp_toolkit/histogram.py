@@ -104,7 +104,6 @@ if __name__ == "__main__":
 
     fig = px.scatter(hist.df, x="bin", y=["count_1", "count_2", "count_3"])
     fig.update_layout(bargap=0.2)
-    # fig.write_image(".tmp/hist.png")
     fig.write_html(".tmp/hist.html")
     print(pa.total_allocated_bytes(), "bytes")
     print(hist)

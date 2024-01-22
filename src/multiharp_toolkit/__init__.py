@@ -3,6 +3,7 @@ from .util_types import Channel, TimeTag
 from .ptu_parser import parse, Parser
 from .coincidence_counter import CoincidenceCounter
 from .calc_g2 import calc_g2
+from .device import Device, DeviceConfig, DeviceInputChannelConfig, list_device_index
 
 from multiharp_toolkit._mhtk_rs import (
     Mode,
