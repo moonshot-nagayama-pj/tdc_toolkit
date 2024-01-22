@@ -89,21 +89,3 @@ class Histogram:
             all_hist_df = all_hist_df.fill_null(0)
 
         self.df = all_hist_df
-
-
-if __name__ == "__main__":
-    hist = Histogram(base_ch=Channel(0), channels=[Channel(1), Channel(2), Channel(3)])
-
-    print(pa.total_allocated_bytes(), "bytes")
-    print("start processing...")
-    # table = read_arrow(".arrows/20240119_noise.arrow")
-    # table = read_arrow(".arrows/T2_laser_cw_120s_000.arrow")
-    df = pl.read_ipc(".arrows/T2_maitai_120s_000.arrow")
-    hist.process(df)
-    import plotly.express as px
-
-    fig = px.scatter(hist.df, x="bin", y=["count_1", "count_2", "count_3"])
-    fig.update_layout(bargap=0.2)
-    fig.write_html(".tmp/hist.html")
-    print(pa.total_allocated_bytes(), "bytes")
-    print(hist)

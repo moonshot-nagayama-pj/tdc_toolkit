@@ -21,6 +21,9 @@ classifiers = [
 
 [project.scripts]
 calc-g2 = "multiharp_toolkit.calc_g2:main"
+mh-ptu2arrow = "multiharp_toolkit.cmd:ptu2arrow"
+mh-histogram = "multiharp_toolkit.cmd:histogram"
+mh-coincidence = "multiharp_toolkit.cmd:coincidence"
 
 [build-system]
 requires = ["maturin>=1.4,<2.0"]

@@ -161,31 +161,3 @@ def list_device_index():
     for i in range(0, 8):
         mh.close_device(i)
     return available_devices
-
-
-if __name__ == "__main__":
-    dev_ids = list_device_index()
-    if not dev_ids:
-        print("no device")
-        # exit(0)
-    print("available devices: ", dev_ids)
-    config: DeviceConfig = {
-        "sync_channel_offset": 0,
-        "sync_divider": 1,
-        "sync_edge": mh.Edge.Falling,
-        "sync_edge_trigger_level": -70,
-        "sync_channel_enable": True,
-        "inputs": [
-            {
-                "enable": True,
-                "channel_offset": 0,
-                "edge_trigger": mh.Edge.Falling,
-                "edge_trigger_level": -70,
-            }
-        ]
-        * 16,
-    }
-    dev = Device(dev_ids[0], config)
-    with dev.open() as d:
-        fname = dev.start_measurement(1000)
-        print(fname)
