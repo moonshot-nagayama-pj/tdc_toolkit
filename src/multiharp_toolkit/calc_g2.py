@@ -1,6 +1,7 @@
 from os import path
 import os, sys, json, argparse
-from .ptu_parser import parse
+from multiharp_toolkit.ptu_parser import parse
+from multiharp_toolkit.coincidence_counter import CoincidenceCounter, ChannelInfo
 import polars as pl
 import plotly.express as px
 
@@ -75,39 +76,32 @@ def plot_timediff_hist(df, filename):
 
 
 def calc_g2(df, peak_start_1, peak_end_1, peak_start_2, peak_end_2):
-    sync_start = 0
-    ch1_found = False
-    n_sync_1 = 0
-    n_sync = 0
-    n_sync_2 = 0
-    n_sync_1_2 = 0
-
     num_records = len(df["ch"])
     df_ch = df["ch"].to_list()
     df_timestamp = df["timestamp"].to_list()
 
+    ch_sync = ChannelInfo(0)
+    ch_1 = ChannelInfo(1, peak_start_1, peak_end_1)
+    ch_2 = ChannelInfo(2, peak_start_2, peak_end_2)
+    counter = CoincidenceCounter(
+        coincidence_targets=[
+            [ch_sync, ch_1, ch_2],
+            [ch_sync, ch_2],
+            [ch_sync, ch_1],
+        ]
+    )
     for i, ch in enumerate(df_ch):
         timestamp = df_timestamp[i]
-        if ch == 0:
-            sync_start = timestamp
-            n_sync += 1
-            ch1_found = False
-            continue
-        diff = timestamp - sync_start
-        if ch == 1:
-            if peak_start_1 < diff < peak_end_1:
-                n_sync_1 += 1
-                ch1_found = True
-        if ch == 2:
-            if peak_start_2 < diff < peak_end_2:
-                n_sync_2 += 1
-                if ch1_found:
-                    n_sync_1_2 += 1
+        counter.process(ch, timestamp)
         if i % 100000 == 0:
             sys.stdout.write(
                 "\rCount events...: %.1f%%" % (float(i) * 100 / float(num_records))
             )
             sys.stdout.flush()
+    n_sync = counter.number_of_counts[0]
+    n_sync_1 = counter.coincidence_counts["[0, 1]"]
+    n_sync_2 = counter.coincidence_counts["[0, 2]"]
+    n_sync_1_2 = counter.coincidence_counts["[0, 1, 2]"]
 
     print(
         "\n",
@@ -119,6 +113,10 @@ def calc_g2(df, peak_start_1, peak_end_1, peak_start_2, peak_end_2):
     print(f"n_sync_2 / n_sync: {n_sync_2 / n_sync}")
     print("g2:", (n_sync * n_sync_1_2) / (n_sync_1 * n_sync_2))
     return {
+        "peak_start_1": peak_start_1,
+        "peak_end_1": peak_end_1,
+        "peak_start_2": peak_start_2,
+        "peak_end_2": peak_end_2,
         "n_sync": n_sync,
         "n_sync_1": n_sync_1,
         "n_sync_2": n_sync_2,
@@ -220,7 +218,6 @@ def main():
 
     print(f"peak1: {peak_start_1} ~ {peak_end_1} (ps)")
     print(f"peak2: {peak_start_2} ~ {peak_end_2} (ps)")
-    plot_timediff_hist(df, image_file_name)
 
     res = calc_g2(df, peak_start_1, peak_end_1, peak_start_2, peak_end_2)
     if not channel_swapped:
@@ -232,6 +229,9 @@ def main():
 
     with open(result_file_name, "w") as f:
         json.dump(res, f, indent=2)
+
+    print("plottting... ", image_file_name)
+    plot_timediff_hist(df, image_file_name)
 
 
 if __name__ == "__main__":

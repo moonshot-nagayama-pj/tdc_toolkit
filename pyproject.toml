@@ -4,10 +4,10 @@ version = "0.1.1"
 description = "Add your description here"
 authors = [{ name = "zigen", email = "hrlclb@gmail.com" }]
 dependencies = [
-    "pyarrow>=14.0.1",
+    "pyarrow>=14.0.2",
     "kaleido>=0.2.1",
     "pandas>=2.1.2",
-    "polars>=0.20.3",
+    "polars>=0.20.5",
     "plotly>=5.18.0",
     "maturin>=1.4.0",
 ]
@@ -21,6 +21,9 @@ classifiers = [
 
 [project.scripts]
 calc-g2 = "multiharp_toolkit.calc_g2:main"
+mh-ptu2arrow = "multiharp_toolkit.cmd:ptu2arrow"
+mh-histogram = "multiharp_toolkit.cmd:histogram"
+mh-coincidence = "multiharp_toolkit.cmd:coincidence"
 
 [build-system]
 requires = ["maturin>=1.4,<2.0"]
