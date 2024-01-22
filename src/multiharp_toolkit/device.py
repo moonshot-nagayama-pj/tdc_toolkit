@@ -1,8 +1,9 @@
 from typing import TypedDict
-import multiharp_toolkit._mhtk_rs as mh
-import sys
-import time
+import sys, os, time
+
 import pyarrow as pa
+
+import multiharp_toolkit._mhtk_rs as mh
 
 T2WRAPAROUND_V1 = 33552000
 T2WRAPAROUND_V2 = 33554432
@@ -85,7 +86,8 @@ class Device:
         self.oflcorrection = 0
         channels = []
         timestamps = []
-        filename = f".arrows/{int(time.time())}-{meas_time}.arrow"
+        filename = os.path.join(".arrows", f"{int(time.time())}-{meas_time}.arrow")
+
         mh.start_measurement(dev_id, meas_time)
         batches = []
         while True:
