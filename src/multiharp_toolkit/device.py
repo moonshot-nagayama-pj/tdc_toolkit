@@ -42,7 +42,7 @@ class Device:
         dev_id = self.device_index
         mh.open_device(dev_id)
         self.is_open = True
-        mh.initialize(dev_id,mh.Mode.T2, mh.RefSource.InternalClock)
+        mh.initialize(dev_id, mh.Mode.T2, mh.RefSource.InternalClock)
         num_inputs = mh.get_number_of_input_channels(dev_id)
         c = self.config
 
@@ -176,7 +176,8 @@ if __name__ == "__main__":
         "sync_edge_trigger_level": -70,
         "sync_channel_enable": True,
         "inputs": [
-            { "enable": True,
+            {
+                "enable": True,
                 "channel_offset": 0,
                 "edge_trigger": mh.Edge.Falling,
                 "edge_trigger_level": -70,
