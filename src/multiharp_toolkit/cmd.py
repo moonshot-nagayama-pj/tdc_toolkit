@@ -1,10 +1,12 @@
-import os
+import os, asyncio
 from argparse import ArgumentParser
-
+from multiharp_toolkit.stream_parser import StreamParser
+from concurrent.futures import ThreadPoolExecutor
 import pyarrow as pa
 import pyarrow.compute as pc
 import polars as pl
 import plotly.express as px
+import pyarrow.parquet as pq
 
 import multiharp_toolkit._mhtk_rs as mh
 from multiharp_toolkit.coincidence_counter import ChannelInfo, CoincidenceCounter
@@ -36,12 +38,22 @@ def measure():
         ]
         * 16,
     }
+
     dev = Device(dev_ids[0], config)
-    with dev.open() as d:
-        print("start measurement")
-        fname = dev.start_measurement(1000)
-        print("finish measurement")
-        print("result was saved into ", fname)
+    parser = StreamParser(dev.queue)
+
+    async def run():
+        with dev.open():
+            with ThreadPoolExecutor(max_workers=4) as e:
+                print("start measurement")
+                main_loop = asyncio.get_event_loop()
+                main_loop.run_in_executor(e, dev.start_measurement, 1000)
+                parser_task = asyncio.create_task(parser.run())
+                await asyncio.gather(parser_task)
+        table = pa.ipc.open_file(parser.filename).read_all()
+        pq.write_table(table, f".parquet/{os.path.basename(parser.filename)}.parquet")
+
+    asyncio.run(run())
 
 
 def ptu2arrow():
@@ -84,7 +96,7 @@ def ptu2arrow():
 
     table = pa.table({"ch": ch_arr, "timestamp": ev_arr}, schema=TimeTagDataSchema)
 
-    si = pc.sort_indices(table, sort_keys=[("timestamp", "ascending")])
+    si = pc.sort_indices(table, sort_keys=[("timestamp", "ascending")]) # type: ignore
     batches = table.take(si).to_batches(max_chunksize=100000)
     print("\nwrite...", arrow_file_path)
     with pa.OSFile(arrow_file_path, mode="w") as f:
