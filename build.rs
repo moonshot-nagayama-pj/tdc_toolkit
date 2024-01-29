@@ -12,7 +12,12 @@ fn main() {
     if os == "linux" {
         // this requires the MHLib_v3.x.x_64bit directory to be in the same directory as the Cargo.toml file
         let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
-        let lib_dir_path = PathBuf::from(manifest_dir).join("MHLib_v3.1.0.0_64bit/library");
+
+        // if the MHLIB_PATH environment variable is provided, use it
+        let lib_dir_path = env::var("MHLIB_PATH").map_or(
+            PathBuf::from(manifest_dir).join("MHLib_v3.1.0.0_64bit/library"),
+            PathBuf::from,
+        );
         assert!(
             lib_dir_path.exists(),
             "Library directory does not exist: {}",
