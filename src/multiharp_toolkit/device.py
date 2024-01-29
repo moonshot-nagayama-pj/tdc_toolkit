@@ -108,7 +108,7 @@ class Device:
 
     def test_measurement(self, meas_time: int):
         from multiharp_toolkit.ptu_parser import parse_header
-        import struct
+        import struct, time
 
         assert self.test_enabled
         assert self.test_ptu_file is not None
@@ -125,6 +125,7 @@ class Device:
                 if i % 64 == 0:
                     self.queue.put_nowait(arr.copy())
                     arr = []
+                    time.sleep(0.01)
             if len(arr) > 0:
                 self.queue.put_nowait(arr.copy())
             self.queue.put_nowait([MeasEndMarker()])
