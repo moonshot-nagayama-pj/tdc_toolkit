@@ -1,17 +1,19 @@
-import os
+import os, asyncio
 from argparse import ArgumentParser
-
+from multiharp_toolkit.stream_parser import StreamParser
+from concurrent.futures import ThreadPoolExecutor
 import pyarrow as pa
 import pyarrow.compute as pc
 import polars as pl
 import plotly.express as px
+import pyarrow.parquet as pq
 
 import multiharp_toolkit._mhtk_rs as mh
 from multiharp_toolkit.coincidence_counter import ChannelInfo, CoincidenceCounter
-from multiharp_toolkit.device import list_device_index, DeviceConfig, Device
+from multiharp_toolkit.device import list_device_index, Device
 from multiharp_toolkit.histogram import Histogram
 from multiharp_toolkit.ptu_parser import parse
-from multiharp_toolkit.util_types import Channel, TimeTagDataSchema
+from multiharp_toolkit.util_types import Channel, TimeTagDataSchema, DeviceConfig
 
 
 def measure():
@@ -36,12 +38,23 @@ def measure():
         ]
         * 16,
     }
+
     dev = Device(dev_ids[0], config)
-    with dev.open() as d:
-        print("start measurement")
-        fname = dev.start_measurement(1000)
-        print("finish measurement")
-        print("result was saved into ", fname)
+    parser = StreamParser(dev.queue)
+
+    async def run():
+        with dev.open():
+            with ThreadPoolExecutor(max_workers=4) as e:
+                print("start measurement")
+                main_loop = asyncio.get_event_loop()
+                main_loop.run_in_executor(e, dev.start_measurement, 1000)
+                parser_task = asyncio.create_task(parser.run())
+                await asyncio.gather(parser_task)
+        table = pa.ipc.open_file(parser.filename).read_all()
+        fname = os.path.basename(parser.filename).replace(".arrow", ".parquet")
+        pq.write_table(table, f".parquet/{fname}")
+
+    asyncio.run(run())
 
 
 def ptu2arrow():
@@ -49,6 +62,7 @@ def ptu2arrow():
         description="parse .ptu file and save .arrow file under .arrows folder"
     )
     parser.add_argument("inputfile", type=str, help=".ptu file path")
+    parser.add_argument("--parquet", type=bool, help="save with parquet format")
 
     args = parser.parse_args()
     ptu_file_path = args.inputfile
@@ -62,11 +76,16 @@ def ptu2arrow():
     arrow_file_path = os.path.join(
         ".arrows", os.path.basename(ptu_file_path).replace(".ptu", ".arrow")
     )
-    if os.path.exists(arrow_file_path):
+
+    if not args.parquet and os.path.exists(arrow_file_path):
         print("arrow file is alread exist:", arrow_file_path)
         exit(0)
+
     if not os.path.exists(".arrows"):
         os.mkdir(".arrows")
+
+    if not os.path.exists(".parquet"):
+        os.mkdir(".parquet")
     print(".ptu file: ", ptu_file_path)
     print(".arrow file path: ", arrow_file_path)
 
@@ -84,16 +103,22 @@ def ptu2arrow():
 
     table = pa.table({"ch": ch_arr, "timestamp": ev_arr}, schema=TimeTagDataSchema)
 
-    si = pc.sort_indices(table, sort_keys=[("timestamp", "ascending")])
-    batches = table.take(si).to_batches(max_chunksize=100000)
+    si = pc.sort_indices(table, sort_keys=[("timestamp", "ascending")])  # type: ignore
     print("\nwrite...", arrow_file_path)
-    with pa.OSFile(arrow_file_path, mode="w") as f:
-        with pa.output_stream(arrow_file_path) as f:
-            f.writable()
-            with pa.ipc.new_file(f, TimeTagDataSchema) as writer:
-                for batch in batches:
-                    writer.write_batch(batch)
-            f.seekable()
+    if args.parquet:
+        parquet_file_path = os.path.join(
+            ".parquet", os.path.basename(ptu_file_path).replace(".ptu", ".parquet")
+        )
+        pq.write_table(table.take(si), parquet_file_path)
+    else:
+        batches = table.take(si).to_batches(max_chunksize=100000)
+        with pa.OSFile(arrow_file_path, mode="w") as f:
+            with pa.output_stream(arrow_file_path) as f:
+                f.writable()
+                with pa.ipc.new_file(f, TimeTagDataSchema) as writer:
+                    for batch in batches:
+                        writer.write_batch(batch)
+                f.seekable()
 
 
 def histogram():
