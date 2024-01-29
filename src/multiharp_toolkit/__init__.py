@@ -1,9 +1,12 @@
 from .util_types import Channel, TimeTag
 
 from .ptu_parser import parse, Parser
-from .coincidence_counter import CoincidenceCounter
+from .coincidence_counter import CoincidenceCounter, ChannelInfo
 from .calc_g2 import calc_g2
-from .device import Device, DeviceConfig, DeviceInputChannelConfig, list_device_index
+from .device import Device, list_device_index
+from .util_types import DeviceConfig, DeviceInputChannelConfig
+from .stream_parser import StreamParser
+from .histogram import Histogram
 
 from multiharp_toolkit._mhtk_rs import (
     Mode,

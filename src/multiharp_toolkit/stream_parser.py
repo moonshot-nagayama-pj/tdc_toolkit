@@ -27,11 +27,14 @@ class StreamParser:
     writer: pa.RecordBatchFileWriter
     filename: str
 
-    def __init__(self, queue_recv: Queue[RawMeasDataSequence]) -> None:
+    def __init__(
+        self, queue_recv: Queue[RawMeasDataSequence], single_file: bool = True
+    ) -> None:
         self.queue_send = asyncio.Queue()
         self.queue_recv = queue_recv
         self.oflcorrection = 0
         self.config = None
+        self.single_file = single_file
 
     async def run(self):
         while True:
@@ -52,6 +55,8 @@ class StreamParser:
                 elif isinstance(val, MeasEndMarker):
                     self.close_file(val)
                     self.queue_send.put_nowait(val)
+                    if self.single_file:
+                        return
                 else:
                     special = (val >> 31) & 0x01  # 最上位ビット
                     channel = (val >> 25) & 0x3F  # 次の6ビット
@@ -95,5 +100,5 @@ class StreamParser:
         print("open file: ", filename)
 
     def close_file(self, marker: MeasEndMarker):
-        self.writer.close_file()
+        self.writer.close()
         print("close file ")

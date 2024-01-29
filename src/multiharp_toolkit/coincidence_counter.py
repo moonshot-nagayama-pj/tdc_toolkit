@@ -1,4 +1,5 @@
 from multiharp_toolkit.util_types import Channel, TimeTag
+import pyarrow as pa
 
 
 class ChannelInfo:
@@ -60,6 +61,9 @@ class CoincidenceCounterState:
         if self.i == self.length:
             self.count += 1
             self.i = 0
+
+    def __str__(self) -> str:
+        return f"CCState({self.base_ch},{self.channels}, count:{self.count})"
 
 
 class CoincidenceCounter:
