@@ -106,7 +106,7 @@ class Parser:
             self.events[channel].append(timestamp * 0.2)
 
 
-def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
+def parse_header(inputfile: io.BufferedReader):
     magic = inputfile.read(8).decode("utf-8").strip("\0")
     if magic != "PQTTTR":
         print("ERROR: Magic invalid, this is not a PTU file.")
@@ -188,8 +188,15 @@ def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
             break
 
     # Reformat the saved data for easier access
-    tagNames = [tagDataList[i][0] for i in range(0, len(tagDataList))]
-    tagValues = [tagDataList[i][1] for i in range(0, len(tagDataList))]
+    return [tagDataList[i][0] for i in range(0, len(tagDataList))], [
+        tagDataList[i][1] for i in range(0, len(tagDataList))
+    ]
+
+
+def parse(inputfile: io.BufferedReader) -> TimeTaggedData | None:
+    headers = parse_header(inputfile)
+    assert headers is not None, "failed to parse header"
+    tagNames, tagValues = headers
     ret = TimeTaggedData()
     ret.names = tagNames
     ret.values = tagValues

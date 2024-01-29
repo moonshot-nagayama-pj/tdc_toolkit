@@ -18,12 +18,18 @@ class Device:
     config: DeviceConfig
     queue: Queue[RawMeasDataSequence]
 
+    test_enabled: bool
+    test_ptu_file: str | None
+
     def __init__(self, index: int, config: DeviceConfig) -> None:
         self.device_index = index
         self.is_open = False
         self.config = config
         self.oflcorrection = 0
         self.queue = Queue()
+
+        self.test_enabled = False
+        self.test_ptu_file = None
 
     def __open(self):
         if self.is_open:
@@ -75,6 +81,9 @@ class Device:
         self.close()
 
     def start_measurement(self, meas_time: int):
+        if self.test_enabled:
+            self.test_measurement(meas_time)
+            return
         dev_id = self.device_index
         self.oflcorrection = 0
         self.queue.put_nowait([MeasStartMarker(self.config, meas_time)])
@@ -96,6 +105,29 @@ class Device:
 
         mh.stop_measurement(dev_id)
         self.queue.put_nowait([MeasEndMarker()])
+
+    def test_measurement(self, meas_time: int):
+        from multiharp_toolkit.ptu_parser import parse_header
+        import struct
+
+        assert self.test_enabled
+        assert self.test_ptu_file is not None
+        with open(self.test_ptu_file, "rb") as f:
+            headers = parse_header(f)
+            assert headers is not None
+            tagNames, tagValues = headers
+            num_records = tagValues[tagNames.index("TTResult_NumberOfRecords")]
+            self.queue.put_nowait([MeasStartMarker(self.config, meas_time)])
+            arr = []
+            for i in range(0, num_records):
+                data = struct.unpack("<I", f.read(4))[0]
+                arr.append(data)
+                if i % 64 == 0:
+                    self.queue.put_nowait(arr.copy())
+                    arr = []
+            if len(arr) > 0:
+                self.queue.put_nowait(arr.copy())
+            self.queue.put_nowait([MeasEndMarker()])
 
 
 def list_device_index():
