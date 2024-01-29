@@ -77,10 +77,11 @@ class StreamParser:
                         ts_arr.append(truetime * 0.2)
             if ch_arr:
                 batch = pa.record_batch(
-                    {
-                        "ch": pa.array(ch_arr, type=pa.int8()),
-                        "timestamp": pa.array(ts_arr, type=pa.float64()),
-                    }
+                    [
+                        pa.array(ch_arr, type=pa.int8()),
+                        pa.array(ts_arr, type=pa.float64()),
+                    ],
+                    names=["ch", "timestamp"],
                 )
                 self.queue_send.put_nowait(batch)
                 self.writer.write_batch(batch)
