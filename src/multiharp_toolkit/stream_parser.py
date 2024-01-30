@@ -73,7 +73,7 @@ class StreamParser:
                             ts_arr.append(truetime * 0.2)
                     else:  # regular input channel
                         truetime = self.oflcorrection + timetag
-                        ch_arr.append(channel)
+                        ch_arr.append(channel + 1)
                         ts_arr.append(truetime * 0.2)
             if ch_arr:
                 batch = pa.record_batch(
