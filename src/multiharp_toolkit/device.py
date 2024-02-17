@@ -106,6 +106,33 @@ class Device:
         mh.stop_measurement(dev_id)
         self.queue.put_nowait([MeasEndMarker()])
 
+    async def start_measurement_async(self, meas_time: int):
+        if self.test_enabled:
+            self.test_measurement(meas_time)
+            return
+        dev_id = self.device_index
+        self.oflcorrection = 0
+        self.queue.put_nowait([MeasStartMarker(self.config, meas_time)])
+        mh.start_measurement(dev_id, meas_time)
+        while True:
+            flags = mh.get_flags(dev_id)
+            if flags & 2:
+                print("fifo overrun")
+                mh.stop_measurement(dev_id)
+                self.queue.put_nowait([MeasEndMarker()])
+
+            num_records, data = mh.read_fifo(dev_id)
+            if num_records > 0:
+                self.queue.put_nowait(data)
+            else:
+                status = mh.ctc_status(dev_id)
+                if status > 0:
+                    break
+            await asyncio.sleep(0)
+
+        mh.stop_measurement(dev_id)
+        self.queue.put_nowait([MeasEndMarker()])
+
     def test_measurement(self, meas_time: int):
         from multiharp_toolkit.ptu_parser import parse_header
         import struct, time
