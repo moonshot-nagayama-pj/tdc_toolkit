@@ -39,7 +39,7 @@ class StreamParser:
     async def run(self):
         while True:
             try:
-                data = self.queue_recv.get()
+                data = self.queue_recv.get_nowait()
             except Empty:
                 await asyncio.sleep(0)
                 continue
