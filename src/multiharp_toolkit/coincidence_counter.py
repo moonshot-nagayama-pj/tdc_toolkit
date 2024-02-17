@@ -74,8 +74,9 @@ class CoincidenceCounter:
 
     def __init__(
         self,
-        coincidence_targets: list[list[ChannelInfo | Channel]]
-        | list[list[ChannelInfo]] = [],
+        coincidence_targets: (
+            list[list[ChannelInfo | Channel]] | list[list[ChannelInfo]]
+        ) = [],
     ):
         self.number_of_counts = {}
         self.peak_windows = dict()
