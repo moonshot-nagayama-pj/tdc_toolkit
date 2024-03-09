@@ -5,18 +5,33 @@
 #   pre: false
 #   features: []
 #   all-features: false
+#   with-sources: false
 
 -e file:.
 kaleido==0.2.1
+    # via multiharp-toolkit
 maturin==1.4.0
+    # via multiharp-toolkit
 numpy==1.26.2
+    # via pandas
+    # via pyarrow
 packaging==23.2
+    # via plotly
 pandas==2.1.4
+    # via multiharp-toolkit
 plotly==5.18.0
+    # via multiharp-toolkit
 polars==0.20.5
+    # via multiharp-toolkit
 pyarrow==14.0.2
+    # via multiharp-toolkit
 python-dateutil==2.8.2
+    # via pandas
 pytz==2023.3.post1
+    # via pandas
 six==1.16.0
+    # via python-dateutil
 tenacity==8.2.3
+    # via plotly
 tzdata==2023.3
+    # via pandas
