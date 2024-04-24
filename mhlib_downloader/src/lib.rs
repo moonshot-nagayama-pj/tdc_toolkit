@@ -1,3 +1,4 @@
+use async_compression::tokio::bufread::GzipDecoder;
 use async_http_range_reader::{AsyncHttpRangeReader, CheckSupportMethod};
 use async_zip::tokio::read::seek::ZipFileReader;
 use hex_literal::hex;
@@ -8,6 +9,8 @@ use sha3::{Digest, Sha3_512};
 use std::collections::HashMap;
 use tokio::fs::File;
 use tokio::io;
+use tokio_stream::StreamExt;
+use tokio_tar::Archive;
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use url::Url;
@@ -41,7 +44,20 @@ pub async fn download() {
 
     let mut zip_reader = ZipFileReader::new(range.compat()).await.unwrap();
 
-    // Prefetch the data for the tarball
+    // Prefetch the data for the entire tarball. Even though we only
+    // want one file from inside the tarball, this makes processing
+    // much, much faster by reducing the number of HTTP
+    // requests. Unfortunately, it also means holding the entire
+    // tarball in memory (about 6 MB as of 3.1), still a huge
+    // improvement over the 65 MB zip.
+    //
+    // We could in theory only fetch the portions of the tarball that
+    // we want, but this is complicated by the fact that the tarball
+    // is gzipped, and also by the fact that the tar format does not
+    // have an entry table in the way that zip does, instead placing a
+    // header before each file. We could do an offline analysis to
+    // figure out what we need to download, but that is unlikely to be
+    // a good use of our time.
     let entry_position = zip_reader.file().entries().iter()
         .position(|entry| entry.entry().filename().as_str().unwrap() == "MHLib v3.1.0.0/Linux/MHLib_v3.1.0.0_64bit.tar.gz")
         .unwrap();
@@ -61,19 +77,29 @@ pub async fn download() {
 
     // Fetch the bytes from the zip archive that contain the requested file.
     zip_reader
-        .inner_mut()
-        .get_mut()
-        .prefetch(offset..offset + size as u64)
-        .await;
+       .inner_mut()
+       .get_mut()
+       .prefetch(offset..offset + size as u64)
+       .await;
 
-    // Read the contents of the tarball into a file
-    let mut file = File::create("tarball.tar.gz").await.unwrap();
-    let mut zip_entry_reader = zip_reader
+    let zip_entry_reader = zip_reader
         .reader_with_entry(entry_position)
         .await
         .unwrap()
         .compat();
-    let _ = io::copy(&mut zip_entry_reader, &mut file).await.unwrap();
+    let zip_entry_buf = io::BufReader::new(zip_entry_reader);
+    let gzip_buf = GzipDecoder::new(zip_entry_buf);
+    let mut tar_archive = Archive::new(gzip_buf);
+    let mut tar_entries = tar_archive.entries().unwrap();
+    let mut outer_tar_entry = None;
+    while let Some(tar_entry) = tar_entries.next().await {
+        if tar_entry.as_ref().unwrap().path().unwrap().to_str().unwrap() == "MHLib_v3.1.0.0_64bit/library/mhlib.so" {
+            outer_tar_entry = Some(tar_entry.unwrap());
+            break;
+        }
+    }
+    let mut file = File::create("mhlib.so").await.unwrap();
+    let _ = io::copy(&mut outer_tar_entry.unwrap(), &mut file).await.unwrap();
 }
 
 pub fn validate_hash() {
