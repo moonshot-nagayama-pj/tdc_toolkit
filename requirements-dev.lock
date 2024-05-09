@@ -61,6 +61,8 @@ pandas==2.1.2
     # via multiharp-toolkit
 parso==0.8.3
     # via jedi
+patchelf==0.17.2.1
+    # via maturin
 pexpect==4.8.0
     # via ipython
 platformdirs==3.11.0

@@ -19,6 +19,8 @@ packaging==23.2
     # via plotly
 pandas==2.1.4
     # via multiharp-toolkit
+patchelf==0.17.2.1
+    # via maturin
 plotly==5.18.0
     # via multiharp-toolkit
 polars==0.20.5
