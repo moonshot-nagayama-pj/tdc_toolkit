@@ -34,13 +34,22 @@ build-backend = "maturin"
 
 [tool.rye]
 managed = true
-dev-dependencies = ["ipykernel>=6.26.0", "nbformat>=5.9.2", "pytest>=7.4.4"]
+dev-dependencies = [
+    "ipykernel>=6.26.0",
+    "nbformat>=5.9.2",
+    "pytest>=7.4.4",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
-exclude = [".vemv", ".gitignore", "sampledata", "result"]
+exclude = [
+  ".venv",
+  ".gitignore",
+  "sampledata",
+  "result"
+]
 
 [tool.maturin]
 module-name = "multiharp_toolkit._mhtk_rs"
