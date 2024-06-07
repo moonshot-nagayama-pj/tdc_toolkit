@@ -9,7 +9,8 @@ dependencies = [
     "pandas>=2.1.2",
     "polars>=0.20.5",
     "plotly>=5.18.0",
-    "maturin[patchelf]>=1.4.0",
+    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
+    'maturin>=1.4.0 ; platform_system == "Windows"',
 ]
 readme = "README.md"
 requires-python = ">= 3.11"
@@ -33,22 +34,13 @@ build-backend = "maturin"
 
 [tool.rye]
 managed = true
-dev-dependencies = [
-    "ipykernel>=6.26.0",
-    "nbformat>=5.9.2",
-    "pytest>=7.4.4",
-]
+dev-dependencies = ["ipykernel>=6.26.0", "nbformat>=5.9.2", "pytest>=7.4.4"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
-exclude = [
-  ".vemv",
-  ".gitignore",
-  "sampledata",
-  "result"
-]
+exclude = [".vemv", ".gitignore", "sampledata", "result"]
 
 [tool.maturin]
 module-name = "multiharp_toolkit._mhtk_rs"
