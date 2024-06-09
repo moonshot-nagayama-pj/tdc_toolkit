@@ -9,7 +9,8 @@ dependencies = [
     "pandas>=2.1.2",
     "polars>=0.20.5",
     "plotly>=5.18.0",
-    "maturin[patchelf]>=1.4.0",
+    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
+    'maturin>=1.4.0 ; platform_system == "Windows"',
 ]
 readme = "README.md"
 requires-python = ">= 3.11"
@@ -44,7 +45,7 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
 exclude = [
-  ".vemv",
+  ".venv",
   ".gitignore",
   "sampledata",
   "result"
