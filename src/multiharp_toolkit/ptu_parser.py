@@ -101,9 +101,9 @@ class Parser:
     def append_events(self, channel: int, timestamp: float):
         if self.combined_channel:
             self.channels.append(channel)
-            self.timestamps.append(timestamp * 0.2)
+            self.timestamps.append(timestamp * 5)
         else:
-            self.events[channel].append(timestamp * 0.2)
+            self.events[channel].append(timestamp * 5)
 
 
 def parse_header(inputfile: io.BufferedReader):
