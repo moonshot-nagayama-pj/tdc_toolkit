@@ -35,7 +35,7 @@ class StreamParser:
         self.oflcorrection = 0
         self.config = None
         self.single_file = single_file
-        self.globRes = 5  # TODO: Neet to get from MultiHarp settings
+        self.globRes = 5  # TODO: Need to get from MultiHarp settings
 
     async def run(self):
         while True:

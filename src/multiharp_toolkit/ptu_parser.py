@@ -47,7 +47,7 @@ class Parser:
         self.channels = []
         self.timestamps = []
         self.combined_channel = False
-        self.globRes = 5  # TODO: Neet to get from "MeasDesc_GlobalResolution"
+        self.globRes = 5  # TODO: Need to get from "MeasDesc_GlobalResolution"
 
     def __repr__(self) -> str:
         num_ev_str = ",".join(

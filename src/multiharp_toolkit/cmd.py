@@ -37,7 +37,7 @@ def measure():
             }
         ]
         * 16,
-        # TODO: Neet to include "globRes" for StreamParser
+        # TODO: Need to include "globRes" for StreamParser
     }
 
     dev = Device(dev_ids[0], config)
