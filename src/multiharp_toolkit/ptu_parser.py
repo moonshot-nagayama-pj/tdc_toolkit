@@ -47,6 +47,7 @@ class Parser:
         self.channels = []
         self.timestamps = []
         self.combined_channel = False
+        self.globRes = 5  # TODO: Neet to get from "MeasDesc_GlobalResolution"
 
     def __repr__(self) -> str:
         num_ev_str = ",".join(
@@ -98,12 +99,17 @@ class Parser:
             truetime = self.oflcorrection + timetag
             self.append_events(channel + 1, truetime)
 
+    def timeidx2time(self, timeidx: float) -> float:
+        """convert time index to time(unit: psec)
+        """
+        return timeidx * self.globRes
+
     def append_events(self, channel: int, timestamp: float):
         if self.combined_channel:
             self.channels.append(channel)
-            self.timestamps.append(timestamp * 5)
+            self.timestamps.append(self.timeidx2time(timestamp))
         else:
-            self.events[channel].append(timestamp * 5)
+            self.events[channel].append(self.timeidx2time(timestamp))
 
 
 def parse_header(inputfile: io.BufferedReader):
