@@ -16,7 +16,7 @@ from queue import Empty, Queue
 
 
 class StreamParser:
-    oflcorrection: float
+    oflcorrection: int
     config: DeviceConfig | None
     queue_send: asyncio.Queue[ParsedMeasDataSequence]
     """queue for sending the data to next step"""
@@ -90,7 +90,7 @@ class StreamParser:
                 ts_arr = []
             self.queue_recv.task_done()
 
-    def timetag2time(self, timetag: float) -> float:
+    def timetag2time(self, timetag: int) -> int:
         """convert time tag to time(unit: psec)
         """
         return timetag * self.time_resolution

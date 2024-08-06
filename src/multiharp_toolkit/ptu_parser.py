@@ -34,7 +34,7 @@ class Parser:
     events: list[list[int | float]]  # [channel: [timetag]]
     timestamps: list[float]  # for combined channel mode
     channels: list[int]  # for combined channel mode
-    oflcorrection: float
+    oflcorrection: int
     ptu_version: int
     T2WRAPAROUND_V1 = 33552000
     T2WRAPAROUND_V2 = 33554432
@@ -99,12 +99,12 @@ class Parser:
             truetime = self.oflcorrection + timetag
             self.append_events(channel + 1, truetime)
 
-    def timetag2time(self, timetag: float) -> float:
+    def timetag2time(self, timetag: int) -> int:
         """convert time tag to time(unit: psec)
         """
         return timetag * self.time_resolution
 
-    def append_events(self, channel: int, timestamp: float):
+    def append_events(self, channel: int, timestamp: int):
         if self.combined_channel:
             self.channels.append(channel)
             self.timestamps.append(self.timetag2time(timestamp))
