@@ -35,7 +35,7 @@ class StreamParser:
         self.oflcorrection = 0
         self.config = None
         self.single_file = single_file
-        self.globRes = 5  # TODO: Need to get from MultiHarp settings
+        self.time_resolution = 5  # TODO: Need to get from MultiHarp settings
 
     async def run(self):
         while True:
@@ -71,11 +71,11 @@ class StreamParser:
                         if channel == 0:  # sync
                             truetime = self.oflcorrection + timetag
                             ch_arr.append(channel)
-                            ts_arr.append(self.timeidx2time(truetime))
+                            ts_arr.append(self.timetag2time(truetime))
                     else:  # regular input channel
                         truetime = self.oflcorrection + timetag
                         ch_arr.append(channel + 1)
-                        ts_arr.append(self.timeidx2time(truetime))
+                        ts_arr.append(self.timetag2time(truetime))
             if ch_arr:
                 batch = pa.record_batch(
                     [
@@ -90,10 +90,10 @@ class StreamParser:
                 ts_arr = []
             self.queue_recv.task_done()
 
-    def timeidx2time(self, timeidx: float) -> float:
-        """convert time index to time(unit: psec)
+    def timetag2time(self, timetag: float) -> float:
+        """convert time tag to time(unit: psec)
         """
-        return timeidx * self.globRes
+        return timetag * self.time_resolution
 
     def create_file(self, marker: MeasStartMarker):
         self.oflcorrection = 0
