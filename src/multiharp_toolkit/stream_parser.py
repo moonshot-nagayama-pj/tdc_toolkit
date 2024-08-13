@@ -35,7 +35,7 @@ class StreamParser:
         self.oflcorrection = 0
         self.config = None
         self.single_file = single_file
-        self.time_resolution = 5  # TODO: Need to get from MultiHarp settings
+        self.time_resolution = 5
 
     async def run(self):
         while True:

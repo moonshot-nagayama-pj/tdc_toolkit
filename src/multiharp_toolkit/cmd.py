@@ -37,7 +37,6 @@ def measure():
             }
         ]
         * 16,
-        # TODO: Need to include "time_resolution" for StreamParser
     }
 
     dev = Device(dev_ids[0], config)
