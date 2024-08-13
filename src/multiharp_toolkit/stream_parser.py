@@ -71,11 +71,11 @@ class StreamParser:
                         if channel == 0:  # sync
                             truetime = self.oflcorrection + timetag
                             ch_arr.append(channel)
-                            ts_arr.append(self.timetag2time(truetime))
+                            ts_arr.append(self.convert_timetag_to_relative_timestamp(truetime))
                     else:  # regular input channel
                         truetime = self.oflcorrection + timetag
                         ch_arr.append(channel + 1)
-                        ts_arr.append(self.timetag2time(truetime))
+                        ts_arr.append(self.convert_timetag_to_relative_timestamp(truetime))
             if ch_arr:
                 batch = pa.record_batch(
                     [
@@ -90,8 +90,8 @@ class StreamParser:
                 ts_arr = []
             self.queue_recv.task_done()
 
-    def timetag2time(self, timetag: int) -> int:
-        """convert time tag to time(unit: psec)
+    def convert_timetag_to_relative_timestamp(self, timetag: int) -> int:
+        """Convert a time tag to a relative timestamp with picosecond resolution.
         """
         return timetag * self.time_resolution
 

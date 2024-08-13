@@ -99,7 +99,7 @@ class Parser:
             truetime = self.oflcorrection + timetag
             self.append_events(channel + 1, truetime)
 
-    def timetag2time(self, timetag: int) -> int:
+    def convert_timetag_to_relative_timestamp(self, timetag: int) -> int:
         """convert time tag to time(unit: psec)
         """
         return timetag * self.time_resolution
@@ -107,9 +107,9 @@ class Parser:
     def append_events(self, channel: int, timestamp: int):
         if self.combined_channel:
             self.channels.append(channel)
-            self.timestamps.append(self.timetag2time(timestamp))
+            self.timestamps.append(self.convert_timetag_to_relative_timestamp(timestamp))
         else:
-            self.events[channel].append(self.timetag2time(timestamp))
+            self.events[channel].append(self.convert_timetag_to_relative_timestamp(timestamp))
 
 
 def parse_header(inputfile: io.BufferedReader):
