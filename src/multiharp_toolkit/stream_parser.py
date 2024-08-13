@@ -16,7 +16,7 @@ from queue import Empty, Queue
 
 
 class StreamParser:
-    oflcorrection: float
+    oflcorrection: int
     config: DeviceConfig | None
     queue_send: asyncio.Queue[ParsedMeasDataSequence]
     """queue for sending the data to next step"""
@@ -35,6 +35,7 @@ class StreamParser:
         self.oflcorrection = 0
         self.config = None
         self.single_file = single_file
+        self.time_resolution = 5
 
     async def run(self):
         while True:
@@ -70,11 +71,11 @@ class StreamParser:
                         if channel == 0:  # sync
                             truetime = self.oflcorrection + timetag
                             ch_arr.append(channel)
-                            ts_arr.append(truetime * 5)
+                            ts_arr.append(self.convert_timetag_to_relative_timestamp(truetime))
                     else:  # regular input channel
                         truetime = self.oflcorrection + timetag
                         ch_arr.append(channel + 1)
-                        ts_arr.append(truetime * 5)
+                        ts_arr.append(self.convert_timetag_to_relative_timestamp(truetime))
             if ch_arr:
                 batch = pa.record_batch(
                     [
@@ -88,6 +89,11 @@ class StreamParser:
                 ch_arr = []
                 ts_arr = []
             self.queue_recv.task_done()
+
+    def convert_timetag_to_relative_timestamp(self, timetag: int) -> int:
+        """Convert a time tag to a relative timestamp with picosecond resolution.
+        """
+        return timetag * self.time_resolution
 
     def create_file(self, marker: MeasStartMarker):
         self.oflcorrection = 0
