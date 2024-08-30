@@ -78,7 +78,7 @@ def ptu2arrow():
     )
 
     if not args.parquet and os.path.exists(arrow_file_path):
-        print("arrow file is alread exist:", arrow_file_path)
+        print("arrow file already exists: ", arrow_file_path)
         exit(0)
 
     if not os.path.exists(".arrows"):
