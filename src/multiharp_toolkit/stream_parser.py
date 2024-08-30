@@ -97,6 +97,7 @@ class StreamParser:
 
     def create_file(self, marker: MeasStartMarker):
         self.oflcorrection = 0
+        os.mkdirs(".arrows", 0o755, exist_ok=True)
         filename = os.path.join(
             ".arrows", f"{int(time.time())}-{marker.measurement_duration}.arrow"
         )
