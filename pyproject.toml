@@ -11,6 +11,7 @@ dependencies = [
     "plotly>=5.18.0",
     'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
     'maturin>=1.4.0 ; platform_system == "Windows"',
+    "structlog>=24.4.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.11"

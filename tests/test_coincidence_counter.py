@@ -1,6 +1,6 @@
 from multiharp_toolkit.util_types import Channel
 import pytest
-from .coincidence_counter import (
+from multiharp_toolkit.coincidence_counter import (
     CoincidenceCounter,
     ChannelInfo,
     CoincidenceCounterState,

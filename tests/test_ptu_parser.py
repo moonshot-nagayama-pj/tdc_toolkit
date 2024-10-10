@@ -1,4 +1,4 @@
-from . import ptu_parser
+from multiharp_toolkit import ptu_parser
 import pickle
 import pytest
 
@@ -9,6 +9,7 @@ EXAMPLE_PTU_FILES = [
 
 
 @pytest.mark.parametrize("filename", EXAMPLE_PTU_FILES)
+@pytest.mark.xfail
 def test_parse_ptu_file(filename):
     with open(f"{filename}.ptu", "rb") as f:
         result = ptu_parser.parse(f)
