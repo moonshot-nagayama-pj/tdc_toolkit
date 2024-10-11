@@ -1,7 +1,7 @@
 [project]
 name = "multiharp-toolkit"
-version = "0.1.1"
-description = "Add your description here"
+dynamic = ["version"]
+description = "Rust and Python wrappers and helper libraries for working with the Multiharp family of high-precision event timers."
 authors = [{ name = "zigen", email = "hrlclb@gmail.com" }]
 dependencies = [
     "pyarrow>=14.0.2",
@@ -14,7 +14,7 @@ dependencies = [
     "structlog>=24.4.0",
 ]
 readme = "README.md"
-requires-python = ">= 3.11"
+requires-python = ">= 3.12"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
@@ -36,9 +36,14 @@ build-backend = "maturin"
 [tool.rye]
 managed = true
 dev-dependencies = [
+    "black>=24.8.0",
+    "coverage>=7.6.1",
+    "isort>=5.13.2",
     "ipykernel>=6.26.0",
+    "mypy>=1.11.2",
     "nbformat>=5.9.2",
-    "pytest>=7.4.4",
+    "pylint>=3.3.1",
+    "pytest>=8.3.2",
 ]
 
 [tool.hatch.metadata]
@@ -52,7 +57,24 @@ exclude = [
   "result"
 ]
 
+[tool.isort]
+profile = "black"
+
 [tool.maturin]
 module-name = "multiharp_toolkit._mhtk_rs"
 features = ["pyo3/extension-module"]
 python-source = "src"
+
+[tool.mypy]
+files = ["."]
+strict = true
+
+[tool.pylint.format]
+max-line-length = "88"
+
+# See https://pylint.pycqa.org/en/latest/user_guide/messages/index.html
+[tool.pylint."messages control"]
+disable = ["raw-checker-failed", "bad-inline-option", "locally-disabled", "file-ignored", "suppressed-message", "deprecated-pragma", "use-symbolic-message-instead", "use-implicit-booleaness-not-comparison-to-string", "use-implicit-booleaness-not-comparison-to-zero", "missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "line-too-long", "duplicate-code", "too-many-instance-attributes", "too-few-public-methods", "too-many-public-methods", "too-many-arguments", "too-many-locals", "too-many-positional-arguments", "fixme"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
