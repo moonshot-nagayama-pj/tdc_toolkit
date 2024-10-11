@@ -63,3 +63,6 @@ from multiharp_toolkit._mhtk_rs import (
     read_fifo,
     is_measurement_running,
 )
+
+"""Rust and Python wrappers and helper libraries for working with the Multiharp family of high-precision event timers."""
+__version__ = "0.2.0"

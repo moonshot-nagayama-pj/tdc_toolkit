@@ -49,13 +49,8 @@ dev-dependencies = [
 [tool.hatch.metadata]
 allow-direct-references = true
 
-[tool.hatch.build.targets.sdist]
-exclude = [
-  ".venv",
-  ".gitignore",
-  "sampledata",
-  "result"
-]
+[tool.hatch.version]
+path = "src/pnpq/__init__.py"
 
 [tool.isort]
 profile = "black"
