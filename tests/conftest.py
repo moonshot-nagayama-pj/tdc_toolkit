@@ -1,10 +1,10 @@
-import structlog
 import sys
 import threading
-
 from pathlib import Path
 from types import TracebackType
 from typing import Any
+
+import structlog
 
 
 def find_project_dir(path: Path) -> Path:

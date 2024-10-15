@@ -1,10 +1,11 @@
-from multiharp_toolkit.util_types import Channel
 import pytest
+
 from multiharp_toolkit.coincidence_counter import (
-    CoincidenceCounter,
     ChannelInfo,
+    CoincidenceCounter,
     CoincidenceCounterState,
 )
+from multiharp_toolkit.util_types import Channel
 
 coincidence_channels: list[list[ChannelInfo | Channel]] = [
     [

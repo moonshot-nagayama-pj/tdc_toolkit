@@ -1,6 +1,8 @@
-from multiharp_toolkit import ptu_parser
 import pickle
+
 import pytest
+
+from multiharp_toolkit import ptu_parser
 
 EXAMPLE_PTU_FILES = [
     "sampledata/example-10mins-ch1-t2",

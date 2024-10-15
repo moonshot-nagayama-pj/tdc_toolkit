@@ -1,19 +1,21 @@
-import os, asyncio
+import asyncio
+import os
 from argparse import ArgumentParser
-from multiharp_toolkit.stream_parser import StreamParser
 from concurrent.futures import ThreadPoolExecutor
+
+import plotly.express as px
+import polars as pl
 import pyarrow as pa
 import pyarrow.compute as pc
-import polars as pl
-import plotly.express as px
 import pyarrow.parquet as pq
 
 import multiharp_toolkit._mhtk_rs as mh
 from multiharp_toolkit.coincidence_counter import ChannelInfo, CoincidenceCounter
-from multiharp_toolkit.device import list_device_index, Device
+from multiharp_toolkit.device import Device, list_device_index
 from multiharp_toolkit.histogram import Histogram
 from multiharp_toolkit.ptu_parser import parse
-from multiharp_toolkit.util_types import Channel, TimeTagDataSchema, DeviceConfig
+from multiharp_toolkit.stream_parser import StreamParser
+from multiharp_toolkit.util_types import Channel, DeviceConfig, TimeTagDataSchema
 
 
 def measure() -> None:
@@ -113,7 +115,9 @@ def ptu2arrow() -> None:
         pq.write_table(table.take(si), parquet_file_path)
     else:
         batches = table.take(si).to_batches(max_chunksize=100000)
-        with pa.ipc.new_file(arrow_file_path, TimeTagDataSchema, options=None) as writer:
+        with pa.ipc.new_file(
+            arrow_file_path, TimeTagDataSchema, options=None
+        ) as writer:
             for batch in batches:
                 writer.write_batch(batch)
 

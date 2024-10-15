@@ -1,14 +1,21 @@
+import argparse
+import json
+import os
+import sys
 from os import path
-import os, sys, json, argparse
-from multiharp_toolkit.util_types import Channel, TimeTag
-from multiharp_toolkit.ptu_parser import parse
-from multiharp_toolkit.coincidence_counter import CoincidenceCounter, ChannelInfo
 from typing import cast
-import polars as pl
+
 import plotly.express as px
+import polars as pl
+
+from multiharp_toolkit.coincidence_counter import ChannelInfo, CoincidenceCounter
+from multiharp_toolkit.ptu_parser import parse
+from multiharp_toolkit.util_types import Channel, TimeTag
 
 
-def calculate_time_diff(df: pl.DataFrame, channel_from: Channel, channel_to: Channel) -> pl.DataFrame:
+def calculate_time_diff(
+    df: pl.DataFrame, channel_from: Channel, channel_to: Channel
+) -> pl.DataFrame:
     _df = df.with_columns(
         [
             pl.col("ch").shift(-1).alias("next_ch"),
@@ -31,7 +38,9 @@ def calculate_time_diff(df: pl.DataFrame, channel_from: Channel, channel_to: Cha
     return time_diffs
 
 
-def extract_peak(df: pl.DataFrame, channel_from: Channel, channel_to: Channel, peak_width: float) -> tuple[float, float]:
+def extract_peak(
+    df: pl.DataFrame, channel_from: Channel, channel_to: Channel, peak_width: float
+) -> tuple[float, float]:
     _df = calculate_time_diff(df, channel_from, channel_to)
     # ビンの範囲と数を定義
     bin_count = 1000
@@ -77,7 +86,13 @@ def plot_timediff_hist(df: pl.DataFrame, filename: str) -> None:
     fig.write_html(filename + ".html")
 
 
-def calc_g2(df: pl.DataFrame, peak_start_1: TimeTag, peak_end_1: TimeTag, peak_start_2: TimeTag, peak_end_2: TimeTag) -> dict[str, TimeTag]:
+def calc_g2(
+    df: pl.DataFrame,
+    peak_start_1: TimeTag,
+    peak_end_1: TimeTag,
+    peak_start_2: TimeTag,
+    peak_end_2: TimeTag,
+) -> dict[str, TimeTag]:
     num_records = len(df["ch"])
     df_ch = df["ch"].to_list()
     df_timestamp = df["timestamp"].to_list()

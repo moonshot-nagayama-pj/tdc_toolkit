@@ -1,7 +1,9 @@
-import pyarrow as pa
-from multiharp_toolkit.util_types import Channel, TimeTag
 import sys
+
 import polars as pl
+import pyarrow as pa
+
+from multiharp_toolkit.util_types import Channel, TimeTag
 
 
 class Histogram:

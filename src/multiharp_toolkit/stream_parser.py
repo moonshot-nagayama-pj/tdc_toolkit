@@ -1,18 +1,19 @@
+import asyncio
 import os
 import time
-import asyncio
+from queue import Empty, Queue
+
 import pyarrow as pa
+
 from multiharp_toolkit.util_types import (
+    T2WRAPAROUND_V2,
     DeviceConfig,
     MeasEndMarker,
     MeasStartMarker,
     ParsedMeasDataSequence,
     RawMeasDataSequence,
-    T2WRAPAROUND_V2,
     TimeTagDataSchema,
 )
-
-from queue import Empty, Queue
 
 
 class StreamParser:
@@ -71,11 +72,15 @@ class StreamParser:
                         if channel == 0:  # sync
                             truetime = self.oflcorrection + timetag
                             ch_arr.append(channel)
-                            ts_arr.append(self.convert_timetag_to_relative_timestamp(truetime))
+                            ts_arr.append(
+                                self.convert_timetag_to_relative_timestamp(truetime)
+                            )
                     else:  # regular input channel
                         truetime = self.oflcorrection + timetag
                         ch_arr.append(channel + 1)
-                        ts_arr.append(self.convert_timetag_to_relative_timestamp(truetime))
+                        ts_arr.append(
+                            self.convert_timetag_to_relative_timestamp(truetime)
+                        )
             if ch_arr:
                 batch = pa.record_batch(
                     [
@@ -91,8 +96,7 @@ class StreamParser:
             self.queue_recv.task_done()
 
     def convert_timetag_to_relative_timestamp(self, timetag: int) -> int:
-        """Convert a time tag to a relative timestamp with picosecond resolution.
-        """
+        """Convert a time tag to a relative timestamp with picosecond resolution."""
         return timetag * self.time_resolution
 
     def create_file(self, marker: MeasStartMarker) -> None:
@@ -102,7 +106,9 @@ class StreamParser:
             ".arrows", f"{int(time.time())}-{marker.measurement_duration}.arrow"
         )
         self.writer = pa.ipc.new_file(
-            filename, schema=TimeTagDataSchema.with_metadata({"ch": str(marker.config)}), options=None
+            filename,
+            schema=TimeTagDataSchema.with_metadata({"ch": str(marker.config)}),
+            options=None,
         )
         self.filename = filename
         print("open file: ", filename)

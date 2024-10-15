@@ -1,8 +1,10 @@
 import asyncio
-import pyarrow as pa
 from queue import Queue
 from types import TracebackType
 from typing import cast
+
+import pyarrow as pa
+
 import multiharp_toolkit._mhtk_rs as mh
 from multiharp_toolkit.util_types import (
     Channel,
@@ -79,7 +81,12 @@ class Device:
     def __enter__(self) -> None:
         self.__open()
 
-    def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, exc_tb: TracebackType | None) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     def start_measurement(self, meas_time: int) -> None:
@@ -136,8 +143,10 @@ class Device:
         self.queue.put_nowait([MeasEndMarker()])
 
     def test_measurement(self, meas_time: int) -> None:
+        import struct
+        import time
+
         from multiharp_toolkit.ptu_parser import parse_header
-        import struct, time
 
         assert self.test_enabled
         assert self.test_ptu_file is not None

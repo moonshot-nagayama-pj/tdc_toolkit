@@ -4,9 +4,11 @@
 # This is demo code. Use at your own risk. No warranties.
 # Keno Goertz, PicoQUant GmbH, February 2018
 
-import time, sys, struct, io
+import io
+import struct
+import sys
+import time
 from typing import Any
-
 
 # Tag Types
 tyEmpty8 = struct.unpack(">i", bytes.fromhex("FFFF0008"))[0]
@@ -40,7 +42,7 @@ class Parser:
     T2WRAPAROUND_V2 = 33554432
     combined_channel: bool
 
-    def __init__(self, ptu_version: int=2) -> None:
+    def __init__(self, ptu_version: int = 2) -> None:
         self.oflcorrection = 0
         self.ptu_version = ptu_version
         self.events = [[] for i in range(0, 65)]  # max 64ch
@@ -100,16 +102,19 @@ class Parser:
             self.append_events(channel + 1, truetime)
 
     def convert_timetag_to_relative_timestamp(self, timetag: int) -> int:
-        """convert time tag to time(unit: psec)
-        """
+        """convert time tag to time(unit: psec)"""
         return timetag * self.time_resolution
 
     def append_events(self, channel: int, timestamp: int) -> None:
         if self.combined_channel:
             self.channels.append(channel)
-            self.timestamps.append(self.convert_timetag_to_relative_timestamp(timestamp))
+            self.timestamps.append(
+                self.convert_timetag_to_relative_timestamp(timestamp)
+            )
         else:
-            self.events[channel].append(self.convert_timetag_to_relative_timestamp(timestamp))
+            self.events[channel].append(
+                self.convert_timetag_to_relative_timestamp(timestamp)
+            )
 
 
 def parse_header(inputfile: io.BufferedReader) -> tuple[list[str], list[Any]] | None:
