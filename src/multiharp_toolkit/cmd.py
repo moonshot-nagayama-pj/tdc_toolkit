@@ -16,7 +16,7 @@ from multiharp_toolkit.ptu_parser import parse
 from multiharp_toolkit.util_types import Channel, TimeTagDataSchema, DeviceConfig
 
 
-def measure():
+def measure() -> None:
     dev_ids = list_device_index()
     if not dev_ids:
         print("no device")
@@ -42,7 +42,7 @@ def measure():
     dev = Device(dev_ids[0], config)
     parser = StreamParser(dev.queue)
 
-    async def run():
+    async def run() -> None:
         with dev.open():
             with ThreadPoolExecutor(max_workers=4) as e:
                 print("start measurement")
@@ -50,14 +50,15 @@ def measure():
                 main_loop.run_in_executor(e, dev.start_measurement, 1000)
                 parser_task = asyncio.create_task(parser.run())
                 await asyncio.gather(parser_task)
-        table = pa.ipc.open_file(parser.filename).read_all()
+        with pa.input_stream(parser.filename) as f:
+            table = pa.ipc.open_file(f, options=None).read_all()
         fname = os.path.basename(parser.filename).replace(".arrow", ".parquet")
         pq.write_table(table, f".parquet/{fname}")
 
     asyncio.run(run())
 
 
-def ptu2arrow():
+def ptu2arrow() -> None:
     parser = ArgumentParser(
         description="parse .ptu file and save .arrow file under .arrows folder"
     )
@@ -112,16 +113,12 @@ def ptu2arrow():
         pq.write_table(table.take(si), parquet_file_path)
     else:
         batches = table.take(si).to_batches(max_chunksize=100000)
-        with pa.OSFile(arrow_file_path, mode="w") as f:
-            with pa.output_stream(arrow_file_path) as f:
-                f.writable()
-                with pa.ipc.new_file(f, TimeTagDataSchema) as writer:
-                    for batch in batches:
-                        writer.write_batch(batch)
-                f.seekable()
+        with pa.ipc.new_file(arrow_file_path, TimeTagDataSchema, options=None) as writer:
+            for batch in batches:
+                writer.write_batch(batch)
 
 
-def histogram():
+def histogram() -> None:
     parser = ArgumentParser(description="read .arrow file and generate histogram")
     parser.add_argument("inputfile", type=str, help="path to the .arrow file")
     parser.add_argument("--sync-ch", type=int, help="sync channel")
@@ -159,14 +156,14 @@ def histogram():
         fig.write_html(args.out)
 
 
-def coincidence():
+def coincidence() -> None:
     parser = ArgumentParser(description="count coincidence from arrow file")
     parser.add_argument("inputfile", type=str, help="path to the .arrow file")
     parser.add_argument(
         "--sync-ch", type=int, help="sync channel", default=0, required=False
     )
 
-    def parse_channel_and_peak(value):
+    def parse_channel_and_peak(value: str) -> list[int | float]:
         v = value.split(",")
         return [int(v[0]), float(v[1]), float(v[2])]
 
@@ -192,5 +189,5 @@ def coincidence():
     for k, v in counter.coincidence_counts.items():
         print(k, v)
     print("\nch | count")
-    for k, v in counter.number_of_counts.items():
-        print(k, "  ", v)
+    for num_counts_key, num_counts_val in counter.number_of_counts.items():
+        print(num_counts_key, "  ", num_counts_val)

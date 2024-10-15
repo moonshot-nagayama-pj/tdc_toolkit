@@ -38,9 +38,9 @@ class Parser:
     ptu_version: int
     T2WRAPAROUND_V1 = 33552000
     T2WRAPAROUND_V2 = 33554432
-    combined_channel = bool
+    combined_channel: bool
 
-    def __init__(self, ptu_version=2) -> None:
+    def __init__(self, ptu_version: int=2) -> None:
         self.oflcorrection = 0
         self.ptu_version = ptu_version
         self.events = [[] for i in range(0, 65)]  # max 64ch
@@ -59,13 +59,13 @@ class Parser:
         )
         return f"Parser(events: {num_ev_str}, v{self.ptu_version}, ofl: {self.oflcorrection})"
 
-    def reset(self):
+    def reset(self) -> None:
         self.oflcorrection = 0
         self.channels = []
         self.timestamps = []
         self.events = [[] for i in range(0, 65)]  # max 64ch
 
-    def parse_records(self, inputfile: io.BufferedReader, num_records: int):
+    def parse_records(self, inputfile: io.BufferedReader, num_records: int) -> None:
         for i in range(0, num_records):
             data = struct.unpack("<I", inputfile.read(4))[0]
             self.parse_record(data)
@@ -75,7 +75,7 @@ class Parser:
                 )
                 sys.stdout.flush()
 
-    def parse_record(self, data: int):
+    def parse_record(self, data: int) -> None:
         special = (data >> 31) & 0x01  # 最上位ビット
         channel = (data >> 25) & 0x3F  # 次の6ビット
         timetag = data & 0x1FFFFFF
@@ -104,7 +104,7 @@ class Parser:
         """
         return timetag * self.time_resolution
 
-    def append_events(self, channel: int, timestamp: int):
+    def append_events(self, channel: int, timestamp: int) -> None:
         if self.combined_channel:
             self.channels.append(channel)
             self.timestamps.append(self.convert_timetag_to_relative_timestamp(timestamp))
@@ -112,7 +112,7 @@ class Parser:
             self.events[channel].append(self.convert_timetag_to_relative_timestamp(timestamp))
 
 
-def parse_header(inputfile: io.BufferedReader):
+def parse_header(inputfile: io.BufferedReader) -> tuple[list[str], list[Any]] | None:
     magic = inputfile.read(8).decode("utf-8").strip("\0")
     if magic != "PQTTTR":
         print("ERROR: Magic invalid, this is not a PTU file.")
@@ -123,7 +123,7 @@ def parse_header(inputfile: io.BufferedReader):
     # Write the header data to outputfile and also save it in memory.
     # There's no do ... while in Python, so an if statement inside the while loop
     # breaks out of it
-    tagDataList = []  # Contains tuples of (tagName, tagValue)
+    tagDataList: list[tuple[str, Any]] = []  # Contains tuples of (tagName, tagValue)
     while True:
         tagIdent = inputfile.read(32).decode("utf-8").strip("\0")
         tagIdx = struct.unpack("<i", inputfile.read(4))[0]
@@ -167,8 +167,8 @@ def parse_header(inputfile: io.BufferedReader):
             tagDataList.append((evalName, tagInt))
         elif tagTyp == tyTDateTime:
             tagFloat = struct.unpack("<d", inputfile.read(8))[0]
-            tagTime = int((tagFloat - 25569) * 86400)
-            tagTime = time.gmtime(tagTime)
+            tagTimeInt = int((tagFloat - 25569) * 86400)
+            tagTime = time.gmtime(tagTimeInt)
             # outputfile.write(time.strftime("%a %b %d %H:%M:%S %Y", tagTime))
             tagDataList.append((evalName, tagTime))
         elif tagTyp == tyAnsiString:

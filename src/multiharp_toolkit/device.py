@@ -1,6 +1,8 @@
 import asyncio
 import pyarrow as pa
 from queue import Queue
+from types import TracebackType
+from typing import cast
 import multiharp_toolkit._mhtk_rs as mh
 from multiharp_toolkit.util_types import (
     Channel,
@@ -31,7 +33,7 @@ class Device:
         self.test_enabled = False
         self.test_ptu_file = None
 
-    def __open(self):
+    def __open(self) -> None:
         if self.is_open:
             return
         dev_id = self.device_index
@@ -40,7 +42,7 @@ class Device:
         mh.initialize(dev_id, mh.Mode.T2, mh.RefSource.InternalClock)
         self.configure()
 
-    def configure(self, config: DeviceConfig | None = None):
+    def configure(self, config: DeviceConfig | None = None) -> None:
         if config:
             self.config = config
         c = self.config
@@ -66,7 +68,7 @@ class Device:
             mh.set_input_channel_offset(dev_id, ch, ch_config["channel_offset"])
             mh.set_input_channel_enable(dev_id, ch, ch_config["enable"])
 
-    def close(self):
+    def close(self) -> None:
         mh.close_device(self.device_index)
         self.is_open = False
 
@@ -74,13 +76,13 @@ class Device:
         self.__open()
         return self
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.__open()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, exc_tb: TracebackType | None) -> None:
         self.close()
 
-    def start_measurement(self, meas_time: int):
+    def start_measurement(self, meas_time: int) -> None:
         if self.test_enabled:
             self.test_measurement(meas_time)
             return
@@ -97,7 +99,7 @@ class Device:
 
             num_records, data = mh.read_fifo(dev_id)
             if num_records > 0:
-                self.queue.put_nowait(data)
+                self.queue.put_nowait(cast(RawMeasDataSequence, data))
             else:
                 status = mh.ctc_status(dev_id)
                 if status > 0:
@@ -106,7 +108,7 @@ class Device:
         mh.stop_measurement(dev_id)
         self.queue.put_nowait([MeasEndMarker()])
 
-    async def start_measurement_async(self, meas_time: int):
+    async def start_measurement_async(self, meas_time: int) -> None:
         if self.test_enabled:
             self.test_measurement(meas_time)
             return
@@ -123,7 +125,7 @@ class Device:
 
             num_records, data = mh.read_fifo(dev_id)
             if num_records > 0:
-                self.queue.put_nowait(data)
+                self.queue.put_nowait(cast(RawMeasDataSequence, data))
             else:
                 status = mh.ctc_status(dev_id)
                 if status > 0:
@@ -133,7 +135,7 @@ class Device:
         mh.stop_measurement(dev_id)
         self.queue.put_nowait([MeasEndMarker()])
 
-    def test_measurement(self, meas_time: int):
+    def test_measurement(self, meas_time: int) -> None:
         from multiharp_toolkit.ptu_parser import parse_header
         import struct, time
 
@@ -158,7 +160,7 @@ class Device:
             self.queue.put_nowait([MeasEndMarker()])
 
 
-def list_device_index():
+def list_device_index() -> list[int]:
     available_devices = []
     for i in range(0, 8):
         try:

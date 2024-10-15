@@ -10,7 +10,7 @@ EXAMPLE_PTU_FILES = [
 
 @pytest.mark.parametrize("filename", EXAMPLE_PTU_FILES)
 @pytest.mark.xfail
-def test_parse_ptu_file(filename):
+def test_parse_ptu_file(filename: str) -> None:
     with open(f"{filename}.ptu", "rb") as f:
         result = ptu_parser.parse(f)
     assert result is not None

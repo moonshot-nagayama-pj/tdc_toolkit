@@ -1,6 +1,6 @@
-from typing import TypeAlias, TypedDict
+from typing import cast, TypeAlias, TypedDict
 import pyarrow as pa
-from pyarrow import RecordBatch
+from pyarrow import DataType, RecordBatch
 import multiharp_toolkit._mhtk_rs as mh
 
 T2WRAPAROUND_V1 = 33552000
@@ -14,8 +14,7 @@ TimeTag: TypeAlias = float
 
 RawMeasData: TypeAlias = int
 
-
-TimeTagDataSchema = pa.schema([("ch", pa.int8()), ("timestamp", pa.float64())])
+TimeTagDataSchema = pa.schema([("ch", cast(DataType, pa.int8())), ("timestamp", cast(DataType, pa.float64()))])
 
 
 class DeviceInputChannelConfig(TypedDict):

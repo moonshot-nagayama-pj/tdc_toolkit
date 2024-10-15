@@ -1,12 +1,14 @@
 from os import path
 import os, sys, json, argparse
+from multiharp_toolkit.util_types import Channel, TimeTag
 from multiharp_toolkit.ptu_parser import parse
 from multiharp_toolkit.coincidence_counter import CoincidenceCounter, ChannelInfo
+from typing import cast
 import polars as pl
 import plotly.express as px
 
 
-def calculate_time_diff(df, channel_from, channel_to):
+def calculate_time_diff(df: pl.DataFrame, channel_from: Channel, channel_to: Channel) -> pl.DataFrame:
     _df = df.with_columns(
         [
             pl.col("ch").shift(-1).alias("next_ch"),
@@ -29,12 +31,12 @@ def calculate_time_diff(df, channel_from, channel_to):
     return time_diffs
 
 
-def extract_peak(df, channel_from, channel_to, peak_width):
+def extract_peak(df: pl.DataFrame, channel_from: Channel, channel_to: Channel, peak_width: float) -> tuple[float, float]:
     _df = calculate_time_diff(df, channel_from, channel_to)
     # ビンの範囲と数を定義
     bin_count = 1000
-    min_timediff = _df["time_diff"].min()
-    max_timediff = _df["time_diff"].max()
+    min_timediff = cast(float, _df["time_diff"].min())
+    max_timediff = cast(float, _df["time_diff"].max())
     bin_width = (max_timediff - min_timediff) / bin_count
 
     hist_df = (
@@ -53,7 +55,7 @@ def extract_peak(df, channel_from, channel_to, peak_width):
     return (peak[0] - peak_width, peak[0] + peak_width)
 
 
-def plot_timediff_hist(df, filename):
+def plot_timediff_hist(df: pl.DataFrame, filename: str) -> None:
     diff01_df = calculate_time_diff(df, 0, 1)
     diff02_df = calculate_time_diff(df, 0, 2)
     diff0102_df = pl.concat(
@@ -75,7 +77,7 @@ def plot_timediff_hist(df, filename):
     fig.write_html(filename + ".html")
 
 
-def calc_g2(df, peak_start_1, peak_end_1, peak_start_2, peak_end_2):
+def calc_g2(df: pl.DataFrame, peak_start_1: TimeTag, peak_end_1: TimeTag, peak_start_2: TimeTag, peak_end_2: TimeTag) -> dict[str, TimeTag]:
     num_records = len(df["ch"])
     df_ch = df["ch"].to_list()
     df_timestamp = df["timestamp"].to_list()
@@ -127,7 +129,7 @@ def calc_g2(df, peak_start_1, peak_end_1, peak_start_2, peak_end_2):
     }
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="calculate a g^(2) value. if you don't provide peak values, it is caluculated automatically"
     )

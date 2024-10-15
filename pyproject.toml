@@ -4,14 +4,15 @@ dynamic = ["version"]
 description = "Rust and Python wrappers and helper libraries for working with the Multiharp family of high-precision event timers."
 authors = [{ name = "zigen", email = "hrlclb@gmail.com" }]
 dependencies = [
-    "pyarrow>=14.0.2",
     "kaleido>=0.2.1",
     "pandas>=2.1.2",
-    "polars>=0.20.5",
     "plotly>=5.18.0",
-    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
-    'maturin>=1.4.0 ; platform_system == "Windows"',
+    "polars>=0.20.5",
+    "pyarrow-stubs>=17.7",
+    "pyarrow>=14.0.2",
     "structlog>=24.4.0",
+    'maturin>=1.4.0 ; platform_system == "Windows"',
+    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
@@ -38,10 +39,11 @@ managed = true
 dev-dependencies = [
     "black>=24.8.0",
     "coverage>=7.6.1",
-    "isort>=5.13.2",
     "ipykernel>=6.26.0",
+    "isort>=5.13.2",
     "mypy>=1.11.2",
     "nbformat>=5.9.2",
+    "pip>=24.2",
     "pylint>=3.3.1",
     "pytest>=8.3.2",
 ]
@@ -62,7 +64,12 @@ python-source = "src"
 
 [tool.mypy]
 files = ["."]
+exclude = ["^MHLib_.*_64bit/"]
 strict = true
+
+[[tool.mypy.overrides]]
+module = "plotly.*"
+ignore_missing_imports = true
 
 [tool.pylint.format]
 max-line-length = "88"

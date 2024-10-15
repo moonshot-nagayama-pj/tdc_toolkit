@@ -1,14 +1,14 @@
 import os
 import time
-from multiharp_toolkit.device import DeviceConfig
 import asyncio
 import pyarrow as pa
 from multiharp_toolkit.util_types import (
-    T2WRAPAROUND_V2,
+    DeviceConfig,
     MeasEndMarker,
     MeasStartMarker,
     ParsedMeasDataSequence,
     RawMeasDataSequence,
+    T2WRAPAROUND_V2,
     TimeTagDataSchema,
 )
 
@@ -37,7 +37,7 @@ class StreamParser:
         self.single_file = single_file
         self.time_resolution = 5
 
-    async def run(self):
+    async def run(self) -> None:
         while True:
             try:
                 data = self.queue_recv.get_nowait()
@@ -95,18 +95,18 @@ class StreamParser:
         """
         return timetag * self.time_resolution
 
-    def create_file(self, marker: MeasStartMarker):
+    def create_file(self, marker: MeasStartMarker) -> None:
         self.oflcorrection = 0
-        os.mkdirs(".arrows", 0o755, exist_ok=True)
+        os.makedirs(".arrows", 0o755, exist_ok=True)
         filename = os.path.join(
             ".arrows", f"{int(time.time())}-{marker.measurement_duration}.arrow"
         )
         self.writer = pa.ipc.new_file(
-            filename, schema=TimeTagDataSchema.with_metadata({"ch": str(marker.config)})
+            filename, schema=TimeTagDataSchema.with_metadata({"ch": str(marker.config)}), options=None
         )
         self.filename = filename
         print("open file: ", filename)
 
-    def close_file(self, marker: MeasEndMarker):
+    def close_file(self, marker: MeasEndMarker) -> None:
         self.writer.close()
         print("close file ")

@@ -1,4 +1,5 @@
 from multiharp_toolkit.util_types import Channel, TimeTag
+from typing import cast
 import pyarrow as pa
 
 
@@ -35,7 +36,7 @@ class CoincidenceCounterState:
         self,
         base_ch: ChannelInfo,
         target_channels: list[ChannelInfo],
-    ):
+    ) -> None:
         self.base_ch = base_ch
         self.channels = [base_ch] + target_channels
         self.length = len(self.channels)
@@ -45,7 +46,7 @@ class CoincidenceCounterState:
         self.base_start = 0
         self.last_truetime = 0
 
-    def process(self, ch: Channel, truetime: TimeTag):
+    def process(self, ch: Channel, truetime: TimeTag) -> None:
         self.last_truetime = truetime
         if ch == self.base_ch.ch:
             self.base_start = truetime
@@ -77,7 +78,7 @@ class CoincidenceCounter:
         coincidence_targets: (
             list[list[ChannelInfo | Channel]] | list[list[ChannelInfo]]
         ) = [],
-    ):
+    ) -> None:
         self.number_of_counts = {}
         self.peak_windows = dict()
         self.coincidence_counters = []
@@ -96,21 +97,22 @@ class CoincidenceCounter:
         for ch in set(target_channels):
             self.number_of_counts[ch] = 0
 
-    def process_arrow(self, arrow_file_path):
-        data: pa.RecordBatchFileReader = pa.ipc.open_file(arrow_file_path)
-        for i in range(0, data.num_record_batches):
-            batch = data.get_batch(i)
-            channels = batch["ch"].tolist()
-            timestamps = batch["timestamp"].tolist()
-            for i, ch in enumerate(channels):
-                timestamp = timestamps[i]
-                self.process(ch, timestamp)
+    def process_arrow(self, arrow_file_path: str) -> None:
+        with open(arrow_file_path, "rb") as arrow_file:
+            data: pa.RecordBatchFileReader = pa.ipc.open_file(arrow_file, options=None)
+            for i in range(0, data.num_record_batches):
+                batch = data.get_batch(i)
+                channels = cast(list[Channel], batch["ch"].tolist())
+                timestamps = cast(list[TimeTag], batch["timestamp"].tolist())
+                for i, ch in enumerate(channels):
+                    timestamp = timestamps[i]
+                    self.process(ch, timestamp)
 
-    def process_events(self, events: list[tuple[Channel, TimeTag]]):
+    def process_events(self, events: list[tuple[Channel, TimeTag]]) -> None:
         for ev in events:
             self.process(*ev)
 
-    def process(self, ch: Channel, truetime: TimeTag):
+    def process(self, ch: Channel, truetime: TimeTag) -> None:
         if ch not in self.number_of_counts:
             return
         self.number_of_counts[ch] += 1
