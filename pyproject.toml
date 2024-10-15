@@ -1,6 +1,6 @@
 [project]
 name = "multiharp-toolkit"
-dynamic = ["version"]
+version = "0.2.0"
 description = "Rust and Python wrappers and helper libraries for working with the Multiharp family of high-precision event timers."
 authors = [{ name = "zigen", email = "hrlclb@gmail.com" }]
 dependencies = [
