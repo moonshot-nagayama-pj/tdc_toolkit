@@ -29,7 +29,6 @@ mh-ptu2arrow = "multiharp_toolkit.cmd:ptu2arrow"
 mh-histogram = "multiharp_toolkit.cmd:histogram"
 mh-coincidence = "multiharp_toolkit.cmd:coincidence"
 
-
 [build-system]
 requires = ["maturin>=1.4,<2.0"]
 build-backend = "maturin"
@@ -52,15 +51,15 @@ dev-dependencies = [
 allow-direct-references = true
 
 [tool.hatch.version]
-path = "src/pnpq/__init__.py"
+path = "python/multiharp_toolkit/__init__.py"
 
 [tool.isort]
 profile = "black"
 
 [tool.maturin]
-module-name = "multiharp_toolkit._mhtk_rs"
 features = ["pyo3/extension-module"]
-python-source = "src"
+module-name = "multiharp_toolkit._mhtk_rs"
+python-source = "python"
 
 [tool.mypy]
 files = ["."]
@@ -79,4 +78,4 @@ max-line-length = "88"
 disable = ["raw-checker-failed", "bad-inline-option", "locally-disabled", "file-ignored", "suppressed-message", "deprecated-pragma", "use-symbolic-message-instead", "use-implicit-booleaness-not-comparison-to-string", "use-implicit-booleaness-not-comparison-to-zero", "missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "line-too-long", "duplicate-code", "too-many-instance-attributes", "too-few-public-methods", "too-many-public-methods", "too-many-arguments", "too-many-locals", "too-many-positional-arguments", "fixme"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["python_tests"]

@@ -1,5 +1,4 @@
 import polars as pl
-
 from multiharp_toolkit.util_types import Channel, TimeTag
 
 

@@ -4,13 +4,12 @@ import sys
 from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
 
+import multiharp_toolkit._mhtk_rs as mh
 import plotly.express as px
 import polars as pl
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
-
-import multiharp_toolkit._mhtk_rs as mh
 from multiharp_toolkit.coincidence_counter import ChannelInfo, CoincidenceCounter
 from multiharp_toolkit.device import Device, list_device_index
 from multiharp_toolkit.histogram import Histogram

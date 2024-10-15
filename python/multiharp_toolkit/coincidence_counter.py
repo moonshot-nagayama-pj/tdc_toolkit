@@ -1,7 +1,6 @@
 from typing import cast
 
 import pyarrow as pa
-
 from multiharp_toolkit.util_types import Channel, TimeTag
 
 

@@ -1,7 +1,6 @@
 import pickle
 
 import pytest
-
 from multiharp_toolkit import ptu_parser
 
 EXAMPLE_PTU_FILES = [

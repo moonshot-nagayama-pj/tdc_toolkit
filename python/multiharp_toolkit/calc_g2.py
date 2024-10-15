@@ -7,7 +7,6 @@ from typing import cast
 
 import plotly.express as px
 import polars as pl
-
 from multiharp_toolkit.coincidence_counter import ChannelInfo, CoincidenceCounter
 from multiharp_toolkit.ptu_parser import parse
 from multiharp_toolkit.util_types import Channel, TimeTag

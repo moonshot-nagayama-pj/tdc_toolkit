@@ -4,7 +4,6 @@ import time
 from queue import Empty, Queue
 
 import pyarrow as pa
-
 from multiharp_toolkit.util_types import (
     T2WRAPAROUND_V2,
     DeviceConfig,

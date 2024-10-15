@@ -1,9 +1,8 @@
 from typing import TypeAlias, TypedDict, cast
 
+import multiharp_toolkit._mhtk_rs as mh
 import pyarrow as pa
 from pyarrow import DataType, RecordBatch
-
-import multiharp_toolkit._mhtk_rs as mh
 
 T2WRAPAROUND_V1 = 33552000
 T2WRAPAROUND_V2 = 33554432

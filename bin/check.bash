@@ -49,13 +49,13 @@ stdmsg "Checking Python type hints with mypy..."
 mypy
 
 stdmsg "Running pylint..."
-pylint src/ tests/
+pylint python python_tests
 
 stdmsg "Checking import formatting with isort..."
-isort src tests --check --diff
+isort python python_tests --check --diff
 
 stdmsg "Checking Python code formatting with black..."
-black --check --diff src tests
+black --check --diff python python_tests
 
 # Run shellcheck
 # Recursively loop through all files and find all files with .sh extension and run shellcheck
@@ -63,11 +63,11 @@ stdmsg "Checking shell scripts with shellcheck..."
 find . -type d \( -path ./MHLib_v3.1.0.0_64bit -o -path ./.venv \) -prune -o -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellcheck --enable=all --external-sources
 
 stdmsg "Checking shell script formatting with shfmt..."
-shfmt --diff --simplify bin src tests
+shfmt --diff --simplify bin python python_tests src
 
 stdmsg "Running rye lint..."
 rye lint
 
 stdmsg "Running unit tests..."
-coverage run -m pytest tests
+coverage run -m pytest python_tests
 coverage report -m
