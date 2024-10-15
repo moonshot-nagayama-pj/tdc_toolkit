@@ -112,7 +112,7 @@ def calc_g2(
         counter.process(ch, timestamp)
         if i % 100000 == 0:
             sys.stdout.write(
-                "\rCount events...: %.1f%%" % (float(i) * 100 / float(num_records))
+                f"\rCount events...: {(float(i) * 100 / float(num_records)):.1f}%"
             )
             sys.stdout.flush()
     n_sync = counter.number_of_counts[0]
@@ -122,9 +122,12 @@ def calc_g2(
 
     print(
         "\n",
-        dict(
-            n_sync=n_sync, n_sync_1=n_sync_1, n_sync_2=n_sync_2, n_sync_1_2=n_sync_1_2
-        ),
+        {
+            "n_sync": n_sync,
+            "n_sync_1": n_sync_1,
+            "n_sync_2": n_sync_2,
+            "n_sync_1_2": n_sync_1_2,
+        },
     )
     print(f"n_sync_1 / n_sync: {n_sync_1 / n_sync}")
     print(f"n_sync_2 / n_sync: {n_sync_2 / n_sync}")
@@ -145,6 +148,7 @@ def calc_g2(
 
 
 def main() -> None:
+    # pylint: disable=too-many-statements
     parser = argparse.ArgumentParser(
         description="calculate a g^(2) value. if you don't provide peak values, it is caluculated automatically"
     )
@@ -244,7 +248,7 @@ def main() -> None:
         res["num_ch1_events"] = len(result.events[2])
         res["num_ch2_events"] = len(result.events[1])
 
-    with open(result_file_name, "w") as f:
+    with open(result_file_name, "w", encoding="utf-8") as f:
         json.dump(res, f, indent=2)
 
     print("plottting... ", image_file_name)

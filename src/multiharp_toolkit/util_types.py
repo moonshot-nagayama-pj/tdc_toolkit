@@ -46,10 +46,12 @@ class MeasStartMarker:
         self,
         config: DeviceConfig,
         measurement_duration: float,
-        param: dict[str, str | int | float] = {},
+        param: dict[str, str | int | float] | None = None,
     ) -> None:
         self.config = config
         self.measurement_duration = measurement_duration
+        if param is None:
+            param = {}
         self.param = param
 
 
@@ -58,4 +60,4 @@ class MeasEndMarker:
 
 
 RawMeasDataSequence: TypeAlias = list[RawMeasData | MeasEndMarker | MeasStartMarker]
-ParsedMeasDataSequence: TypeAlias = "RecordBatch | MeasEndMarker | MeasStartMarker"
+ParsedMeasDataSequence: TypeAlias = RecordBatch | MeasEndMarker | MeasStartMarker

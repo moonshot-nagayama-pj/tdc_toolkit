@@ -1,7 +1,4 @@
-import sys
-
 import polars as pl
-import pyarrow as pa
 
 from multiharp_toolkit.util_types import Channel, TimeTag
 
@@ -17,6 +14,7 @@ class Histogram:
     base_ch: Channel
     base_start: TimeTag
     last_truetime: TimeTag
+    df: pl.DataFrame | None
 
     def __init__(self, base_ch: Channel, channels: list[Channel]) -> None:
         self.base_ch = base_ch
@@ -24,6 +22,7 @@ class Histogram:
         self.base_start = 0
         self.last_truetime = 0
         self.name = ""
+        self.df = None
 
     def __repr__(self) -> str:
         return f"Hist({self.base_ch}-{self.channels}, {self.name})"

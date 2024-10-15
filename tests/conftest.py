@@ -1,8 +1,4 @@
-import sys
-import threading
 from pathlib import Path
-from types import TracebackType
-from typing import Any
 
 import structlog
 
@@ -28,7 +24,7 @@ structlog.configure(
         structlog.processors.JSONRenderer(),
     ],
     logger_factory=structlog.WriteLoggerFactory(
-        file=target_dir.joinpath("tests.log").open("a")
+        file=target_dir.joinpath("tests.log").open("a", encoding="utf-8")
     ),
 )
 

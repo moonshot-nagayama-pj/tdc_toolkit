@@ -39,6 +39,7 @@ class StreamParser:
         self.time_resolution = 5
 
     async def run(self) -> None:
+        # pylint: disable=too-many-branches,too-many-nested-blocks
         while True:
             try:
                 data = self.queue_recv.get_nowait()
@@ -55,7 +56,7 @@ class StreamParser:
                     self.create_file(val)
                     self.queue_send.put_nowait(val)
                 elif isinstance(val, MeasEndMarker):
-                    self.close_file(val)
+                    self.close_file()
                     self.queue_send.put_nowait(val)
                     if self.single_file:
                         return
@@ -113,6 +114,6 @@ class StreamParser:
         self.filename = filename
         print("open file: ", filename)
 
-    def close_file(self, marker: MeasEndMarker) -> None:
+    def close_file(self) -> None:
         self.writer.close()
         print("close file ")

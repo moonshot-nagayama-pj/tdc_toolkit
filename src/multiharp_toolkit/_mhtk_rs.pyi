@@ -1,3 +1,5 @@
+# pylint: disable=unused-argument
+
 class Mode:
     T2: "Mode"
     T3: "Mode"

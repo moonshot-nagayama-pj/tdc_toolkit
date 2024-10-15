@@ -1,5 +1,3 @@
-import pytest
-
 from multiharp_toolkit.coincidence_counter import (
     ChannelInfo,
     CoincidenceCounter,
@@ -18,7 +16,7 @@ coincidence_channels: list[list[ChannelInfo | Channel]] = [
 
 def test_init() -> None:
     targets: list[list[ChannelInfo | int]] = [[0, 1], [0, 2], [0, 1, 2]]
-    counter = CoincidenceCounter(coincidence_targets=targets)
+    CoincidenceCounter(coincidence_targets=targets)
 
 
 def test_process_simple_count() -> None:

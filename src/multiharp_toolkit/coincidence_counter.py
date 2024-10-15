@@ -79,10 +79,10 @@ class CoincidenceCounter:
         self,
         coincidence_targets: (
             list[list[ChannelInfo | Channel]] | list[list[ChannelInfo]]
-        ) = [],
+        ),
     ) -> None:
         self.number_of_counts = {}
-        self.peak_windows = dict()
+        self.peak_windows = {}
         self.coincidence_counters = []
         target_channels: list[Channel] = []
 

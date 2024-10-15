@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
 
@@ -22,7 +23,7 @@ def measure() -> None:
     dev_ids = list_device_index()
     if not dev_ids:
         print("no device")
-        exit(0)
+        sys.exit(0)
     print("available devices: ", dev_ids)
     config: DeviceConfig = {
         "sync_channel_offset": 0,
@@ -71,10 +72,10 @@ def ptu2arrow() -> None:
     ptu_file_path = args.inputfile
     if not ptu_file_path.endswith(".ptu"):
         print("specify .ptu file")
-        exit(1)
+        sys.exit(1)
     if not os.path.exists(ptu_file_path):
         print("ptu file does not exist")
-        exit(1)
+        sys.exit(1)
 
     arrow_file_path = os.path.join(
         ".arrows", os.path.basename(ptu_file_path).replace(".ptu", ".arrow")
@@ -82,7 +83,7 @@ def ptu2arrow() -> None:
 
     if not args.parquet and os.path.exists(arrow_file_path):
         print("arrow file already exists: ", arrow_file_path)
-        exit(0)
+        sys.exit(0)
 
     if not os.path.exists(".arrows"):
         os.mkdir(".arrows")
@@ -97,7 +98,7 @@ def ptu2arrow() -> None:
         data = parse(f)
         if data is None:
             print("failed to parse ptu file")
-            exit(1)
+            sys.exit(1)
     ch_arr = []
     ev_arr = []
     for i in range(0, 65):
@@ -106,6 +107,7 @@ def ptu2arrow() -> None:
 
     table = pa.table({"ch": ch_arr, "timestamp": ev_arr}, schema=TimeTagDataSchema)
 
+    # pylint: disable-next=no-member
     si = pc.sort_indices(table, sort_keys=[("timestamp", "ascending")])  # type: ignore
     print("\nwrite...", arrow_file_path)
     if args.parquet:
@@ -139,7 +141,7 @@ def histogram() -> None:
     args = parser.parse_args()
     if not args.out.endswith(".png") and not args.out.endswith(".html"):
         print("--out option must end with .png or .html")
-        exit(1)
+        sys.exit(1)
     hist = Histogram(
         base_ch=Channel(args.sync_ch), channels=[Channel(i) for i in args.channels]
     )

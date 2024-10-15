@@ -1,18 +1,17 @@
 import asyncio
+import struct
+import time
 from queue import Queue
 from types import TracebackType
 from typing import cast
 
-import pyarrow as pa
-
 import multiharp_toolkit._mhtk_rs as mh
+from multiharp_toolkit.ptu_parser import parse_header
 from multiharp_toolkit.util_types import (
-    Channel,
     DeviceConfig,
     MeasEndMarker,
     MeasStartMarker,
     RawMeasDataSequence,
-    TimeTag,
 )
 
 
@@ -104,6 +103,8 @@ class Device:
                 mh.stop_measurement(dev_id)
                 self.queue.put_nowait([MeasEndMarker()])
 
+            # https://github.com/pylint-dev/pylint/issues/9354
+            # pylint: disable-next=unpacking-non-sequence
             num_records, data = mh.read_fifo(dev_id)
             if num_records > 0:
                 self.queue.put_nowait(cast(RawMeasDataSequence, data))
@@ -130,6 +131,8 @@ class Device:
                 mh.stop_measurement(dev_id)
                 self.queue.put_nowait([MeasEndMarker()])
 
+            # https://github.com/pylint-dev/pylint/issues/9354
+            # pylint: disable-next=unpacking-non-sequence
             num_records, data = mh.read_fifo(dev_id)
             if num_records > 0:
                 self.queue.put_nowait(cast(RawMeasDataSequence, data))
@@ -143,18 +146,13 @@ class Device:
         self.queue.put_nowait([MeasEndMarker()])
 
     def test_measurement(self, meas_time: int) -> None:
-        import struct
-        import time
-
-        from multiharp_toolkit.ptu_parser import parse_header
-
         assert self.test_enabled
         assert self.test_ptu_file is not None
         with open(self.test_ptu_file, "rb") as f:
             headers = parse_header(f)
             assert headers is not None
-            tagNames, tagValues = headers
-            num_records = tagValues[tagNames.index("TTResult_NumberOfRecords")]
+            tag_names, tag_values = headers
+            num_records = tag_values[tag_names.index("TTResult_NumberOfRecords")]
             self.queue.put_nowait([MeasStartMarker(self.config, meas_time)])
             arr = []
             for i in range(0, num_records):
@@ -175,7 +173,8 @@ def list_device_index() -> list[int]:
         try:
             mh.open_device(i)
             available_devices.append(i)
-        except Exception as e:
+        # pylint: disable-next=broad-exception-caught,unused-variable
+        except Exception as e:  # noqa: F841
             pass
 
     for i in range(0, 8):

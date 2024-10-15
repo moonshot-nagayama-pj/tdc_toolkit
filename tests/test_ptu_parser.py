@@ -16,7 +16,7 @@ def test_parse_ptu_file(filename: str) -> None:
     with open(f"{filename}.ptu", "rb") as f:
         result = ptu_parser.parse(f)
     assert result is not None
-    assert result.globRes == 5e-12
+    assert result.glob_res == 5e-12
     assert len(result.names) == len(result.values)
     assert len(result.events) == 65  # event contains 64 ch + sync
 
