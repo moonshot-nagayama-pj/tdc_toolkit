@@ -49,13 +49,13 @@ stdmsg "Checking Python type hints with mypy..."
 mypy
 
 stdmsg "Running pylint..."
-pylint src/ tests/ hardware_tests/
+pylint src/ tests/
 
 stdmsg "Checking import formatting with isort..."
-isort . --check --diff
+isort src tests --check --diff
 
 stdmsg "Checking Python code formatting with black..."
-black --check --diff src tests hardware_tests
+black --check --diff src tests
 
 # Run shellcheck
 # Recursively loop through all files and find all files with .sh extension and run shellcheck
