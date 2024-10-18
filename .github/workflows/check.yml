@@ -1,0 +1,46 @@
+# Automatically run semantic checks, linters, and unit tests
+
+name: Code Checks
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  check-code:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache mhlib
+        id: cache-mhlib
+        uses: actions/cache@v4
+        with:
+          path: |
+            MHLib_v3.1.0.0_64bit
+          key: ${{ runner.os }}-mhlib
+
+      - name: Install mhlib if not cached
+        if: steps.cache-mhlib.outputs.cache-hit != 'true'
+        run: ./install_mhlib.sh
+
+      - name: Install dependencies
+        run: |
+          ./bin/install-dependencies.bash
+
+      - name: Run check script
+        run: |
+          ./bin/check.bash

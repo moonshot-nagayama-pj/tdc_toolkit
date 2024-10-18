@@ -45,6 +45,12 @@ rye sync
 stdmsg "Activating virtual environment..."
 source .venv/bin/activate
 
+stdmsg "Building and verifying Rust component..."
+cargo fmt --all -- --check
+cargo clippy
+cargo test
+maturin develop
+
 stdmsg "Checking Python type hints with mypy..."
 mypy
 
