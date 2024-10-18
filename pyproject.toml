@@ -42,7 +42,7 @@ dev-dependencies = [
     "isort>=5.13.2",
     "mypy>=1.11.2",
     "nbformat>=5.9.2",
-    "pip>=24.2",
+    "pip>=24.2", # maturin requires pip to be installed to build
     "pylint>=3.3.1",
     "pytest>=8.3.2",
 ]

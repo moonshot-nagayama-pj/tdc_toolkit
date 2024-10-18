@@ -1,64 +1,40 @@
 # MultiHarp Toolkit
 
-# Prerequisites
+## Prerequisites
 
-- [rust](https://rustup.rs/)
-- [rye](https://rye-up.com/guide/) (optional)
+* [rust](https://rustup.rs/)
+* [rye](https://rye.astral.sh/)
+* [shellcheck](https://www.shellcheck.net/)
+* shfmt from the [sh](https://github.com/mvdan/sh/) tool collection
 
-if you use vscode's devcontainer, you don't need it. 
-every tools are installed automatically.
+This library depends on a proprietary driver library from [PicoQuant](https://www.picoquant.com/) that is only available for the x64 architecture. Due to this library's license terms, we cannot distribute it with this library. Instead, it must be downloaded. This download will happen automatically the first time the Rust components of this project are built.
 
-# Getting started
+If you wish to develop this library on a non-x64 computer, such as an Apple Silicon or ARM device, it is necessary to emulate an x64 computer. For Apple Silicon users, the easiest way to accomplish this is to use a VSCode devcontainer; the configuration is available in this repository.
 
-first of all we need to prepare the environment.
-if you use [rye](https://rye-up.com/guide/), just sync it and then add pip
-because [maturin](https://www.maturin.rs/) requires pip with the selected python.
+For performance reasons, production deployment is only recommended on native x64 devices.
+
+## Getting started
+
+This Python module calls PicoQuant's proprietary driver library via a Rust wrapper. The easiest way to build all code for development, including both Rust and Python, is to run the check script:
+
 ```sh
-$ rye sync
-$ python -m ensurepip
+bin/check.bash
 ```
 
-if you're using devcontainer on Apple silicon,
+This will build the code and then run static analysis and unit tests. The same script runs on all pull requests, and must pass before a pull request is accepted.
+
+Before using more specific commands such as `rye sync` or `maturin develop`, be sure to activate the virtual environment:
+
+```
+source .venv/bin/activate
+```
+
+The check script automatically enters the virtual environment while the script is running.
+
+If you are using a devcontainer on Apple Silicon, you will also need to install the [`polars-lts-cpu`](https://pypi.org/project/polars-lts-cpu/) extension (see "Legacy" in the linked PyPI page).
+
 ```sh
 $ python -m pip install polars-lts-cpu
 ```
 
-if you don't use rye, create virtualenv and install dependencies.
-```sh
-$ python -m venv .venv
-
-# activate the venv. if you use vscode and the python extension, it runs this automatically.
-$ source .venv/bin/activate
-
-# and install dependencies
-$ pip install -r requirements-dev.lock
-```
-
-then confirm you are usuing the correct python interpreter.
-```sh
-$ which python
-# e.g. ~/multiharp-toolkit/.venv/bin/python
-```
-
-then we need to install the dependencies.
-```sh
-$ pip install -r requirements.lock
-# if you want to use jupyterlab
-$ pip install -r requirements-dev.lock
-```
-
-# build
-
-we use maturin to build native ext written Rust.
-```sh
-$ maturin develop
-# or 
-$ maturin build
-```
-
-then you can use it in python like this
-```py
-import multiharp_toolkit as mh
-print(mh.get_library_version())
-```
-
+The wrapper interface to the proprietary library is described in `python/multiharp_toolkit/_mhtk_rs.pyi`.
