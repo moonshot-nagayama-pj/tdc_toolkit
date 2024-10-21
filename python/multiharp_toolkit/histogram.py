@@ -1,13 +1,5 @@
-import pyarrow as pa
-from multiharp_toolkit import Channel, TimeTag
-import sys
 import polars as pl
-
-
-def read_arrow(arrow_file_path) -> pa.lib.Table:
-    print("read...")
-    with pa.ipc.open_file(arrow_file_path) as f:
-        return f.read_all()
+from multiharp_toolkit.util_types import Channel, TimeTag
 
 
 class Histogram:
@@ -21,6 +13,7 @@ class Histogram:
     base_ch: Channel
     base_start: TimeTag
     last_truetime: TimeTag
+    df: pl.DataFrame | None
 
     def __init__(self, base_ch: Channel, channels: list[Channel]) -> None:
         self.base_ch = base_ch
@@ -28,11 +21,12 @@ class Histogram:
         self.base_start = 0
         self.last_truetime = 0
         self.name = ""
+        self.df = None
 
     def __repr__(self) -> str:
         return f"Hist({self.base_ch}-{self.channels}, {self.name})"
 
-    def process(self, df: pl.DataFrame):
+    def process(self, df: pl.DataFrame) -> None:
         _df = df.with_columns(
             [
                 pl.col("ch").shift(-1).alias("next_ch"),

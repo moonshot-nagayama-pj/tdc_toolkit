@@ -1,19 +1,21 @@
 [project]
 name = "multiharp-toolkit"
-version = "0.1.1"
-description = "Add your description here"
+version = "0.2.0"
+description = "Rust and Python wrappers and helper libraries for working with the Multiharp family of high-precision event timers."
 authors = [{ name = "zigen", email = "hrlclb@gmail.com" }]
 dependencies = [
-    "pyarrow>=14.0.2",
     "kaleido>=0.2.1",
     "pandas>=2.1.2",
-    "polars>=0.20.5",
     "plotly>=5.18.0",
-    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
+    "polars>=0.20.5",
+    "pyarrow-stubs>=17.7",
+    "pyarrow>=14.0.2",
+    "structlog>=24.4.0",
     'maturin>=1.4.0 ; platform_system == "Windows"',
+    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
 ]
 readme = "README.md"
-requires-python = ">= 3.11"
+requires-python = ">= 3.12"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
@@ -27,7 +29,6 @@ mh-ptu2arrow = "multiharp_toolkit.cmd:ptu2arrow"
 mh-histogram = "multiharp_toolkit.cmd:histogram"
 mh-coincidence = "multiharp_toolkit.cmd:coincidence"
 
-
 [build-system]
 requires = ["maturin>=1.4,<2.0"]
 build-backend = "maturin"
@@ -35,23 +36,46 @@ build-backend = "maturin"
 [tool.rye]
 managed = true
 dev-dependencies = [
+    "black>=24.8.0",
+    "coverage>=7.6.1",
     "ipykernel>=6.26.0",
+    "isort>=5.13.2",
+    "mypy>=1.11.2",
     "nbformat>=5.9.2",
-    "pytest>=7.4.4",
+    "pip>=24.2", # maturin requires pip to be installed to build
+    "pylint>=3.3.1",
+    "pytest>=8.3.2",
 ]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
-[tool.hatch.build.targets.sdist]
-exclude = [
-  ".venv",
-  ".gitignore",
-  "sampledata",
-  "result"
-]
+[tool.hatch.version]
+path = "python/multiharp_toolkit/__init__.py"
+
+[tool.isort]
+profile = "black"
 
 [tool.maturin]
-module-name = "multiharp_toolkit._mhtk_rs"
 features = ["pyo3/extension-module"]
-python-source = "src"
+module-name = "multiharp_toolkit._mhtk_rs"
+python-source = "python"
+
+[tool.mypy]
+files = ["."]
+exclude = ["^MHLib_.*_64bit/"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "plotly.*"
+ignore_missing_imports = true
+
+[tool.pylint.format]
+max-line-length = "88"
+
+# See https://pylint.pycqa.org/en/latest/user_guide/messages/index.html
+[tool.pylint."messages control"]
+disable = ["raw-checker-failed", "bad-inline-option", "locally-disabled", "file-ignored", "suppressed-message", "deprecated-pragma", "use-symbolic-message-instead", "use-implicit-booleaness-not-comparison-to-string", "use-implicit-booleaness-not-comparison-to-zero", "missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "line-too-long", "duplicate-code", "too-many-instance-attributes", "too-few-public-methods", "too-many-public-methods", "too-many-arguments", "too-many-locals", "too-many-positional-arguments", "fixme"]
+
+[tool.pytest.ini_options]
+testpaths = ["python_tests"]

@@ -1,18 +1,18 @@
+import asyncio
 import os
 import time
-from multiharp_toolkit.device import DeviceConfig
-import asyncio
+from queue import Empty, Queue
+
 import pyarrow as pa
 from multiharp_toolkit.util_types import (
     T2WRAPAROUND_V2,
+    DeviceConfig,
     MeasEndMarker,
     MeasStartMarker,
     ParsedMeasDataSequence,
     RawMeasDataSequence,
     TimeTagDataSchema,
 )
-
-from queue import Empty, Queue
 
 
 class StreamParser:
@@ -37,7 +37,8 @@ class StreamParser:
         self.single_file = single_file
         self.time_resolution = 5
 
-    async def run(self):
+    async def run(self) -> None:
+        # pylint: disable=too-many-branches,too-many-nested-blocks
         while True:
             try:
                 data = self.queue_recv.get_nowait()
@@ -54,7 +55,7 @@ class StreamParser:
                     self.create_file(val)
                     self.queue_send.put_nowait(val)
                 elif isinstance(val, MeasEndMarker):
-                    self.close_file(val)
+                    self.close_file()
                     self.queue_send.put_nowait(val)
                     if self.single_file:
                         return
@@ -71,11 +72,15 @@ class StreamParser:
                         if channel == 0:  # sync
                             truetime = self.oflcorrection + timetag
                             ch_arr.append(channel)
-                            ts_arr.append(self.convert_timetag_to_relative_timestamp(truetime))
+                            ts_arr.append(
+                                self.convert_timetag_to_relative_timestamp(truetime)
+                            )
                     else:  # regular input channel
                         truetime = self.oflcorrection + timetag
                         ch_arr.append(channel + 1)
-                        ts_arr.append(self.convert_timetag_to_relative_timestamp(truetime))
+                        ts_arr.append(
+                            self.convert_timetag_to_relative_timestamp(truetime)
+                        )
             if ch_arr:
                 batch = pa.record_batch(
                     [
@@ -91,22 +96,23 @@ class StreamParser:
             self.queue_recv.task_done()
 
     def convert_timetag_to_relative_timestamp(self, timetag: int) -> int:
-        """Convert a time tag to a relative timestamp with picosecond resolution.
-        """
+        """Convert a time tag to a relative timestamp with picosecond resolution."""
         return timetag * self.time_resolution
 
-    def create_file(self, marker: MeasStartMarker):
+    def create_file(self, marker: MeasStartMarker) -> None:
         self.oflcorrection = 0
-        os.mkdirs(".arrows", 0o755, exist_ok=True)
+        os.makedirs(".arrows", 0o755, exist_ok=True)
         filename = os.path.join(
             ".arrows", f"{int(time.time())}-{marker.measurement_duration}.arrow"
         )
         self.writer = pa.ipc.new_file(
-            filename, schema=TimeTagDataSchema.with_metadata({"ch": str(marker.config)})
+            filename,
+            schema=TimeTagDataSchema.with_metadata({"ch": str(marker.config)}),
+            options=None,
         )
         self.filename = filename
         print("open file: ", filename)
 
-    def close_file(self, marker: MeasEndMarker):
+    def close_file(self) -> None:
         self.writer.close()
         print("close file ")

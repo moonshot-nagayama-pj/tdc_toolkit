@@ -1,7 +1,8 @@
-from typing import TypeAlias, TypedDict
-import pyarrow as pa
-from pyarrow import RecordBatch
+from typing import TypeAlias, TypedDict, cast
+
 import multiharp_toolkit._mhtk_rs as mh
+import pyarrow as pa
+from pyarrow import DataType, RecordBatch
 
 T2WRAPAROUND_V1 = 33552000
 T2WRAPAROUND_V2 = 33554432
@@ -14,8 +15,9 @@ TimeTag: TypeAlias = float
 
 RawMeasData: TypeAlias = int
 
-
-TimeTagDataSchema = pa.schema([("ch", pa.int8()), ("timestamp", pa.float64())])
+TimeTagDataSchema = pa.schema(
+    [("ch", cast(DataType, pa.int8())), ("timestamp", cast(DataType, pa.float64()))]
+)
 
 
 class DeviceInputChannelConfig(TypedDict):
@@ -43,10 +45,12 @@ class MeasStartMarker:
         self,
         config: DeviceConfig,
         measurement_duration: float,
-        param: dict[str, str | int | float] = {},
+        param: dict[str, str | int | float] | None = None,
     ) -> None:
         self.config = config
         self.measurement_duration = measurement_duration
+        if param is None:
+            param = {}
         self.param = param
 
 
@@ -55,4 +59,4 @@ class MeasEndMarker:
 
 
 RawMeasDataSequence: TypeAlias = list[RawMeasData | MeasEndMarker | MeasStartMarker]
-ParsedMeasDataSequence: TypeAlias = "RecordBatch | MeasEndMarker | MeasStartMarker"
+ParsedMeasDataSequence: TypeAlias = RecordBatch | MeasEndMarker | MeasStartMarker

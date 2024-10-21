@@ -10,96 +10,122 @@
 #   universal: false
 
 -e file:.
+astroid==3.3.5
+    # via pylint
 asttokens==2.4.1
     # via stack-data
-attrs==23.1.0
+attrs==24.2.0
     # via jsonschema
     # via referencing
-comm==0.1.4
+black==24.10.0
+click==8.1.7
+    # via black
+comm==0.2.2
     # via ipykernel
-debugpy==1.8.0
+coverage==7.6.2
+debugpy==1.8.7
     # via ipykernel
 decorator==5.1.1
     # via ipython
-executing==2.0.1
+dill==0.3.9
+    # via pylint
+executing==2.1.0
     # via stack-data
-fastjsonschema==2.18.1
+fastjsonschema==2.20.0
     # via nbformat
 iniconfig==2.0.0
     # via pytest
-ipykernel==6.26.0
-ipython==8.17.2
+ipykernel==6.29.5
+ipython==8.28.0
     # via ipykernel
+isort==5.13.2
+    # via pylint
 jedi==0.19.1
     # via ipython
-jsonschema==4.19.2
+jsonschema==4.23.0
     # via nbformat
-jsonschema-specifications==2023.7.1
+jsonschema-specifications==2024.10.1
     # via jsonschema
-jupyter-client==8.5.0
+jupyter-client==8.6.3
     # via ipykernel
-jupyter-core==5.5.0
+jupyter-core==5.7.2
     # via ipykernel
     # via jupyter-client
     # via nbformat
 kaleido==0.2.1
     # via multiharp-toolkit
-matplotlib-inline==0.1.6
+matplotlib-inline==0.1.7
     # via ipykernel
     # via ipython
-maturin==1.4.0
+maturin==1.7.4
     # via multiharp-toolkit
-nbformat==5.9.2
-nest-asyncio==1.5.8
+mccabe==0.7.0
+    # via pylint
+mypy==1.11.2
+mypy-extensions==1.0.0
+    # via black
+    # via mypy
+nbformat==5.10.4
+nest-asyncio==1.6.0
     # via ipykernel
-numpy==1.26.1
+numpy==2.1.2
     # via pandas
     # via pyarrow
-packaging==23.2
+packaging==24.1
+    # via black
     # via ipykernel
     # via plotly
     # via pytest
-pandas==2.1.2
+pandas==2.2.3
     # via multiharp-toolkit
-parso==0.8.3
+parso==0.8.4
     # via jedi
 patchelf==0.17.2.1
     # via maturin
-pexpect==4.8.0
+pathspec==0.12.1
+    # via black
+pexpect==4.9.0
     # via ipython
-platformdirs==3.11.0
+pip==24.2
+platformdirs==4.3.6
+    # via black
     # via jupyter-core
-plotly==5.18.0
+    # via pylint
+plotly==5.24.1
     # via multiharp-toolkit
-pluggy==1.3.0
+pluggy==1.5.0
     # via pytest
-polars==0.20.5
+polars==1.9.0
     # via multiharp-toolkit
-prompt-toolkit==3.0.39
+prompt-toolkit==3.0.48
     # via ipython
-psutil==5.9.6
+psutil==6.0.0
     # via ipykernel
 ptyprocess==0.7.0
     # via pexpect
-pure-eval==0.2.2
+pure-eval==0.2.3
     # via stack-data
-pyarrow==14.0.2
+pyarrow==17.0.0
     # via multiharp-toolkit
-pygments==2.16.1
+    # via pyarrow-stubs
+pyarrow-stubs==17.7
+    # via multiharp-toolkit
+pygments==2.18.0
     # via ipython
-pytest==7.4.4
-python-dateutil==2.8.2
+pylint==3.3.1
+pytest==8.3.3
+python-dateutil==2.9.0.post0
     # via jupyter-client
     # via pandas
-pytz==2023.3.post1
+pytz==2024.2
     # via pandas
-pyzmq==25.1.1
+pyzmq==26.2.0
     # via ipykernel
     # via jupyter-client
-referencing==0.30.2
+referencing==0.35.1
     # via jsonschema
     # via jsonschema-specifications
-rpds-py==0.10.6
+rpds-py==0.20.0
     # via jsonschema
     # via referencing
 six==1.16.0
@@ -107,12 +133,16 @@ six==1.16.0
     # via python-dateutil
 stack-data==0.6.3
     # via ipython
-tenacity==8.2.3
+structlog==24.4.0
+    # via multiharp-toolkit
+tenacity==9.0.0
     # via plotly
-tornado==6.3.3
+tomlkit==0.13.2
+    # via pylint
+tornado==6.4.1
     # via ipykernel
     # via jupyter-client
-traitlets==5.13.0
+traitlets==5.14.3
     # via comm
     # via ipykernel
     # via ipython
@@ -120,7 +150,9 @@ traitlets==5.13.0
     # via jupyter-core
     # via matplotlib-inline
     # via nbformat
-tzdata==2023.3
+typing-extensions==4.12.2
+    # via mypy
+tzdata==2024.2
     # via pandas
-wcwidth==0.2.9
+wcwidth==0.2.13
     # via prompt-toolkit
