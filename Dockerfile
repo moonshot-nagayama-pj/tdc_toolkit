@@ -17,5 +17,4 @@ RUN wget https://static.rust-lang.org/rustup/archive/1.26.0/x86_64-unknown-linux
  chmod +x rustup-init && \
  ./rustup-init -y
 
-RUN curl -sSf https://rye-up.com/get | RYE_INSTALL_OPTION="-y" bash
-RUN echo "source $HOME/.rye/env" >> $HOME/.profile
+# TODO install uv

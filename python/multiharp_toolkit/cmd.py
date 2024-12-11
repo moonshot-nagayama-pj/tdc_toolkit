@@ -107,7 +107,7 @@ def ptu2arrow() -> None:
     table = pa.table({"ch": ch_arr, "timestamp": ev_arr}, schema=TimeTagDataSchema)
 
     # pylint: disable-next=no-member
-    si = pc.sort_indices(table, sort_keys=[("timestamp", "ascending")])  # type: ignore
+    si = pc.sort_indices(table, sort_keys=[("timestamp", "ascending")])
     print("\nwrite...", arrow_file_path)
     if args.parquet:
         parquet_file_path = os.path.join(

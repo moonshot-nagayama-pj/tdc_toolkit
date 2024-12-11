@@ -3,23 +3,17 @@ name = "multiharp-toolkit"
 version = "0.2.0"
 description = "Rust and Python wrappers and helper libraries for working with the Multiharp family of high-precision event timers."
 authors = [{ name = "zigen", email = "hrlclb@gmail.com" }]
-dependencies = [
-    "kaleido>=0.2.1",
-    "pandas>=2.1.2",
-    "plotly>=5.18.0",
-    "polars>=0.20.5",
-    "pyarrow-stubs>=17.7",
-    "pyarrow>=14.0.2",
-    "structlog>=24.4.0",
-    'maturin>=1.4.0 ; platform_system == "Windows"',
-    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
-]
 readme = "README.md"
 requires-python = ">= 3.12"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    "plotly>=5.24.1",
+    "polars>=1.17.1",
+    "structlog>=24.4.0",
 ]
 
 [project.scripts]
@@ -33,18 +27,30 @@ mh-coincidence = "multiharp_toolkit.cmd:coincidence"
 requires = ["maturin>=1.4,<2.0"]
 build-backend = "maturin"
 
-[tool.rye]
-managed = true
-dev-dependencies = [
+dependencies = [
+    "kaleido>=0.2.1",
+    "pandas>=2.1.2",
+    "plotly>=5.18.0",
+    "polars>=0.20.5",
+    "pyarrow>=14.0.2",
+    "structlog>=24.4.0",
+]
+
+[dependency-groups]
+dev = [
     "black>=24.8.0",
     "coverage>=7.6.1",
     "ipykernel>=6.26.0",
     "isort>=5.13.2",
+    'maturin>=1.4.0 ; platform_system == "Windows"',
+    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
     "mypy>=1.11.2",
     "nbformat>=5.9.2",
-    "pip>=24.2", # maturin requires pip to be installed to build
+    "pip>=24.2",
+    "pyarrow-stubs>=17.13", # maturin requires pip to be installed to build
     "pylint>=3.3.1",
     "pytest>=8.3.2",
+    "ruff>=0.8.2",
 ]
 
 [tool.hatch.metadata]

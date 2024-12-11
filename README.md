@@ -3,7 +3,7 @@
 ## Prerequisites
 
 * [rust](https://rustup.rs/)
-* [rye](https://rye.astral.sh/)
+* [uv](https://docs.astral.sh/uv/)
 * [shellcheck](https://www.shellcheck.net/)
 * shfmt from the [sh](https://github.com/mvdan/sh/) tool collection
 
@@ -23,7 +23,7 @@ bin/check.bash
 
 This will build the code and then run static analysis and unit tests. The same script runs on all pull requests, and must pass before a pull request is accepted.
 
-Before using more specific commands such as `rye sync` or `maturin develop`, be sure to activate the virtual environment:
+Before using more specific commands such as `uv sync` or `maturin develop`, be sure to activate the virtual environment:
 
 ```
 source .venv/bin/activate
