@@ -8,7 +8,6 @@ from typing import cast
 import multiharp_toolkit._mhtk_rs as mh
 from multiharp_toolkit.ptu_parser import parse_header
 from multiharp_toolkit.util_types import (
-    DeviceConfig,
     MeasEndMarker,
     MeasStartMarker,
     RawMeasDataSequence,
@@ -19,7 +18,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True, kw_only=True)
-class DeviceInputChannelConfig(TypedDict):
+class DeviceInputChannelConfig():
     edge_trigger_level: int
     edge_trigger: "mh.Edge"
     channel_offset: int
@@ -27,7 +26,7 @@ class DeviceInputChannelConfig(TypedDict):
 
 
 @dataclass(frozen=True, kw_only=True)
-class DeviceConfig(TypedDict):
+class DeviceConfig():
     sync_divider: int
     sync_edge_trigger_level: int  # mV
     sync_edge: "mh.Edge"
