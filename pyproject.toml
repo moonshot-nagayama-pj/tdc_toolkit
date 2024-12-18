@@ -11,8 +11,11 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-    "plotly>=5.24.1",
-    "polars>=1.17.1",
+    "pandas>=2.1.2",
+    "pint>=0.24.4",
+    "plotly>=5.18.0",
+    "polars>=0.20.5",
+    "pyarrow>=14.0.2",
     "structlog>=24.4.0",
 ]
 
@@ -26,15 +29,6 @@ mh-coincidence = "multiharp_toolkit.cmd:coincidence"
 [build-system]
 requires = ["maturin>=1.4,<2.0"]
 build-backend = "maturin"
-
-dependencies = [
-    "kaleido>=0.2.1",
-    "pandas>=2.1.2",
-    "plotly>=5.18.0",
-    "polars>=0.20.5",
-    "pyarrow>=14.0.2",
-    "structlog>=24.4.0",
-]
 
 [dependency-groups]
 dev = [

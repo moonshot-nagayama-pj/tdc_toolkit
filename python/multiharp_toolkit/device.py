@@ -14,6 +14,32 @@ from multiharp_toolkit.util_types import (
     RawMeasDataSequence,
 )
 
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True, kw_only=True)
+class DeviceInputChannelConfig(TypedDict):
+    edge_trigger_level: int
+    edge_trigger: "mh.Edge"
+    channel_offset: int
+    enable: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class DeviceConfig(TypedDict):
+    sync_divider: int
+    sync_edge_trigger_level: int  # mV
+    sync_edge: "mh.Edge"
+    sync_channel_offset: int  # ps
+    sync_channel_enable: bool
+    inputs: list[DeviceInputChannelConfig]
+
+
+@dataclass(frozen=True, kw_only=True)
+class MultiharpDevice(ABC):
+    device_index: int
+
 
 class Device:
     device_index: int
