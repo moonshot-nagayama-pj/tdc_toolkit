@@ -1,21 +1,20 @@
+import asyncio
+import enum
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag
-from multiharp_toolkit.tttr_record import RawRecords
-from pint import Quantity
 from typing import Self
 
-import asyncio
-import contextlib
-import enum
-import typing
+from pint import Quantity
+
 
 @dataclass(frozen=True, kw_only=True)
-class MultiharpDeviceInfo():
+class MultiharpDeviceInfo:
     """Amalgamation of device-related information collected from
     several different API calls, for convenience.
 
     """
+
     # MH_GetLibraryVersion
     library_version: str
 
@@ -35,6 +34,7 @@ class MultiharpDeviceInfo():
     # MH_GetNumOfInputChannels
     num_channels: int
 
+
 @enum.unique
 class MultiharpDeviceIndex(int, Enum):
     DEV_0 = 0
@@ -46,6 +46,7 @@ class MultiharpDeviceIndex(int, Enum):
     DEV_6 = 6
     DEV_7 = 7
 
+
 @enum.unique
 class MultiharpDeviceChannel(IntFlag):
     CHAN_0_LEFTMOST = 0x0001
@@ -56,48 +57,59 @@ class MultiharpDeviceChannel(IntFlag):
     CHAN_5 = 0x0020
     CHAN_6 = 0x0040
     CHAN_7_RIGHTMOST = 0x0080
-    CHAN_8_SYNC = 0x0100 # only available when row index is 0
+    CHAN_8_SYNC = 0x0100  # only available when row index is 0
 
     @classmethod
     def from_linear(cls, channel: int) -> Self:
         if channel < 0 or channel > 8:
-            raise ValueError("Channel must be between 0 and 8. See documentation for help identifying channels.")
+            raise ValueError(
+                "Channel must be between 0 and 8. See documentation for help identifying channels."
+            )
         return cls(1 << channel)
 
+
 @dataclass(frozen=True, kw_only=True)
-class MultiharpMainEventFilterRow():
+class MultiharpMainEventFilterRow:
     use_channels: MultiharpDeviceChannel
     pass_channels: MultiharpDeviceChannel
 
+
 @dataclass(frozen=True, kw_only=True)
-class MultiharpMainEventFilter():
+class MultiharpMainEventFilter:
     time_range: Quantity
     match_count: int
     inverse: bool = field(default=False)
     rows: dict[int, MultiharpMainEventFilterRow]
 
+
 @dataclass(frozen=True, kw_only=True)
-class MultiharpDevice(ABC, contextlib.AbstractAsyncContextManager[None]):
+class RawRecords:
+    raw_data: bytes
+    record_count: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class MultiharpDevice(ABC):
+    # TODO make this a context manager
     @abstractmethod
     def get_device_info(self) -> MultiharpDeviceInfo:
         pass
 
     @abstractmethod
-    async def record_measurement_async(self, measurement_duration: Quantity, output: typing.BinaryIO) -> None:
+    def set_input_channel_offset(
+        self,
+        device_index: MultiharpDeviceIndex,
+        channel: MultiharpDeviceChannel,
+        offset: Quantity,
+    ) -> None:
         pass
 
     @abstractmethod
-    def record_measurement_blocking(self, measurement_duration: Quantity, output: typing.BinaryIO) -> None:
+    def set_main_event_filter(
+        self, event_filter: dict[MultiharpDeviceIndex, MultiharpMainEventFilter]
+    ) -> None:
         pass
 
     @abstractmethod
-    def set_input_channel_offset(self, device_index: MultiharpDeviceIndex, channel: MultiharpDeviceChannel, offset: Quantity) -> None:
-        pass
-
-    @abstractmethod
-    def set_main_event_filter(self, event_filter: dict[MultiharpDeviceIndex, MultiharpMainEventFilter]) -> None:
-        pass
-
-    @abstractmethod
-    async def stream_measurement(self) -> asyncio.Queue[RawRecords]:
+    async def stream_measurement(self, output_queue: asyncio.Queue[RawRecords]) -> None:
         pass
