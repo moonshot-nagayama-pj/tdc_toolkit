@@ -1,27 +1,21 @@
 use pyo3::prelude::*;
 
-#[cfg(any(
-    all(target_arch = "x86_64", target_os = "windows"),
-    all(target_arch = "x86_64", target_os = "linux")
-))]
+pub mod mhlib_wrapper_enums;
+use mhlib_wrapper_enums::{Edge, MeasurementControl, Mode, RefSource};
+
+#[cfg_attr(
+    any(
+        not(any(
+            all(target_arch = "x86_64", target_os = "windows"),
+            all(target_arch = "x86_64", target_os = "linux")
+        )),
+        feature = "stub"
+    ),
+    path = "stub_mhlib_wrapper.rs"
+)]
 pub mod mhlib_wrapper;
 
-#[cfg(any(
-    all(target_arch = "x86_64", target_os = "windows"),
-    all(target_arch = "x86_64", target_os = "linux")
-))]
-use mhlib_wrapper::{Edge, MeasurementControl, Mode, RefSource};
-
-#[cfg(any(
-    all(target_arch = "x86_64", target_os = "windows"),
-    all(target_arch = "x86_64", target_os = "linux")
-))]
 mod mhlib_wrapper_py;
-
-#[cfg(any(
-    all(target_arch = "x86_64", target_os = "windows"),
-    all(target_arch = "x86_64", target_os = "linux")
-))]
 use mhlib_wrapper_py::*;
 
 mod parser;
@@ -31,10 +25,6 @@ use parser::PtuParser;
 #[pymodule]
 #[pyo3(name = "_mhtk_rs")]
 fn _mhtk_rs(_py: Python, m: &PyModule) -> PyResult<()> {
-    #[cfg(any(
-        all(target_arch = "x86_64", target_os = "windows"),
-        all(target_arch = "x86_64", target_os = "linux")
-    ))]
     {
         m.add_function(wrap_pyfunction!(get_library_version, m)?)?;
         m.add_function(wrap_pyfunction!(open_device, m)?)?;

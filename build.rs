@@ -9,14 +9,18 @@ use std::process::Command;
 fn main() {
     let os = env::consts::OS;
     let arch = env::consts::ARCH;
-    if arch != "x86_64" || (os != "linux" && os != "windows") {
-        panic!("Only x86_64 Linux or Windows is supported.");
+
+    if !(arch == "x86_64" && (os == "linux" || os == "windows")) || cfg!(feature = "stub") {
+        // cannot link to the driver library on non-x64 architectures,
+        // just use the stub
+        println!("cargo::warning=Using the stub driver implementation.");
+        return;
     }
 
     let mut include_dir = String::from("not_found");
     let mut lib_dir = String::from("not_found");
     let mut lib_dir_path: PathBuf;
-    if os == "linux" {
+    if os == "linux" && arch == "x86_64" {
         // locate the lib dir or download the files if necessary
         match env::var("MHLIB_LIB_DIR") {
             Ok(val) => {
@@ -91,7 +95,7 @@ fn main() {
         println!("cargo::rustc-link-search=native={}", lib_dir);
         println!("cargo::rustc-link-lib=dylib=mhlib");
         println!("cargo::rustc-link-arg=-Wl,-rpath={}", lib_dir);
-    } else if os == "windows" {
+    } else if os == "windows" && arch == "x86_64" {
         include_dir = String::from("C:\\Program Files\\PicoQuant\\MultiHarp-MHLibv31");
         lib_dir = include_dir.clone();
 

@@ -20,4 +20,5 @@ bindgen = "0.69.1"
 
 [features]
 extension-module = ["pyo3/extension-module"]
+stub = []
 default = ["extension-module"]

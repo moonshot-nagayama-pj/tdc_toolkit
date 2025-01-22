@@ -1,5 +1,5 @@
-use crate::mhlib_wrapper::{self, MeasurementControl};
-use crate::mhlib_wrapper::{Edge, Mode, RefSource};
+use crate::mhlib_wrapper;
+use crate::{Edge, MeasurementControl, Mode, RefSource};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 

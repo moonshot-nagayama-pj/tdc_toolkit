@@ -32,6 +32,7 @@ pub struct PQTimeTaggedData {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TagHeader {
     pub ident: String,
     pub idx: i32,

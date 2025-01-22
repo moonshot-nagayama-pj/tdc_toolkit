@@ -1,4 +1,3 @@
-use pyo3::prelude::*;
 use std::os::raw::c_int;
 
 mod bindings {
@@ -8,50 +7,7 @@ mod bindings {
 
 use self::bindings::*;
 
-#[derive(Clone)]
-#[repr(i32)]
-#[pyclass]
-pub enum Mode {
-    T2 = MODE_T2 as i32,
-    T3 = MODE_T3 as i32,
-}
-
-#[derive(Clone)]
-#[repr(u32)]
-#[pyclass]
-pub enum RefSource {
-    InternalClock = REFSRC_INTERNAL,
-    ExternalClock10MHz = REFSRC_EXTERNAL_10MHZ,
-    WhiteRabbitMaster = REFSRC_WR_MASTER_GENERIC,
-    WhiteRabbitSlave = REFSRC_WR_SLAVE_GENERIC,
-    WhiteRabbitGrandMaster = REFSRC_WR_GRANDM_GENERIC,
-    ExternalGpsPps = REFSRC_EXTN_GPS_PPS,
-    ExternalGpsPPsUart = REFSRC_EXTN_GPS_PPS_UART,
-    WhiteRabbitMasterMultiHarp = REFSRC_WR_MASTER_MHARP,
-    WhiteRabbitSlaveMultiHarp = REFSRC_WR_SLAVE_MHARP,
-    WhiteRabbitGrandMasterMultiHarp = REFSRC_WR_GRANDM_MHARP,
-}
-
-#[derive(Clone)]
-#[repr(i32)]
-#[pyclass]
-pub enum Edge {
-    Falling = EDGE_FALLING as i32,
-    Rising = EDGE_RISING as i32,
-}
-
-#[derive(Clone)]
-#[repr(i32)]
-#[pyclass]
-pub enum MeasurementControl {
-    SingleShotCtc = MEASCTRL_SINGLESHOT_CTC as i32,
-    C1Gated = MEASCTRL_C1_GATED as i32,
-    C1StartCtcStop = MEASCTRL_C1_START_CTC_STOP as i32,
-    C1StartC2Stop = MEASCTRL_C1_START_C2_STOP as i32,
-    WhiteRabbitM2S = MEASCTRL_WR_M2S as i32,
-    WhiteRabbitS2M = MEASCTRL_WR_S2M as i32,
-    SwitchStartSwitchStop = MEASCTRL_SW_START_SW_STOP as i32,
-}
+use crate::{Edge, MeasurementControl, Mode, RefSource};
 
 fn handle_error(ret: c_int) -> Result<(), String> {
     let mut error_string: [u8; 40] = [0; 40];
