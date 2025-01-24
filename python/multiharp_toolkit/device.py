@@ -1,24 +1,21 @@
 import asyncio
-import struct
-import time
-from queue import Queue
-from types import TracebackType
-from typing import cast
+from dataclasses import dataclass, field
 
 import multiharp_toolkit._mhtk_rs as mh
-from multiharp_toolkit.ptu_parser import parse_header
-from multiharp_toolkit.util_types import (
-    MeasEndMarker,
-    MeasStartMarker,
-    RawMeasDataSequence,
+import structlog
+from multiharp_toolkit.exceptions import (
+    FifoOverrunException,
+    InvalidStateException,
+    MeasurementCompletedException,
 )
+from multiharp_toolkit.interface import RawRecords
+from pint import Quantity
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
+log = structlog.get_logger()
 
 
 @dataclass(frozen=True, kw_only=True)
-class DeviceInputChannelConfig():
+class DeviceInputChannelConfig:
     edge_trigger_level: int
     edge_trigger: "mh.Edge"
     channel_offset: int
@@ -26,7 +23,7 @@ class DeviceInputChannelConfig():
 
 
 @dataclass(frozen=True, kw_only=True)
-class DeviceConfig():
+class DeviceConfig:
     sync_divider: int
     sync_edge_trigger_level: int  # mV
     sync_edge: "mh.Edge"
@@ -36,160 +33,93 @@ class DeviceConfig():
 
 
 @dataclass(frozen=True, kw_only=True)
-class MultiharpDevice(ABC):
-    device_index: int
-
-
 class Device:
     device_index: int
-    is_open: bool
     config: DeviceConfig
-    queue: Queue[RawMeasDataSequence]
+    # Track whether this object is "closed," meaning that it is
+    # uninitialized, or "open," meaning that the MultiHarp has been
+    # initialized and is ready to make measurements. This object can
+    # only be used with a single configuration. To reconfigure the
+    # device, create a new object.
+    closed: bool = field(default=False, init=False)
 
-    test_enabled: bool
-    test_ptu_file: str | None
+    # Track whether this object is "closed," meaning that it is
+    # uninitialized, or "open," meaning that the MultiHarp has been
+    # initialized and is ready to make measurements. This object can
+    # only be used with a single configuration. To reconfigure the
+    # device, create a new object.
+    configured: bool = field(default=False, init=False)
 
-    def __init__(self, index: int, config: DeviceConfig) -> None:
-        self.device_index = index
-        self.is_open = False
-        self.config = config
-        self.oflcorrection = 0
-        self.queue = Queue()
+    def open(self) -> None:
+        if self.configured or self.closed:
+            raise InvalidStateException(
+                f"The device was already configured or closed and should not be re-opened. Configured: {self.configured} Closed: {self.closed}"
+            )
 
-        self.test_enabled = False
-        self.test_ptu_file = None
+        mh.open_device(self.device_index)
+        mh.initialize(self.device_index, mh.Mode.T2, mh.RefSource.InternalClock)
+        self.__configure()
+        object.__setattr__(self, "configured", True)
 
-    def __open(self) -> None:
-        if self.is_open:
-            return
-        dev_id = self.device_index
-        mh.open_device(dev_id)
-        self.is_open = True
-        mh.initialize(dev_id, mh.Mode.T2, mh.RefSource.InternalClock)
-        self.configure()
+    def close(self) -> None:
+        try:
+            mh.close_device(self.device_index)
+        finally:
+            object.__setattr__(self, "closed", True)
 
-    def configure(self, config: DeviceConfig | None = None) -> None:
-        if config:
-            self.config = config
+    def __configure(self) -> None:
         c = self.config
         dev_id = self.device_index
 
         num_inputs = mh.get_number_of_input_channels(dev_id)
-        if num_inputs != len(self.config["inputs"]):
-            print(
-                "warning: num_inputs != len(config.inputs)",
-                num_inputs,
-                len(self.config["inputs"]),
+        num_configured_inputs = len(self.config.inputs)
+        if num_inputs != num_configured_inputs:
+            raise InvalidStateException(
+                f"The number of configured inputs must match the actual number of inputs. Configured inputs: {num_configured_inputs} Actual inputs: {num_inputs}"
             )
 
-        mh.set_sync_divider(dev_id, c["sync_divider"])
-        mh.set_sync_edge_trigger(dev_id, c["sync_edge_trigger_level"], c["sync_edge"])
+        mh.set_sync_divider(dev_id, c.sync_divider)
+        mh.set_sync_edge_trigger(dev_id, c.sync_edge_trigger_level, c.sync_edge)
         mh.set_sync_channel_offset(dev_id, 0)
-        mh.set_sync_channel_enable(dev_id, c["sync_channel_enable"])
+        mh.set_sync_channel_enable(dev_id, c.sync_channel_enable)
         for ch in range(0, num_inputs):
-            ch_config = self.config["inputs"][ch]
+            ch_config = c.inputs[ch]
             mh.set_input_edge_trigger(
-                dev_id, ch, ch_config["edge_trigger_level"], ch_config["edge_trigger"]
+                dev_id, ch, ch_config.edge_trigger_level, ch_config.edge_trigger
             )
-            mh.set_input_channel_offset(dev_id, ch, ch_config["channel_offset"])
-            mh.set_input_channel_enable(dev_id, ch, ch_config["enable"])
+            mh.set_input_channel_offset(dev_id, ch, ch_config.channel_offset)
+            mh.set_input_channel_enable(dev_id, ch, ch_config.enable)
 
-    def close(self) -> None:
-        mh.close_device(self.device_index)
-        self.is_open = False
-
-    def open(self) -> "Device":
-        self.__open()
-        return self
-
-    def __enter__(self) -> None:
-        self.__open()
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_tb: TracebackType | None,
+    async def stream_measurement(
+        self, measurement_time: Quantity, output_queue: asyncio.Queue[RawRecords]
     ) -> None:
-        self.close()
+        measurement_time_ms = measurement_time.to("milliseconds").magnitude
+        try:
+            mh.start_measurement(self.device_index, measurement_time_ms)
+            while True:
+                self.__check_fifo_overrun()
+                raw_records = self.__read_fifo()
+                if raw_records is not None:
+                    await output_queue.put(raw_records)
+        finally:
+            output_queue.shutdown()
+            mh.stop_measurement(self.device_index)
 
-    def start_measurement(self, meas_time: int) -> None:
-        if self.test_enabled:
-            self.test_measurement(meas_time)
-            return
-        dev_id = self.device_index
-        self.oflcorrection = 0
-        self.queue.put_nowait([MeasStartMarker(self.config, meas_time)])
-        mh.start_measurement(dev_id, meas_time)
-        while True:
-            flags = mh.get_flags(dev_id)
-            if flags & 2:
-                print("fifo overrun")
-                mh.stop_measurement(dev_id)
-                self.queue.put_nowait([MeasEndMarker()])
+    def __check_fifo_overrun(self) -> None:
+        flags = mh.get_flags(self.device_index)
+        if flags & 2:  # FLAG_FIFOFULL
+            log.error(event="FIFO overrun")
+            raise FifoOverrunException()
 
-            # https://github.com/pylint-dev/pylint/issues/9354
-            # pylint: disable-next=unpacking-non-sequence
-            num_records, data = mh.read_fifo(dev_id)
-            if num_records > 0:
-                self.queue.put_nowait(cast(RawMeasDataSequence, data))
-            else:
-                status = mh.ctc_status(dev_id)
-                if status > 0:
-                    break
-
-        mh.stop_measurement(dev_id)
-        self.queue.put_nowait([MeasEndMarker()])
-
-    async def start_measurement_async(self, meas_time: int) -> None:
-        if self.test_enabled:
-            self.test_measurement(meas_time)
-            return
-        dev_id = self.device_index
-        self.oflcorrection = 0
-        self.queue.put_nowait([MeasStartMarker(self.config, meas_time)])
-        mh.start_measurement(dev_id, meas_time)
-        while True:
-            flags = mh.get_flags(dev_id)
-            if flags & 2:
-                print("fifo overrun")
-                mh.stop_measurement(dev_id)
-                self.queue.put_nowait([MeasEndMarker()])
-
-            # https://github.com/pylint-dev/pylint/issues/9354
-            # pylint: disable-next=unpacking-non-sequence
-            num_records, data = mh.read_fifo(dev_id)
-            if num_records > 0:
-                self.queue.put_nowait(cast(RawMeasDataSequence, data))
-            else:
-                status = mh.ctc_status(dev_id)
-                if status > 0:
-                    break
-            await asyncio.sleep(0)
-
-        mh.stop_measurement(dev_id)
-        self.queue.put_nowait([MeasEndMarker()])
-
-    def test_measurement(self, meas_time: int) -> None:
-        assert self.test_enabled
-        assert self.test_ptu_file is not None
-        with open(self.test_ptu_file, "rb") as f:
-            headers = parse_header(f)
-            assert headers is not None
-            tag_names, tag_values = headers
-            num_records = tag_values[tag_names.index("TTResult_NumberOfRecords")]
-            self.queue.put_nowait([MeasStartMarker(self.config, meas_time)])
-            arr = []
-            for i in range(0, num_records):
-                data = struct.unpack("<I", f.read(4))[0]
-                arr.append(data)
-                if i % 64 == 0:
-                    self.queue.put_nowait(arr.copy())
-                    arr = []
-                    time.sleep(0.01)
-            if len(arr) > 0:
-                self.queue.put_nowait(arr.copy())
-            self.queue.put_nowait([MeasEndMarker()])
+    def __read_fifo(self) -> RawRecords | None:
+        # https://github.com/pylint-dev/pylint/issues/9354
+        # pylint: disable-next=unpacking-non-sequence
+        record_count, raw_data = mh.read_fifo(self.device_index)
+        if record_count > 0:
+            return RawRecords(raw_data=raw_data, record_count=record_count)
+        if mh.ctc_status(self.device_index) > 0:
+            raise MeasurementCompletedException()
+        return None
 
 
 def list_device_index() -> list[int]:
@@ -201,7 +131,6 @@ def list_device_index() -> list[int]:
         # pylint: disable-next=broad-exception-caught,unused-variable
         except Exception as e:  # noqa: F841
             pass
-
-    for i in range(0, 8):
-        mh.close_device(i)
+        finally:
+            mh.close_device(i)
     return available_devices

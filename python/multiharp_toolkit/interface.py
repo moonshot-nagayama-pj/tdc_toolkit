@@ -84,7 +84,7 @@ class MultiharpMainEventFilter:
 
 @dataclass(frozen=True, kw_only=True)
 class RawRecords:
-    raw_data: bytes
+    raw_data: list[int]
     record_count: int
 
 
@@ -111,5 +111,7 @@ class MultiharpDevice(ABC):
         pass
 
     @abstractmethod
-    async def stream_measurement(self, output_queue: asyncio.Queue[RawRecords]) -> None:
+    async def stream_measurement(
+        self, measurement_time: Quantity, output_queue: asyncio.Queue[RawRecords]
+    ) -> None:
         pass

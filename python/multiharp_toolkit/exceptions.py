@@ -7,3 +7,18 @@ class InvalidStateException(Exception):
     re-open them.
 
     """
+
+
+class FifoOverrunException(Exception):
+    """Thrown during measurement when the MultiHarp's buffer has
+    filled and continuing the measurement is not possible.
+
+    """
+
+
+class MeasurementCompletedException(Exception):
+    """Thrown during measurement when the requested time for
+    measurment has elapsed and the device will no longer return
+    further measurements.
+
+    """

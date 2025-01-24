@@ -40,11 +40,13 @@ class StubMultiharpDevice(MultiharpDevice):
     ) -> None:
         pass
 
-    async def stream_measurement(self, output_queue: asyncio.Queue[RawRecords]) -> None:
+    async def stream_measurement(
+        self, measurement_time: Quantity, output_queue: asyncio.Queue[RawRecords]
+    ) -> None:
         for _ in range(1, 10):
             await output_queue.put(
                 RawRecords(
-                    raw_data=bytes.fromhex("01000002 02000002 03000002"), record_count=3
+                    raw_data=[0x02000001, 0x02000002, 0x02000003], record_count=3
                 )
             )
         output_queue.shutdown()

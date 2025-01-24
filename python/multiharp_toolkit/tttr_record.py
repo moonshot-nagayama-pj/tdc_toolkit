@@ -34,9 +34,10 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
         default=0
     )  # in time-tag units, e.g. one unit = 5 picoseconds when resolution is 5
     resolution: int = field(default=5)  # picoseconds
-    closed: bool = field(
-        default=False
-    )  # Track whether this object has already been closed
+
+    # Track whether this object has already been closed. This object
+    # can only be used once.
+    closed: bool = field(default=False, init=False)
 
     input_queue: asyncio.Queue[RawRecords]
     output_queue: asyncio.Queue[T2Record]
@@ -76,10 +77,12 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
         log.debug("close()")
         if exc_val:
             log.error("close() was called due to an exception.", exc_info=exc_val)
-        # if self.closed:
-        #     if exc_val:
-        #         raise InvalidStateException("An exception attempted to close the queue processor, but it was already closed.") from exc_val
-        #     raise InvalidStateException()
+        if self.closed:
+            if exc_val:
+                raise InvalidStateException(
+                    "An exception attempted to close the queue processor, but it was already closed."
+                ) from exc_val
+            raise InvalidStateException()
         try:
             self.output_queue.shutdown()
         finally:
@@ -88,14 +91,8 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
     async def __process_raw_records(self, raw_records: RawRecords) -> None:
         await log.adebug("__process_raw_records()")
 
-        for record_start in range(raw_records.record_count):
-            start_byte = record_start * 4
-            record_int = int.from_bytes(
-                raw_records.raw_data[start_byte : start_byte + 4],
-                "little",
-                signed=False,
-            )
-            special, channel, time_tag = split_raw_t2_record(record_int)
+        for raw_record in raw_records.raw_data:
+            special, channel, time_tag = split_raw_t2_record(raw_record)
             if not self.__process_special_records(special, channel, time_tag):
                 await self.__process_normal_record(channel, time_tag)
 

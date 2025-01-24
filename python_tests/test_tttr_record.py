@@ -4,6 +4,7 @@ import structlog
 from multiharp_toolkit.interface import RawRecords
 from multiharp_toolkit.stub_device import StubMultiharpDevice
 from multiharp_toolkit.tttr_record import T2Record, T2RecordQueueProcessor
+from multiharp_toolkit.units import mhtk_ureg
 
 log = structlog.get_logger()
 
@@ -25,7 +26,9 @@ async def test_no_overflow() -> None:
         input_queue=raw_queue, output_queue=processed_queue
     )
     async with TaskGroup() as tg:
-        mh_task = tg.create_task(mh.stream_measurement(raw_queue))
+        mh_task = tg.create_task(
+            mh.stream_measurement(1000 * mhtk_ureg.millisecond, raw_queue)
+        )
         processor_task = tg.create_task(queue_processor.open())
         printer_task = tg.create_task(read_queued_messages(processed_queue))
     await log.adebug(
