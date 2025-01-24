@@ -1,4 +1,5 @@
 import asyncio
+import time
 from dataclasses import dataclass, field
 
 import multiharp_toolkit._mhtk_rs as mh
@@ -10,6 +11,7 @@ from multiharp_toolkit.exceptions import (
 )
 from multiharp_toolkit.interface import RawRecords
 from pint import Quantity
+
 
 log = structlog.get_logger()
 
@@ -59,6 +61,10 @@ class Device:
         mh.open_device(self.device_index)
         mh.initialize(self.device_index, mh.Mode.T2, mh.RefSource.InternalClock)
         self.__configure()
+
+        # Sample code notes that "after Init or SetSyncDiv you must allow >100 ms for valid count rate readings"
+        time.sleep(0.2)
+
         object.__setattr__(self, "configured", True)
 
     def close(self) -> None:

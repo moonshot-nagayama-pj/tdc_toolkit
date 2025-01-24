@@ -49,6 +49,16 @@ class MultiharpDeviceIndex(int, Enum):
 
 @enum.unique
 class MultiharpDeviceChannel(IntFlag):
+    """Channels as understood by the main event filter. In this view,
+    the MultiHarp consists of up to eight rows of eight channels each
+    (one of which, in the first row only, may be a sync channel,
+    indicated by a different value).
+
+    Conversely, in TTTR mode, time records simply indicate the channel
+    using a value between 0 and 63, with the sync channel marked using
+    a special tag.
+
+    """
     CHAN_0_LEFTMOST = 0x0001
     CHAN_1 = 0x0002
     CHAN_2 = 0x0004
@@ -61,6 +71,8 @@ class MultiharpDeviceChannel(IntFlag):
 
     @classmethod
     def from_linear(cls, channel: int) -> Self:
+        # TODO in order to support all 64 channels, row information
+        # must somehow be incorporated
         if channel < 0 or channel > 8:
             raise ValueError(
                 "Channel must be between 0 and 8. See documentation for help identifying channels."

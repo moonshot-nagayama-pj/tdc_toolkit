@@ -51,13 +51,12 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        if not self.closed:
-            self.close(exc_type=exc_type, exc_val=exc_val, exc_tb=exc_tb)
+        self.close(exc_type=exc_type, exc_val=exc_val, exc_tb=exc_tb)
 
     async def open(self) -> None:
         await log.adebug("open()")
         if self.closed:
-            raise InvalidStateException()
+            raise InvalidStateException("Attempted to re-open a closed object.")
         while True:
             try:
                 raw_records = await self.input_queue.get()
@@ -82,7 +81,7 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
                 raise InvalidStateException(
                     "An exception attempted to close the queue processor, but it was already closed."
                 ) from exc_val
-            raise InvalidStateException()
+            raise InvalidStateException("Attempted to re-close a closed object.")
         try:
             self.output_queue.shutdown()
         finally:
@@ -93,7 +92,7 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
 
         for raw_record in raw_records.raw_data:
             special, channel, time_tag = split_raw_t2_record(raw_record)
-            if not self.__process_special_records(special, channel, time_tag):
+            if not await self.__process_special_records(special, channel, time_tag):
                 await self.__process_normal_record(channel, time_tag)
 
     async def __process_normal_record(self, channel: int, time_tag: int) -> None:
@@ -106,7 +105,7 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
             )
         )
 
-    def __process_special_records(
+    async def __process_special_records(
         self, special: int, channel: int, time_tag: int
     ) -> bool:
         if special != 1:
@@ -116,5 +115,19 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
                 self.overflow_correction += self.t2wraparound_v2
             else:
                 self.overflow_correction += self.t2wraparound_v2 * time_tag
-        # Discard other special records for now
+            return True
+        if channel == 0:
+            # Sync channel
+            true_time = self.overflow_correction + time_tag
+            await self.output_queue.put(
+                T2Record(
+                    channel=MultiharpDeviceChannel.CHAN_8_SYNC,
+                    time_tag=((true_time * self.resolution) * mhtk_ureg.picoseconds)
+                )
+            )
+            return True
+        # TODO Currently, this code discards external marker special records.
+        #
+        # Specifically, a channel between 1 and 15 inclusive indicates an external
+        # marker; see the MultiHarp manual.
         return True
