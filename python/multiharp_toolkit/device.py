@@ -12,7 +12,6 @@ from multiharp_toolkit.exceptions import (
 from multiharp_toolkit.interface import RawRecords
 from pint import Quantity
 
-
 log = structlog.get_logger()
 
 

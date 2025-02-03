@@ -1,63 +1,16 @@
-import asyncio
 import os
 import sys
 from argparse import ArgumentParser
-from concurrent.futures import ThreadPoolExecutor
 
-import multiharp_toolkit._mhtk_rs as mh
 import plotly.express as px
 import polars as pl
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from multiharp_toolkit.coincidence_counter import ChannelInfo, CoincidenceCounter
-from multiharp_toolkit.device import Device, list_device_index
 from multiharp_toolkit.histogram import Histogram
 from multiharp_toolkit.ptu_parser import parse
-from multiharp_toolkit.stream_parser import StreamParser
-from multiharp_toolkit.util_types import Channel, DeviceConfig, TimeTagDataSchema
-
-
-def measure() -> None:
-    dev_ids = list_device_index()
-    if not dev_ids:
-        print("no device")
-        sys.exit(0)
-    print("available devices: ", dev_ids)
-    config: DeviceConfig = {
-        "sync_channel_offset": 0,
-        "sync_divider": 1,
-        "sync_edge": mh.Edge.Falling,
-        "sync_edge_trigger_level": -70,
-        "sync_channel_enable": True,
-        "inputs": [
-            {
-                "enable": True,
-                "channel_offset": 0,
-                "edge_trigger": mh.Edge.Falling,
-                "edge_trigger_level": -70,
-            }
-        ]
-        * 16,
-    }
-
-    dev = Device(dev_ids[0], config)
-    parser = StreamParser(dev.queue)
-
-    async def run() -> None:
-        with dev.open():
-            with ThreadPoolExecutor(max_workers=4) as e:
-                print("start measurement")
-                main_loop = asyncio.get_event_loop()
-                main_loop.run_in_executor(e, dev.start_measurement, 1000)
-                parser_task = asyncio.create_task(parser.run())
-                await asyncio.gather(parser_task)
-        with pa.input_stream(parser.filename) as f:
-            table = pa.ipc.open_file(f, options=None).read_all()
-        fname = os.path.basename(parser.filename).replace(".arrow", ".parquet")
-        pq.write_table(table, f".parquet/{fname}")
-
-    asyncio.run(run())
+from multiharp_toolkit.util_types import Channel, TimeTagDataSchema
 
 
 def ptu2arrow() -> None:

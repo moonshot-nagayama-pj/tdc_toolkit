@@ -59,6 +59,7 @@ class MultiharpDeviceChannel(IntFlag):
     a special tag.
 
     """
+
     CHAN_0_LEFTMOST = 0x0001
     CHAN_1 = 0x0002
     CHAN_2 = 0x0004

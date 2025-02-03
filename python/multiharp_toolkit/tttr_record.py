@@ -6,8 +6,6 @@ from types import TracebackType
 import structlog
 from multiharp_toolkit.exceptions import InvalidStateException
 from multiharp_toolkit.interface import MultiharpDeviceChannel, RawRecords
-from multiharp_toolkit.units import mhtk_ureg
-from pint import Quantity
 
 log = structlog.get_logger()
 
@@ -19,10 +17,25 @@ def split_raw_t2_record(raw_record: int) -> tuple[int, int, int]:
     return (special, channel, time_tag)
 
 
-@dataclass(frozen=True, kw_only=True)
-class T2Record:
-    channel: MultiharpDeviceChannel
-    time_tag: Quantity
+# A tuple representing a single T2 record.
+#
+# The first int is the channel ID. Channel 0 is the sync channel: raw
+# records sent with the "special" bit set indicating that they contain
+# a sync timetag are translated to channel 0 here. To add to the
+# confusion, "normal" channels are represented in the raw records
+# starting from 0; they are shifted by 1 here, so channel 0 in the raw
+# record becomes channel 1 here. Given that the MultiHarp has no more
+# than 64 channels, an 8-bit unsigned int should be sufficient to
+# represent this value.
+#
+# The second int is the time tag, in picoseconds. A 64-bit unsigned
+# int should be sufficient for experiments of up to a few months in
+# length. Note that the raw value is not in picoseconds; it has been
+# converted here.
+#
+# A tuple is used to avoid performance penalties that would be caused
+# by creating a new object for each record.
+T2Record = tuple[int, int]
 
 
 @dataclass(kw_only=True)
@@ -98,12 +111,7 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
     async def __process_normal_record(self, channel: int, time_tag: int) -> None:
         await log.adebug("__process_normal_record()")
         true_time = self.overflow_correction + time_tag
-        await self.output_queue.put(
-            T2Record(
-                channel=MultiharpDeviceChannel.from_linear(channel),
-                time_tag=((true_time * self.resolution) * mhtk_ureg.picoseconds),
-            )
-        )
+        await self.output_queue.put(((channel + 1), (true_time * self.resolution)))
 
     async def __process_special_records(
         self, special: int, channel: int, time_tag: int
@@ -120,10 +128,7 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
             # Sync channel
             true_time = self.overflow_correction + time_tag
             await self.output_queue.put(
-                T2Record(
-                    channel=MultiharpDeviceChannel.CHAN_8_SYNC,
-                    time_tag=((true_time * self.resolution) * mhtk_ureg.picoseconds)
-                )
+                (MultiharpDeviceChannel.CHAN_8_SYNC, (true_time * self.resolution))
             )
             return True
         # TODO Currently, this code discards external marker special records.
