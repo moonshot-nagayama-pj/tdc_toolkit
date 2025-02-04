@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import time
 from dataclasses import dataclass, field
 from types import TracebackType
 
@@ -67,13 +68,17 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
         self.close(exc_type=exc_type, exc_val=exc_val, exc_tb=exc_tb)
 
     async def open(self) -> None:
-        await log.adebug("open()")
         if self.closed:
             raise InvalidStateException("Attempted to re-open a closed object.")
         while True:
             try:
                 raw_records = await self.input_queue.get()
+                start_time = time.perf_counter()
                 await self.__process_raw_records(raw_records)
+                await log.adebug(
+                    event="Raw record processing time (seconds)",
+                    processing_time=time.perf_counter() - start_time,
+                )
                 self.input_queue.task_done()
             except asyncio.QueueShutDown:
                 self.close()
@@ -86,7 +91,6 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
         exc_val: BaseException | None = None,
         exc_tb: TracebackType | None = None,
     ) -> None:
-        log.debug("close()")
         if exc_val:
             log.error("close() was called due to an exception.", exc_info=exc_val)
         if self.closed:
@@ -101,15 +105,12 @@ class T2RecordQueueProcessor(contextlib.AbstractAsyncContextManager[None]):
             self.closed = True
 
     async def __process_raw_records(self, raw_records: RawRecords) -> None:
-        await log.adebug("__process_raw_records()")
-
-        for raw_record in raw_records.raw_data:
+        for raw_record in raw_records:
             special, channel, time_tag = split_raw_t2_record(raw_record)
             if not await self.__process_special_records(special, channel, time_tag):
                 await self.__process_normal_record(channel, time_tag)
 
     async def __process_normal_record(self, channel: int, time_tag: int) -> None:
-        await log.adebug("__process_normal_record()")
         true_time = self.overflow_correction + time_tag
         await self.output_queue.put(((channel + 1), (true_time * self.resolution)))
 

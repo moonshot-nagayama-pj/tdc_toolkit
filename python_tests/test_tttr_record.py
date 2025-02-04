@@ -1,3 +1,4 @@
+import time
 from asyncio import Queue, QueueShutDown, TaskGroup
 
 import structlog
@@ -10,12 +11,27 @@ log = structlog.get_logger()
 
 
 async def read_queued_messages(processed_queue: Queue[T2Record]) -> None:
+    """The MHLib manual estimates that, when using USB 3.0, the device
+    could send as many as 80,000,000 events per second.
+
+    """
+    record_count = 0
+    start_time = time.perf_counter()
     try:
         while True:
-            record = await processed_queue.get()
-            await log.adebug(event="Read queue message", tttr_record=record)
-    except QueueShutDown:
-        await log.adebug("QueueShutDown received")
+            try:
+                _ = await processed_queue.get()
+            except QueueShutDown:
+                await log.adebug("QueueShutDown received")
+                break
+            record_count += 1
+            processed_queue.task_done()
+    finally:
+        await log.adebug(
+            event="Final count of processed records",
+            record_count=record_count,
+            processing_time=(time.perf_counter() - start_time) * mhtk_ureg.seconds,
+        )
 
 
 async def test_no_overflow() -> None:
@@ -27,7 +43,7 @@ async def test_no_overflow() -> None:
     )
     async with TaskGroup() as tg:
         mh_task = tg.create_task(
-            mh.stream_measurement(1000 * mhtk_ureg.millisecond, raw_queue)
+            mh.stream_measurement(10 * mhtk_ureg.second, raw_queue)
         )
         processor_task = tg.create_task(queue_processor.open())
         printer_task = tg.create_task(read_queued_messages(processed_queue))

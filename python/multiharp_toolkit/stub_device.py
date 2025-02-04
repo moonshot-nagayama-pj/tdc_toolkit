@@ -1,4 +1,5 @@
 import asyncio
+import time
 from dataclasses import dataclass
 
 from multiharp_toolkit.interface import (
@@ -9,6 +10,7 @@ from multiharp_toolkit.interface import (
     MultiharpMainEventFilter,
     RawRecords,
 )
+from multiharp_toolkit.units import mhtk_ureg
 from pint import Quantity
 
 
@@ -43,10 +45,15 @@ class StubMultiharpDevice(MultiharpDevice):
     async def stream_measurement(
         self, measurement_time: Quantity, output_queue: asyncio.Queue[RawRecords]
     ) -> None:
-        for _ in range(1, 10):
-            await output_queue.put(
-                RawRecords(
-                    raw_data=[0x02000001, 0x02000002, 0x02000003], record_count=3
-                )
-            )
+        measurement_time_seconds = measurement_time.to(mhtk_ureg.seconds).magnitude
+        start_time = time.perf_counter()
+        while (time.perf_counter() - start_time) < measurement_time_seconds:
+            await output_queue.put(self.__generate_raw_records())
+            await asyncio.sleep(0.01)
         output_queue.shutdown()
+
+    def __generate_raw_records(self) -> RawRecords:
+        raw_records: RawRecords = []
+        for event_time in range(500000):
+            raw_records.append(0x02000001 + event_time)
+        return raw_records

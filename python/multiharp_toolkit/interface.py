@@ -95,10 +95,13 @@ class MultiharpMainEventFilter:
     rows: dict[int, MultiharpMainEventFilterRow]
 
 
-@dataclass(frozen=True, kw_only=True)
-class RawRecords:
-    raw_data: list[int]
-    record_count: int
+# A tuple representing the batch of raw records returned from the
+# Multiharp when read_fifo is called.
+#
+# It is a list of ints; this is the list of all of the raw
+# records. The MHLib manual indicates that this list may have up to
+# 1,048,576 entries.
+RawRecords = list[int]
 
 
 @dataclass(frozen=True, kw_only=True)

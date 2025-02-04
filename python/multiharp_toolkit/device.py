@@ -121,7 +121,7 @@ class Device:
         # pylint: disable-next=unpacking-non-sequence
         record_count, raw_data = mh.read_fifo(self.device_index)
         if record_count > 0:
-            return RawRecords(raw_data=raw_data, record_count=record_count)
+            return raw_data
         if mh.ctc_status(self.device_index) > 0:
             raise MeasurementCompletedException()
         return None
