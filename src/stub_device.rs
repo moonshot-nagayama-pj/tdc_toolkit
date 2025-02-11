@@ -2,7 +2,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-struct MultiharpDeviceInfo<'a> {
+pub struct MultiharpDeviceInfo<'a> {
     // Amalgamation of device-related information collected from
     // several different API calls, for convenience.
     device_index: u32,
@@ -26,7 +26,7 @@ struct MultiharpDeviceInfo<'a> {
     num_channels: u32,
 }
 
-struct StubMultiharpDevice {}
+pub struct StubMultiharpDevice {}
 
 impl StubMultiharpDevice {
     pub fn get_device_info(&self) -> MultiharpDeviceInfo {
@@ -46,14 +46,14 @@ impl StubMultiharpDevice {
     pub fn stream_measurement(
         &self,
         measurement_time: &Duration,
-        tx_channel: &mpsc::Sender<Vec<u32>>,
+        tx_channel: mpsc::Sender<Vec<u32>>,
     ) {
         let start_time = Instant::now();
         while start_time.elapsed() < *measurement_time {
             tx_channel
                 .send(self.generate_raw_records())
                 .expect("send raw_records to channel failed");
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(10));
         }
     }
 

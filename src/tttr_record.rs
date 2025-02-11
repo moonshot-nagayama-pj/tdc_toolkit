@@ -25,7 +25,7 @@ fn split_raw_t2_record(raw_record: u32) -> (u32, u32, u64) {
     (special, channel, time_tag as u64)
 }
 
-struct T2RecordChannelProcessor {
+pub struct T2RecordChannelProcessor {
     // in time-tag units, e.g. one unit = 5 picoseconds when resolution is 5
     t2wraparound_v2: u64,
     // in time-tag units, e.g. one unit = 5 picoseconds when resolution is 5
