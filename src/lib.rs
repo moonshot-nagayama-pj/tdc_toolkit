@@ -15,6 +15,7 @@ use mhlib_wrapper_enums::{Edge, MeasurementControl, Mode, RefSource};
 )]
 pub mod mhlib_wrapper;
 pub mod stub_device;
+pub mod tttr_record;
 
 mod mhlib_wrapper_py;
 use mhlib_wrapper_py::*;
