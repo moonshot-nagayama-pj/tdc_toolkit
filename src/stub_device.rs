@@ -2,6 +2,8 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use crate::mhlib_wrapper_enums;
+
 pub struct MultiharpDeviceInfo<'a> {
     // Amalgamation of device-related information collected from
     // several different API calls, for convenience.
@@ -53,13 +55,13 @@ impl StubMultiharpDevice {
             tx_channel
                 .send(self.generate_raw_records())
                 .expect("send raw_records to channel failed");
-            thread::sleep(Duration::from_millis(10));
+            thread::sleep(Duration::from_millis(5));
         }
     }
 
     fn generate_raw_records(&self) -> Vec<u32> {
-        let mut raw_records = Vec::with_capacity(500000);
-        for event_time in 0..500000 {
+        let mut raw_records = Vec::with_capacity(mhlib_wrapper_enums::TTREADMAX as usize);
+        for event_time in 0..raw_records.capacity() as u32 {
             raw_records.push(0x02000001 + event_time);
         }
         raw_records

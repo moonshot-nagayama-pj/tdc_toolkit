@@ -7,6 +7,8 @@ use pyo3::prelude::*;
 //
 // The original constant names are preserved as comments.
 
+pub const TTREADMAX: i64 = 1048576;
+
 #[derive(Clone)]
 #[repr(i32)]
 #[pyclass]

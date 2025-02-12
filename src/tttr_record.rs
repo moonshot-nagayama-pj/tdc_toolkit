@@ -46,7 +46,7 @@ impl T2RecordChannelProcessor {
     pub fn process(
         &mut self,
         rx_channel: mpsc::Receiver<Vec<u32>>,
-        mut tx_channel: mpsc::Sender<(u16, u64)>,
+        mut tx_channel: mpsc::Sender<Vec<(u16, u64)>>,
     ) {
         for raw_records in rx_channel {
             self.process_raw_records(raw_records, &mut tx_channel);
@@ -56,14 +56,28 @@ impl T2RecordChannelProcessor {
     fn process_raw_records(
         &mut self,
         raw_records: Vec<u32>,
-        tx_channel: &mut mpsc::Sender<(u16, u64)>,
+        tx_channel: &mut mpsc::Sender<Vec<(u16, u64)>>,
     ) {
+        // Channels have very limited throughput, about 20 million
+        // messages a second if Kanal's benchmarks are accurate. Batch
+        // messages together in a vector to avoid this overhead.
+        //
+        // For simplicity's sake, make the vector's capacity the same
+        // as the input vector's size, although in reality it may be
+        // somewhat smaller. We may have to tune this to reduce
+        // latency in the future.
+        //
+        // https://docs.rs/kanal/latest/kanal/index.html
+        let mut tx_vec: Vec<(u16, u64)> = Vec::with_capacity(raw_records.len());
         for raw_record in raw_records.iter() {
             let (special, channel, time_tag) = split_raw_t2_record(*raw_record);
-            if !self.process_special_records(special, channel, time_tag, tx_channel) {
-                self.process_normal_record(channel, time_tag, tx_channel);
+            if !self.process_special_records(special, channel, time_tag, &mut tx_vec) {
+                self.process_normal_record(channel, time_tag, &mut tx_vec);
             }
         }
+        tx_channel
+            .send(tx_vec)
+            .expect("failed to send message");
     }
 
     fn process_special_records(
@@ -71,7 +85,7 @@ impl T2RecordChannelProcessor {
         special: u32,
         channel: u32,
         time_tag: u64,
-        tx_channel: &mut mpsc::Sender<(u16, u64)>,
+        tx_vec: &mut Vec<(u16, u64)>,
     ) -> bool {
         if special != 1 {
             return false;
@@ -89,9 +103,7 @@ impl T2RecordChannelProcessor {
         if channel == 0 {
             // Sync channel
             let true_time = self.overflow_correction + time_tag;
-            tx_channel
-                .send((0u16, (true_time * self.resolution)))
-                .expect("failed to send message");
+            tx_vec.push((0u16, (true_time * self.resolution)));
             return true;
         }
         // TODO Currently, this code discards external marker special records.
@@ -105,11 +117,9 @@ impl T2RecordChannelProcessor {
         &self,
         channel: u32,
         time_tag: u64,
-        tx_channel: &mut mpsc::Sender<(u16, u64)>,
+        tx_vec: &mut Vec<(u16, u64)>,
     ) {
         let true_time = self.overflow_correction + time_tag;
-        tx_channel
-            .send(((channel as u16 + 1), (true_time * self.resolution)))
-            .expect("failed to send message");
+        tx_vec.push(((channel as u16 + 1), (true_time * self.resolution)));
     }
 }
