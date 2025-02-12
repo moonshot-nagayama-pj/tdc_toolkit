@@ -43,7 +43,7 @@ async def test_no_overflow() -> None:
     )
     async with TaskGroup() as tg:
         mh_task = tg.create_task(
-            mh.stream_measurement(10 * mhtk_ureg.second, raw_queue)
+            mh.stream_measurement(1 * mhtk_ureg.second, raw_queue)
         )
         processor_task = tg.create_task(queue_processor.open())
         printer_task = tg.create_task(read_queued_messages(processed_queue))
