@@ -55,7 +55,7 @@ impl StubMultiharpDevice {
             tx_channel
                 .send(self.generate_raw_records())
                 .expect("send raw_records to channel failed");
-            thread::sleep(Duration::from_millis(5));
+            thread::sleep(Duration::from_millis(100));
         }
     }
 

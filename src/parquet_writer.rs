@@ -63,12 +63,12 @@ impl T2RecordParquetWriter {
         let file_timestamp = Utc::now().format("%Y%m%dT%H%M%SZ");
 
         let mut total_files = 1;
-        let mut current_file = File::create_new(output_dir.join(format!(
+        let initial_file = File::create_new(output_dir.join(format!(
             "{}_{}_{:0>4}.parquet",
             file_timestamp, name, total_files
         )))
         .unwrap();
-        let mut arrow_writer = ArrowWriter::try_new(current_file, schema.clone(), None).unwrap();
+        let mut arrow_writer = ArrowWriter::try_new(initial_file, schema.clone(), None).unwrap();
         let mut channel_array_builder = UInt16Array::builder(self.max_chunk_rows);
         let mut time_tag_array_builder = UInt64Array::builder(self.max_chunk_rows);
         let mut array_length = 0;
@@ -92,19 +92,21 @@ impl T2RecordParquetWriter {
                 .unwrap();
                 arrow_writer.write(&batch).unwrap();
                 array_length = 0;
+                chunk_count += 1;
             }
-            chunk_count += 1;
+
             if chunk_count > max_chunk_count {
                 // close and replace file
                 arrow_writer.close().unwrap();
                 chunk_count = 0;
                 total_files += 1;
-                current_file = File::create_new(output_dir.join(format!(
+
+                let new_file = File::create_new(output_dir.join(format!(
                     "{}_{}_{:0>4}.parquet",
                     file_timestamp, name, total_files
                 )))
                 .unwrap();
-                arrow_writer = ArrowWriter::try_new(current_file, schema.clone(), None).unwrap();
+                arrow_writer = ArrowWriter::try_new(new_file, schema.clone(), None).unwrap();
             }
         }
 

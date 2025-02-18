@@ -7,9 +7,6 @@ edition = "2021"
 name = "_mhtk_rs"
 crate-type = ["cdylib", "rlib"]
 
-[[bin]]
-name = "cli"
-
 [dependencies]
 arrow = "54.2.0"
 chrono = "0.4.39"
