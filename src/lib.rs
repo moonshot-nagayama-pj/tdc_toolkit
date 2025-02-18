@@ -14,6 +14,7 @@ use mhlib_wrapper_enums::{Edge, MeasurementControl, Mode, RefSource};
     path = "stub_mhlib_wrapper.rs"
 )]
 pub mod mhlib_wrapper;
+pub mod parquet_writer;
 pub mod stub_device;
 pub mod tttr_record;
 
