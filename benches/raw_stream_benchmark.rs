@@ -34,7 +34,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("raw_stream", |b| b.iter(|| process_measurements()));
 }
 
-criterion_group!{
+criterion_group! {
     name = benches;
     config = Criterion::default().sample_size(10);
     targets = criterion_benchmark

@@ -75,9 +75,7 @@ impl T2RecordChannelProcessor {
                 self.process_normal_record(channel, time_tag, &mut tx_vec);
             }
         }
-        tx_channel
-            .send(tx_vec)
-            .expect("failed to send message");
+        tx_channel.send(tx_vec).expect("failed to send message");
     }
 
     fn process_special_records(
@@ -113,12 +111,7 @@ impl T2RecordChannelProcessor {
         true
     }
 
-    fn process_normal_record(
-        &self,
-        channel: u32,
-        time_tag: u64,
-        tx_vec: &mut Vec<(u16, u64)>,
-    ) {
+    fn process_normal_record(&self, channel: u32, time_tag: u64, tx_vec: &mut Vec<(u16, u64)>) {
         let true_time = self.overflow_correction + time_tag;
         tx_vec.push(((channel as u16 + 1), (true_time * self.resolution)));
     }
