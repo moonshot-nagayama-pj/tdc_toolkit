@@ -7,24 +7,24 @@ use crate::mhlib_wrapper_enums::{Edge, Mode, RefSource};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceConfig {
-    sync_channel: Option<MultiharpDeviceSyncChannelConfig>,
-    input_channels: Vec<MultiharpDeviceInputChannelConfig>,
+    pub sync_channel: Option<MultiharpDeviceSyncChannelConfig>,
+    pub input_channels: Vec<MultiharpDeviceInputChannelConfig>,
 }
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceSyncChannelConfig {
-    divider: i32,
-    edge_trigger_level: i32, // mV
-    edge_trigger: Edge,
-    offset: i32, // picoseconds
+    pub divider: i32,
+    pub edge_trigger_level: i32, // mV
+    pub edge_trigger: Edge,
+    pub offset: i32, // picoseconds
 }
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceInputChannelConfig {
-    id: u8,
-    edge_trigger_level: i32, // mV
-    edge_trigger: Edge,
-    offset: i32, // picoseconds
+    pub id: u8,
+    pub edge_trigger_level: i32, // mV
+    pub edge_trigger: Edge,
+    pub offset: i32, // picoseconds
 }
 
 #[derive(PartialEq, Clone, Debug)]
