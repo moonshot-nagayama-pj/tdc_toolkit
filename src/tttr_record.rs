@@ -116,3 +116,9 @@ impl T2RecordChannelProcessor {
         tx_vec.push(((channel as u16 + 1), (true_time * self.resolution)));
     }
 }
+
+impl Default for T2RecordChannelProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}

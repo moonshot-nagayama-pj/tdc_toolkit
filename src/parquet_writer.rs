@@ -127,3 +127,9 @@ impl T2RecordParquetWriter {
         Ok(())
     }
 }
+
+impl Default for T2RecordParquetWriter {
+    fn default() -> Self {
+        Self::new()
+    }
+}

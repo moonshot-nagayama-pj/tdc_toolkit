@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use nom::bytes::complete::{tag, take};
 use nom::combinator::map_res;
 use nom::error::ErrorKind;
@@ -17,7 +17,7 @@ pub enum TagType {
     BitSet64(u64),
     // Color8,
     Float8(f64),
-    DateTime(NaiveDateTime),
+    DateTime(DateTime<Utc>),
     // Float8Array,
     AnsiString(String),
     // WideString,
@@ -77,11 +77,9 @@ fn parse_tag_enum(input: &[u8]) -> IResult<&[u8], TagType> {
         }
         0x21000008 => {
             let (input, tag_value) = le_f64(input)?;
-            let time = NaiveDateTime::from_timestamp_opt(
-                ((tag_value - 25569f64) * 86400f64).round() as i64,
-                0,
-            )
-            .unwrap();
+            let time =
+                DateTime::from_timestamp(((tag_value - 25569f64) * 86400f64).round() as i64, 0)
+                    .unwrap();
             Ok((input, TagType::DateTime(time)))
         }
         0x2001FFFF => {

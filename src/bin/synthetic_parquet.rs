@@ -22,7 +22,9 @@ fn process_measurements() {
     });
 
     let writer = parquet_writer::T2RecordParquetWriter::new();
-    writer.write(processed_rx_channel, Path::new("."), "test");
+    writer
+        .write(processed_rx_channel, Path::new("."), "test")
+        .unwrap();
     device_handle.join().unwrap();
     processor_handle.join().unwrap();
 }

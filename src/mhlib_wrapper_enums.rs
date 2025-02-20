@@ -7,9 +7,9 @@ use pyo3::prelude::*;
 //
 // The original constant names are preserved as comments.
 
-pub const TTREADMAX: i64 = 1048576;
+pub const TTREADMAX: usize = 1048576;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[repr(i32)]
 #[pyclass]
 pub enum Mode {
@@ -18,7 +18,7 @@ pub enum Mode {
     T3 = 3_i32,   // MODE_T3
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[repr(u32)]
 #[pyclass]
 pub enum RefSource {
@@ -34,7 +34,7 @@ pub enum RefSource {
     WhiteRabbitGrandMasterMultiHarp = 9, // REFSRC_WR_GRANDM_MHARP
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 #[repr(i32)]
 #[pyclass]
 pub enum Edge {

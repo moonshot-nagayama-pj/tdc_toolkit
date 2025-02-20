@@ -2,43 +2,20 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use crate::device;
 use crate::mhlib_wrapper_enums;
-
-pub struct MultiharpDeviceInfo<'a> {
-    // Amalgamation of device-related information collected from
-    // several different API calls, for convenience.
-    device_index: u32,
-
-    // MH_GetLibraryVersion
-    library_version: &'a str,
-
-    // MH_GetHardwareInfo
-    model: &'a str,
-    partno: &'a str,
-    version: &'a str,
-
-    // MH_GetSerialNumber
-    serial_number: &'a str,
-
-    // MH_GetBaseResolution
-    base_resolution: f64,
-    binsteps: u32,
-
-    // MH_GetNumOfInputChannels
-    num_channels: u32,
-}
 
 pub struct StubMultiharpDevice {}
 
 impl StubMultiharpDevice {
-    pub fn get_device_info(&self) -> MultiharpDeviceInfo {
-        MultiharpDeviceInfo {
-            library_version: "1.0",
+    pub fn get_device_info(&self) -> device::MultiharpDeviceInfo {
+        device::MultiharpDeviceInfo {
+            library_version: "1.0".to_string(),
             device_index: 1,
-            model: "Base stub device",
-            partno: "one",
-            version: "2.0",
-            serial_number: "abcd1234",
+            model: "Base stub device".to_string(),
+            partno: "one".to_string(),
+            version: "2.0".to_string(),
+            serial_number: "abcd1234".to_string(),
             base_resolution: 5.0,
             binsteps: 1,
             num_channels: 8,
@@ -60,7 +37,7 @@ impl StubMultiharpDevice {
     }
 
     fn generate_raw_records(&self) -> Vec<u32> {
-        let mut raw_records = Vec::with_capacity(mhlib_wrapper_enums::TTREADMAX as usize);
+        let mut raw_records = Vec::with_capacity(mhlib_wrapper_enums::TTREADMAX);
         for event_time in 0..raw_records.capacity() as u32 {
             raw_records.push(0x02000001 + event_time);
         }

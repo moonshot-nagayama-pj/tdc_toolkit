@@ -7,6 +7,7 @@ mod bindings {
 
 use self::bindings::*;
 
+use crate::mhlib_wrapper_enums;
 use crate::{Edge, MeasurementControl, Mode, RefSource};
 
 fn handle_error(ret: c_int) -> Result<(), String> {
@@ -454,6 +455,25 @@ pub fn read_fifo(device_index: u8, buffer: &mut [u32]) -> Result<u32, String> {
         Ok(num_records as u32)
     }
 }
+
+pub fn read_fifo_to_vec(device_index: u8) -> Result<Vec<u32>, String> {
+    let mut num_records: i32 = 0;
+    // TODO there should be a way to use Vec's spare_capacity_mut here
+    // to avoid initialization overhead, but we would need to change
+    // the C method signature to accept a MaybeUninit.
+    let mut record_buffer: Vec<u32> = vec![0u32; mhlib_wrapper_enums::TTREADMAX];
+    unsafe {
+        let ret = MH_ReadFiFo(
+            device_index.into(),
+            record_buffer.as_mut_ptr(),
+            &mut num_records,
+        );
+        handle_error(ret)?;
+        record_buffer.set_len(num_records.try_into().unwrap());
+        Ok(record_buffer)
+    }
+}
+
 pub fn is_measurement_running(device_index: u8) -> Result<bool, String> {
     let mut ctc_status: i32 = 0;
     unsafe {
