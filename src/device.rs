@@ -114,7 +114,7 @@ impl MultiharpDevice {
             .unwrap()
             .try_into()
             .unwrap();
-        for channel_id in 0..=total_channels {
+        for channel_id in 0..total_channels {
             if !enabled_channels.contains(&channel_id) {
                 mhlib_wrapper::set_input_channel_enable(device_index, channel_id, false).unwrap();
             }
