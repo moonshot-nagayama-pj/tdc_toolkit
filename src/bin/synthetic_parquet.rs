@@ -3,8 +3,9 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+use _mhtk_rs::multiharp_device::MultiharpDevice;
+use _mhtk_rs::multiharp_device_stub;
 use _mhtk_rs::parquet_writer;
-use _mhtk_rs::stub_device;
 use _mhtk_rs::tttr_record;
 
 fn process_measurements() {
@@ -12,7 +13,7 @@ fn process_measurements() {
     let (processed_tx_channel, processed_rx_channel) = mpsc::channel();
 
     let device_handle = thread::spawn(|| {
-        let device = stub_device::StubMultiharpDevice {};
+        let device = multiharp_device_stub::Multiharp160Stub {};
         device.stream_measurement(&Duration::from_millis(100), raw_tx_channel);
     });
 

@@ -16,8 +16,8 @@ use mhlib_wrapper_header::{Edge, MeasurementControl, Mode, RefSource};
 pub mod mhlib_wrapper;
 
 pub mod multiharp_device;
+pub mod multiharp_device_stub;
 pub mod parquet_writer;
-pub mod stub_device;
 pub mod tttr_record;
 
 mod mhlib_wrapper_py;
