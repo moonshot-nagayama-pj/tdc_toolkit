@@ -3,7 +3,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::device;
-use crate::mhlib_wrapper_enums;
+use crate::mhlib_wrapper_header;
 
 pub struct StubMultiharpDevice {}
 
@@ -37,7 +37,7 @@ impl StubMultiharpDevice {
     }
 
     fn generate_raw_records(&self) -> Vec<u32> {
-        let mut raw_records = Vec::with_capacity(mhlib_wrapper_enums::TTREADMAX);
+        let mut raw_records = Vec::with_capacity(mhlib_wrapper_header::TTREADMAX);
         for event_time in 0..raw_records.capacity() as u32 {
             raw_records.push(0x02000001 + event_time);
         }

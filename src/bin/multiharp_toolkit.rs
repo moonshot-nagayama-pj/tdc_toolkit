@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 use _mhtk_rs::device::{MultiharpDevice, MultiharpDeviceConfig, MultiharpDeviceInputChannelConfig};
-use _mhtk_rs::mhlib_wrapper_enums::Edge;
+use _mhtk_rs::mhlib_wrapper_header::Edge;
 use _mhtk_rs::parquet_writer;
 use _mhtk_rs::tttr_record;
 

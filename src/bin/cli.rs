@@ -1,5 +1,5 @@
 use _mhtk_rs::mhlib_wrapper::*;
-use _mhtk_rs::mhlib_wrapper_enums::{Edge, Mode, RefSource};
+use _mhtk_rs::mhlib_wrapper_header::{Edge, Mode, RefSource};
 
 fn run(dev: u8) -> Result<(), String> {
     initialize(dev, Mode::T2, RefSource::InternalClock)?;

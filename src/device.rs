@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use crate::mhlib_wrapper;
-use crate::mhlib_wrapper_enums::{Edge, Mode, RefSource};
+use crate::mhlib_wrapper_header::{Edge, Mode, RefSource};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceConfig {

@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
-pub mod mhlib_wrapper_enums;
-use mhlib_wrapper_enums::{Edge, MeasurementControl, Mode, RefSource};
+pub mod mhlib_wrapper_header;
+use mhlib_wrapper_header::{Edge, MeasurementControl, Mode, RefSource};
 
 #[cfg_attr(
     any(

@@ -1,9 +1,10 @@
 use pyo3::prelude::*;
 
-// These enums are derived from mhdefin.h, which is bundled with the
-// driver release. The values are copied here to avoid a hard
-// dependency on the mhlib module when using this library on non-x64
-// platforms.
+// These values are derived from mhdefin.h, which is bundled with the
+// MultiHarp driver release. The values are copied here to avoid a
+// hard dependency on the using mhlib module or downloading the
+// proprietary MultiHarp shared library when using this library on
+// non-x64 platforms or with non-MultiHarp systems.
 //
 // The original constant names are preserved as comments.
 
