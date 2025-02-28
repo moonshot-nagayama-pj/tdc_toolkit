@@ -3,8 +3,10 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-use _mhtk_rs::device::{MultiharpDevice, MultiharpDeviceConfig, MultiharpDeviceInputChannelConfig};
 use _mhtk_rs::mhlib_wrapper_header::Edge;
+use _mhtk_rs::multiharp_device::{
+    Multiharp160, MultiharpDevice, MultiharpDeviceConfig, MultiharpDeviceInputChannelConfig,
+};
 use _mhtk_rs::parquet_writer;
 use _mhtk_rs::tttr_record;
 
@@ -42,7 +44,7 @@ fn process_measurements() {
         ],
     };
 
-    let device = MultiharpDevice::from_config(0, config);
+    let device = Multiharp160::from_config(0, config);
     println!("{:?}", device.get_device_info());
 
     let device_thread = thread::spawn(move || {

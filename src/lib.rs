@@ -15,7 +15,7 @@ use mhlib_wrapper_header::{Edge, MeasurementControl, Mode, RefSource};
 )]
 pub mod mhlib_wrapper;
 
-pub mod device;
+pub mod multiharp_device;
 pub mod parquet_writer;
 pub mod stub_device;
 pub mod tttr_record;

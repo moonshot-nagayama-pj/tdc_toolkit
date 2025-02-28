@@ -2,14 +2,14 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::device;
 use crate::mhlib_wrapper_header;
+use crate::multiharp_device;
 
 pub struct StubMultiharpDevice {}
 
 impl StubMultiharpDevice {
-    pub fn get_device_info(&self) -> device::MultiharpDeviceInfo {
-        device::MultiharpDeviceInfo {
+    pub fn get_device_info(&self) -> multiharp_device::MultiharpDeviceInfo {
+        multiharp_device::MultiharpDeviceInfo {
             library_version: "1.0".to_string(),
             device_index: 1,
             model: "Base stub device".to_string(),

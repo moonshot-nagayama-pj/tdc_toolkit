@@ -52,12 +52,17 @@ pub struct MultiharpDeviceInfo {
     pub num_channels: u32,
 }
 
-pub struct MultiharpDevice {
+pub trait MultiharpDevice {
+    fn get_device_info(&self) -> MultiharpDeviceInfo;
+    fn stream_measurement(&self, measurement_time: &Duration, tx_channel: mpsc::Sender<Vec<u32>>);
+}
+
+pub struct Multiharp160 {
     device_index: u8,
 }
 
-impl MultiharpDevice {
-    pub fn from_config(device_index: u8, config: MultiharpDeviceConfig) -> MultiharpDevice {
+impl Multiharp160 {
+    pub fn from_config(device_index: u8, config: MultiharpDeviceConfig) -> Multiharp160 {
         mhlib_wrapper::open_device(device_index).unwrap();
 
         // TODO in theory we could support T3 mode relatively easily,
@@ -120,10 +125,12 @@ impl MultiharpDevice {
             }
         }
 
-        MultiharpDevice { device_index }
+        Multiharp160 { device_index }
     }
+}
 
-    pub fn get_device_info(&self) -> MultiharpDeviceInfo {
+impl MultiharpDevice for Multiharp160 {
+    fn get_device_info(&self) -> MultiharpDeviceInfo {
         let (model, partno, version) = mhlib_wrapper::get_hardware_info(self.device_index).unwrap();
         let (base_resolution, binsteps) =
             mhlib_wrapper::get_base_resolution(self.device_index).unwrap();
@@ -143,11 +150,7 @@ impl MultiharpDevice {
         }
     }
 
-    pub fn stream_measurement(
-        &self,
-        measurement_time: &Duration,
-        tx_channel: mpsc::Sender<Vec<u32>>,
-    ) {
+    fn stream_measurement(&self, measurement_time: &Duration, tx_channel: mpsc::Sender<Vec<u32>>) {
         mhlib_wrapper::start_measurement(
             self.device_index,
             measurement_time.as_millis().try_into().unwrap(),
@@ -174,7 +177,7 @@ impl MultiharpDevice {
     }
 }
 
-impl Drop for MultiharpDevice {
+impl Drop for Multiharp160 {
     fn drop(&mut self) {
         mhlib_wrapper::close_device(self.device_index).unwrap();
     }
