@@ -1,5 +1,10 @@
 # MultiHarp Toolkit
 
+
+## Under rewrite
+
+Please note that as of spring 2025, this project is being rewritten to move most logic into Rust and provide a generic interface for non-MultiHarp time-to-digital devices in the branch `api-refactor`.
+
 ## Prerequisites
 
 * [rust](https://rustup.rs/)
