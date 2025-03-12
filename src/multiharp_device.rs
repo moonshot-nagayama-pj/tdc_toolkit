@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use std::collections::HashSet;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -5,13 +6,13 @@ use std::time::Duration;
 use crate::mhlib_wrapper;
 use crate::mhlib_wrapper_header::{Edge, Mode, RefSource};
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceConfig {
     pub sync_channel: Option<MultiharpDeviceSyncChannelConfig>,
     pub input_channels: Vec<MultiharpDeviceInputChannelConfig>,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceSyncChannelConfig {
     pub divider: i32,
     pub edge_trigger_level: i32, // mV
@@ -19,7 +20,7 @@ pub struct MultiharpDeviceSyncChannelConfig {
     pub offset: i32, // picoseconds
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceInputChannelConfig {
     pub id: u8,
     pub edge_trigger_level: i32, // mV
@@ -27,11 +28,11 @@ pub struct MultiharpDeviceInputChannelConfig {
     pub offset: i32, // picoseconds
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceInfo {
     // Amalgamation of device-related information collected from
     // several different API calls, for convenience.
-    pub device_index: u32,
+    pub device_index: u8,
 
     // MH_GetLibraryVersion
     pub library_version: String,
@@ -135,7 +136,7 @@ impl MultiharpDevice for Multiharp160 {
         let (base_resolution, binsteps) =
             mhlib_wrapper::get_base_resolution(self.device_index).unwrap();
         MultiharpDeviceInfo {
-            device_index: 1,
+            device_index: self.device_index,
             library_version: mhlib_wrapper::get_library_version().unwrap(),
             model,
             partno,

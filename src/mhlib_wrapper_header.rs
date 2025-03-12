@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use serde::{Serialize, Deserialize};
 
 // These values are derived from mhdefin.h, which is bundled with the
 // MultiHarp driver release. The values are copied here to avoid a
@@ -35,7 +36,7 @@ pub enum RefSource {
     WhiteRabbitGrandMasterMultiHarp = 9, // REFSRC_WR_GRANDM_MHARP
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[repr(i32)]
 #[pyclass]
 pub enum Edge {
