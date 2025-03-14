@@ -1,15 +1,14 @@
 use clap::{Parser, Subcommand, ValueEnum, ValueHint};
-use strum_macros::Display;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::Duration;
+use strum_macros::Display;
 
-use _mhtk_rs::recording;
-use _mhtk_rs::multiharp_device_stub;
 use _mhtk_rs::multiharp_device;
 use _mhtk_rs::multiharp_device::MultiharpDevice;
+use _mhtk_rs::multiharp_device_stub;
+use _mhtk_rs::recording;
 
 #[derive(Debug, Parser)]
 #[command(name = "multiharp_toolkit")]
@@ -34,7 +33,7 @@ enum Command {
         device_type: DeviceType,
         #[arg(long, default_value_t = String::from("record"))]
         name: String,
-    }
+    },
 }
 
 #[derive(Copy, Clone, Debug, Display, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -57,12 +56,20 @@ fn main() {
         } => {
             let device = match device_type {
                 DeviceType::Multiharp160 => {
-                    let config: multiharp_device::MultiharpDeviceConfig = serde_json::from_str(fs::read_to_string(device_config).unwrap().as_str()).unwrap();
-                    Arc::new(multiharp_device::Multiharp160::from_config(device_index, config)) as Arc<(dyn MultiharpDevice + Send + Sync)>
+                    let config: multiharp_device::MultiharpDeviceConfig =
+                        serde_json::from_str(fs::read_to_string(device_config).unwrap().as_str())
+                            .unwrap();
+                    Arc::new(multiharp_device::Multiharp160::from_config(
+                        device_index,
+                        config,
+                    )) as Arc<(dyn MultiharpDevice + Send + Sync)>
                 }
-                DeviceType::Multiharp160StubGenerator => Arc::new(multiharp_device_stub::Multiharp160Stub {}) as Arc<(dyn MultiharpDevice + Send + Sync)>
+                DeviceType::Multiharp160StubGenerator => {
+                    Arc::new(multiharp_device_stub::Multiharp160Stub {})
+                        as Arc<(dyn MultiharpDevice + Send + Sync)>
+                }
             };
-            recording::record_multiharp_to_parquet(device.clone(), &output_dir, Duration::from(*duration), &name);
+            recording::record_multiharp_to_parquet(device.clone(), &output_dir, *duration, &name);
         }
     }
 }

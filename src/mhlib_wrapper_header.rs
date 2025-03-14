@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 // These values are derived from mhdefin.h, which is bundled with the
 // MultiHarp driver release. The values are copied here to avoid a

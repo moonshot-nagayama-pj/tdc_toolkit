@@ -1,13 +1,18 @@
-use std::time::Duration;
-use std::sync::{mpsc,Arc};
-use std::path::PathBuf;
+use std::path::Path;
+use std::sync::{mpsc, Arc};
 use std::thread;
+use std::time::Duration;
 
 use crate::multiharp_device::MultiharpDevice;
 use crate::parquet_writer;
 use crate::tttr_record;
 
-pub fn record_multiharp_to_parquet(device: Arc<(dyn MultiharpDevice + Send + Sync)>, output_dir: &PathBuf, duration: Duration, name: &str) {
+pub fn record_multiharp_to_parquet(
+    device: Arc<(dyn MultiharpDevice + Send + Sync)>,
+    output_dir: &Path,
+    duration: Duration,
+    name: &str,
+) {
     let (raw_tx_channel, raw_rx_channel) = mpsc::channel();
     let (processed_tx_channel, processed_rx_channel) = mpsc::channel();
 
