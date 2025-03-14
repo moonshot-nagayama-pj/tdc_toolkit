@@ -3,6 +3,7 @@ use strum_macros::Display;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use _mhtk_rs::recording;
@@ -57,11 +58,11 @@ fn main() {
             let device = match device_type {
                 DeviceType::Multiharp160 => {
                     let config: multiharp_device::MultiharpDeviceConfig = serde_json::from_str(fs::read_to_string(device_config).unwrap().as_str()).unwrap();
-                    Box::new(multiharp_device::Multiharp160::from_config(device_index, config)) as Box<(dyn MultiharpDevice + Send + Sync + 'static)>
+                    Arc::new(multiharp_device::Multiharp160::from_config(device_index, config)) as Arc<(dyn MultiharpDevice + Send + Sync)>
                 }
-                DeviceType::Multiharp160StubGenerator => Box::new(multiharp_device_stub::Multiharp160Stub {}) as Box<(dyn MultiharpDevice + Send + Sync + 'static)>
+                DeviceType::Multiharp160StubGenerator => Arc::new(multiharp_device_stub::Multiharp160Stub {}) as Arc<(dyn MultiharpDevice + Send + Sync)>
             };
-            recording::record_multiharp_to_parquet(device, &output_dir, Duration::from(*duration), &name);
+            recording::record_multiharp_to_parquet(device.clone(), &output_dir, Duration::from(*duration), &name);
         }
     }
 }

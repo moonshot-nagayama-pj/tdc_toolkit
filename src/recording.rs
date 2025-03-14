@@ -1,5 +1,5 @@
 use std::time::Duration;
-use std::sync::mpsc;
+use std::sync::{mpsc,Arc};
 use std::path::PathBuf;
 use std::thread;
 
@@ -7,7 +7,7 @@ use crate::multiharp_device::MultiharpDevice;
 use crate::parquet_writer;
 use crate::tttr_record;
 
-pub fn record_multiharp_to_parquet(device: Box<(dyn MultiharpDevice + Send + Sync + 'static)>, output_dir: &PathBuf, duration: Duration, name: &str) {
+pub fn record_multiharp_to_parquet(device: Arc<(dyn MultiharpDevice + Send + Sync)>, output_dir: &PathBuf, duration: Duration, name: &str) {
     let (raw_tx_channel, raw_rx_channel) = mpsc::channel();
     let (processed_tx_channel, processed_rx_channel) = mpsc::channel();
 
