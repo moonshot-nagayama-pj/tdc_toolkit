@@ -7,26 +7,19 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{mpsc, Arc};
 
-// Write a series of Parquet files to disk containing the data from the
-// input queue.
-//
-// For write efficiency and ease in handling large volumes of data, we
-// batch writes to Parquet files in chunks of about 200 MiB (as
-// recommended in this discussion
-// https://github.com/apache/arrow/issues/13142, and then rotate to a new
-// file approximately every 2 GiB. Rows are assumed to contain about 80
-// bits of data each; ignoring metadata overhead and compression, this
-// means that a 2 GiB file can hold approximately 214,700,000 rows. For
-// simplicity, we set the default size limit for each file to 200,000,000
-// rows, and default chunk size to 20,000,000.
-//
-// The GitHub issue above discusses using ``sys.getsizeof()`` to
-// determine the number of bytes used by a data structure. This may work
-// for some object types, but, generally speaking, ``getsizeof()`` will
-// only report the amount of memory used by a container object, not the
-// objects contained within that object. For this reason, we rely on row
-// counts rather than actual byte counts.
-
+/// Write a series of Parquet files to disk containing the data from
+/// the input queue.
+///
+/// For write efficiency and ease in handling large volumes of data,
+/// we batch writes to Parquet files in chunks of about 200 MiB (as
+/// recommended in [this
+/// discussion](https://github.com/apache/arrow/issues/13142)), and
+/// then rotate to a new file approximately every 2 GiB. Rows are
+/// assumed to contain about 80 bits of data each; ignoring metadata
+/// overhead and compression, this means that a 2 GiB file can hold
+/// approximately 214,700,000 rows. For simplicity, we set the default
+/// size limit for each file to 200,000,000 rows, and default chunk
+/// size to 20,000,000.
 pub struct T2RecordParquetWriter {
     // The maximum number of total rows (records) that should be
     // collected before writing to disk.
