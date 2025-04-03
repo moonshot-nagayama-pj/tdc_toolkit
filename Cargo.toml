@@ -12,6 +12,7 @@ arrow = "54.2.0"
 chrono = "0.4.39"
 clap = { version = "4.5.31", features = ["derive"] }
 humantime = "2.1.0"
+indicatif = "0.17.11"
 nom = "7.1.3"
 parquet = "54.2.0"
 pyo3 = "0.20.0"

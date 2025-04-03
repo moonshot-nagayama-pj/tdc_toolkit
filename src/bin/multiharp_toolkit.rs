@@ -1,8 +1,11 @@
 use clap::{Parser, Subcommand, ValueEnum, ValueHint};
+use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::thread;
+use std::time::{Duration, Instant};
 use strum_macros::Display;
 
 use _mhtk_rs::multiharp_device;
@@ -95,7 +98,28 @@ fn main() {
                         as Arc<(dyn MultiharpDevice + Send + Sync)>
                 }
             };
-            recording::record_multiharp_to_parquet(device.clone(), &output_dir, *duration, &name);
+            let recording_thread = thread::spawn(move || {
+                recording::record_multiharp_to_parquet(
+                    device.clone(),
+                    &output_dir,
+                    *duration,
+                    &name,
+                );
+            });
+
+            let progress_bar = ProgressBar::new(duration.as_millis().try_into().unwrap())
+                .with_style(
+                    ProgressStyle::with_template("[{elapsed_precise}] {bar:40} {msg}").unwrap(),
+                )
+                .with_message("Recording...");
+            let start_time = Instant::now();
+            while start_time.elapsed() < *duration {
+                progress_bar.set_position(start_time.elapsed().as_millis().try_into().unwrap());
+                thread::sleep(Duration::from_millis(100));
+            }
+
+            recording_thread.join().unwrap();
+            progress_bar.finish_with_message("Recording complete");
         }
     }
 }
