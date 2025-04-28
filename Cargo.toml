@@ -1,10 +1,10 @@
 [package]
-name = "multiharp_toolkit"
+name = "tdc_toolkit"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "_mhtk_rs"
+name = "tdc_toolkit"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

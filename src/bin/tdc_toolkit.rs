@@ -8,13 +8,13 @@ use std::thread;
 use std::time::{Duration, Instant};
 use strum_macros::Display;
 
-use _mhtk_rs::multiharp_device;
-use _mhtk_rs::multiharp_device::MultiharpDevice;
-use _mhtk_rs::multiharp_device_stub;
-use _mhtk_rs::recording;
+use tdc_toolkit::multiharp_device;
+use tdc_toolkit::multiharp_device::MultiharpDevice;
+use tdc_toolkit::multiharp_device_stub;
+use tdc_toolkit::recording;
 
 #[derive(Debug, Parser)]
-#[command(name = "multiharp_toolkit")]
+#[command(name = "tdc_toolkit")]
 #[command(about = "A CLI for controlling time-to-digital converters such as the PicoQuant MultiHarp.", long_about = None)]
 struct Cli {
     #[command(subcommand)]

@@ -3,10 +3,10 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-use _mhtk_rs::multiharp_device::MultiharpDevice;
-use _mhtk_rs::multiharp_device_stub;
-use _mhtk_rs::parquet_writer;
-use _mhtk_rs::tttr_record;
+use tdc_toolkit::multiharp_device::MultiharpDevice;
+use tdc_toolkit::multiharp_device_stub;
+use tdc_toolkit::parquet_writer;
+use tdc_toolkit::tttr_record;
 
 fn process_measurements() {
     let (raw_tx_channel, raw_rx_channel) = mpsc::channel();

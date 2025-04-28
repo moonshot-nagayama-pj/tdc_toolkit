@@ -1,8 +1,11 @@
 [project]
-name = "multiharp-toolkit"
+name = "tdc-toolkit"
 version = "0.2.0"
-description = "Rust and Python wrappers and helper libraries for working with the Multiharp family of high-precision event timers."
-authors = [{ name = "zigen", email = "hrlclb@gmail.com" }]
+description = "Rust and Python wrappers and helper libraries for working with time-to-digital converters."
+authors = [
+    { name = "zigen", email = "hrlclb@gmail.com" },
+    { name = "Andrew Todd", email = "at@auspicacious.org" }
+]
 readme = "README.md"
 requires-python = ">= 3.13"
 classifiers = [
@@ -20,11 +23,11 @@ dependencies = [
 ]
 
 [project.scripts]
-calc-g2 = "multiharp_toolkit.calc_g2:main"
-mh-measure = "multiharp_toolkit.cmd:measure"
-mh-ptu2arrow = "multiharp_toolkit.cmd:ptu2arrow"
-mh-histogram = "multiharp_toolkit.cmd:histogram"
-mh-coincidence = "multiharp_toolkit.cmd:coincidence"
+calc-g2 = "tdc_toolkit.calc_g2:main"
+mh-measure = "tdc_toolkit.cmd:measure"
+mh-ptu2arrow = "tdc_toolkit.cmd:ptu2arrow"
+mh-histogram = "tdc_toolkit.cmd:histogram"
+mh-coincidence = "tdc_toolkit.cmd:coincidence"
 
 [build-system]
 requires = ["maturin>=1.4,<2.0"]
@@ -52,14 +55,14 @@ dev = [
 allow-direct-references = true
 
 [tool.hatch.version]
-path = "python/multiharp_toolkit/__init__.py"
+path = "python/tdc_toolkit/__init__.py"
 
 [tool.isort]
 profile = "black"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-module-name = "multiharp_toolkit._mhtk_rs"
+module-name = "tdc_toolkit"
 python-source = "python"
 
 [tool.mypy]
