@@ -1,3 +1,4 @@
+use anyhow::{bail, Result};
 use arrow::array::{UInt16Array, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
@@ -42,9 +43,12 @@ impl T2RecordParquetWriter {
         rx_channel: mpsc::Receiver<Vec<(u16, u64)>>,
         output_dir: &Path,
         name: &str,
-    ) -> Result<(), ()> {
+    ) -> Result<()> {
         if !output_dir.is_dir() {
-            return Err(());
+            bail!(
+                "Requested output path {} is not a directory.",
+                output_dir.display()
+            );
         }
         let fields = vec![
             Field::new("channel", DataType::UInt16, false),

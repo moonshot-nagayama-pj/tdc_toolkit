@@ -1,3 +1,4 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::mpsc;
@@ -54,8 +55,12 @@ pub struct MultiharpDeviceInfo {
 }
 
 pub trait MultiharpDevice {
-    fn get_device_info(&self) -> MultiharpDeviceInfo;
-    fn stream_measurement(&self, measurement_time: &Duration, tx_channel: mpsc::Sender<Vec<u32>>);
+    fn get_device_info(&self) -> Result<MultiharpDeviceInfo>;
+    fn stream_measurement(
+        &self,
+        measurement_time: &Duration,
+        tx_channel: mpsc::Sender<Vec<u32>>,
+    ) -> Result<()>;
 }
 
 pub struct Multiharp160 {
@@ -63,12 +68,12 @@ pub struct Multiharp160 {
 }
 
 impl Multiharp160 {
-    pub fn from_config(device_index: u8, config: MultiharpDeviceConfig) -> Multiharp160 {
-        mhlib_wrapper::open_device(device_index).unwrap();
+    pub fn from_config(device_index: u8, config: MultiharpDeviceConfig) -> Result<Multiharp160> {
+        mhlib_wrapper::open_device(device_index)?;
 
         // TODO in theory we could support T3 mode relatively easily,
         // since the record processing is decoupled from the device
-        mhlib_wrapper::initialize(device_index, Mode::T2, RefSource::InternalClock).unwrap();
+        mhlib_wrapper::initialize(device_index, Mode::T2, RefSource::InternalClock)?;
 
         // TODO sync channel must be enabled for histogramming and T3
         // mode; more configuration validation is necessary if we want
@@ -76,36 +81,33 @@ impl Multiharp160 {
         // sync in T2; in theory we could just permanently disable it.
         match config.sync_channel {
             Some(sync_config) => {
-                mhlib_wrapper::set_sync_channel_enable(device_index, true).unwrap();
-                mhlib_wrapper::set_sync_divider(device_index, sync_config.divider).unwrap();
+                mhlib_wrapper::set_sync_channel_enable(device_index, true)?;
+                mhlib_wrapper::set_sync_divider(device_index, sync_config.divider)?;
                 mhlib_wrapper::set_sync_edge_trigger(
                     device_index,
                     sync_config.edge_trigger_level,
                     sync_config.edge_trigger,
-                )
-                .unwrap();
-                mhlib_wrapper::set_sync_channel_offset(device_index, sync_config.offset).unwrap();
+                )?;
+                mhlib_wrapper::set_sync_channel_offset(device_index, sync_config.offset)?;
             }
             None => {
-                mhlib_wrapper::set_sync_channel_enable(device_index, false).unwrap();
+                mhlib_wrapper::set_sync_channel_enable(device_index, false)?;
             }
         }
 
         for input_channel in config.input_channels.iter() {
-            mhlib_wrapper::set_input_channel_enable(device_index, input_channel.id, true).unwrap();
+            mhlib_wrapper::set_input_channel_enable(device_index, input_channel.id, true)?;
             mhlib_wrapper::set_input_edge_trigger(
                 device_index,
                 input_channel.id,
                 input_channel.edge_trigger_level,
                 input_channel.edge_trigger.clone(),
-            )
-            .unwrap();
+            )?;
             mhlib_wrapper::set_input_channel_offset(
                 device_index,
                 input_channel.id,
                 input_channel.offset,
-            )
-            .unwrap();
+            )?;
         }
 
         // disable all other input channels
@@ -116,62 +118,61 @@ impl Multiharp160 {
                 acc.insert(x.id);
                 acc
             });
-        let total_channels: u8 = mhlib_wrapper::get_number_of_input_channels(device_index)
-            .unwrap()
-            .try_into()
-            .unwrap();
+        let total_channels: u8 =
+            mhlib_wrapper::get_number_of_input_channels(device_index)?.try_into()?;
         for channel_id in 0..total_channels {
             if !enabled_channels.contains(&channel_id) {
-                mhlib_wrapper::set_input_channel_enable(device_index, channel_id, false).unwrap();
+                mhlib_wrapper::set_input_channel_enable(device_index, channel_id, false)?;
             }
         }
 
-        Multiharp160 { device_index }
+        Ok(Multiharp160 { device_index })
     }
 }
 
 impl MultiharpDevice for Multiharp160 {
-    fn get_device_info(&self) -> MultiharpDeviceInfo {
-        let (model, partno, version) = mhlib_wrapper::get_hardware_info(self.device_index).unwrap();
-        let (base_resolution, binsteps) =
-            mhlib_wrapper::get_base_resolution(self.device_index).unwrap();
-        MultiharpDeviceInfo {
+    fn get_device_info(&self) -> Result<MultiharpDeviceInfo> {
+        let (model, partno, version) = mhlib_wrapper::get_hardware_info(self.device_index)?;
+        let (base_resolution, binsteps) = mhlib_wrapper::get_base_resolution(self.device_index)?;
+        Ok(MultiharpDeviceInfo {
             device_index: self.device_index,
-            library_version: mhlib_wrapper::get_library_version().unwrap(),
+            library_version: mhlib_wrapper::get_library_version()?,
             model,
             partno,
             version,
-            serial_number: mhlib_wrapper::get_serial_number(self.device_index).unwrap(),
+            serial_number: mhlib_wrapper::get_serial_number(self.device_index)?,
             base_resolution,
-            binsteps: binsteps.try_into().unwrap(),
-            num_channels: mhlib_wrapper::get_number_of_input_channels(self.device_index)
-                .unwrap()
-                .try_into()
-                .unwrap(),
-        }
+            binsteps: binsteps.try_into()?,
+            num_channels: mhlib_wrapper::get_number_of_input_channels(self.device_index)?
+                .try_into()?,
+        })
     }
 
-    fn stream_measurement(&self, measurement_time: &Duration, tx_channel: mpsc::Sender<Vec<u32>>) {
+    fn stream_measurement(
+        &self,
+        measurement_time: &Duration,
+        tx_channel: mpsc::Sender<Vec<u32>>,
+    ) -> Result<()> {
         mhlib_wrapper::start_measurement(
             self.device_index,
-            measurement_time.as_millis().try_into().unwrap(),
-        )
-        .unwrap();
+            measurement_time.as_millis().try_into()?,
+        )?;
         loop {
-            let flags = mhlib_wrapper::get_flags(self.device_index).unwrap();
+            let flags = mhlib_wrapper::get_flags(self.device_index)?;
             if flags & 2 > 0 {
                 // FLAG_FIFOFULL
                 panic!("FIFO overrun");
             }
-            let records = mhlib_wrapper::read_fifo_to_vec(self.device_index).unwrap();
+            let records = mhlib_wrapper::read_fifo_to_vec(self.device_index)?;
             if !records.is_empty() {
-                tx_channel.send(records).unwrap();
-            } else if mhlib_wrapper::ctc_status(self.device_index).unwrap() != 0 {
+                tx_channel.send(records)?;
+            } else if mhlib_wrapper::ctc_status(self.device_index)? != 0 {
                 // measurement completed
                 break;
             }
         }
-        mhlib_wrapper::stop_measurement(self.device_index).unwrap();
+        mhlib_wrapper::stop_measurement(self.device_index)?;
+        Ok(())
         // TODO how to implement the equivalent of try/finally? Put
         // this in its own higher-level function? Make a measurement
         // into into its own struct, implementing Drop?
@@ -180,6 +181,8 @@ impl MultiharpDevice for Multiharp160 {
 
 impl Drop for Multiharp160 {
     fn drop(&mut self) {
-        mhlib_wrapper::close_device(self.device_index).unwrap();
+        if let Err(e) = mhlib_wrapper::close_device(self.device_index) {
+            println!("TODO: Implement logging and log close error {:?}", e);
+        }
     }
 }

@@ -1,10 +1,13 @@
 use crate::mhlib_wrapper;
 use crate::{Edge, MeasurementControl, Mode, RefSource};
+use anyhow::Error;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-fn convert_into_py_err(err: String) -> PyErr {
-    PyRuntimeError::new_err(err)
+fn convert_into_py_err(error: Error) -> PyErr {
+    // TODO see this discussion on better ways to do this
+    // https://github.com/PyO3/pyo3/issues/2998
+    PyRuntimeError::new_err(format!("{:?}", error))
 }
 
 #[pyfunction]

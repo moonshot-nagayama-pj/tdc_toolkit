@@ -8,6 +8,7 @@ name = "tdc_toolkit"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+anyhow = "1.0.98"
 arrow = "54.2.0"
 chrono = "0.4.39"
 clap = { version = "4.5.31", features = ["derive"] }

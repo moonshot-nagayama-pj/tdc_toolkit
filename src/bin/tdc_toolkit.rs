@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Error, Result};
 use clap::{Parser, Subcommand, ValueEnum, ValueHint};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
@@ -72,7 +73,7 @@ enum DeviceType {
     Multiharp160StubGenerator,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Command::Record {
@@ -86,40 +87,50 @@ fn main() {
             let device = match device_type {
                 DeviceType::Multiharp160 => {
                     let config: multiharp_device::MultiharpDeviceConfig =
-                        serde_json::from_str(fs::read_to_string(device_config).unwrap().as_str())
-                            .unwrap();
-                    Arc::new(multiharp_device::Multiharp160::from_config(
-                        mh_device_index,
-                        config,
-                    )) as Arc<(dyn MultiharpDevice + Send + Sync)>
+                        serde_json::from_str(fs::read_to_string(device_config)?.as_str())?;
+                    let device =
+                        multiharp_device::Multiharp160::from_config(mh_device_index, config)?;
+                    let device_arc = Arc::new(device) as Arc<(dyn MultiharpDevice + Send + Sync)>;
+                    Ok::<Arc<dyn MultiharpDevice + Send + Sync>, Error>(device_arc)
                 }
+                // TODO + Send + Sync should be part of the
+                // MultiharpDevice trait signature. Although is it
+                // really a good idea to make this Sync?
                 DeviceType::Multiharp160StubGenerator => {
-                    Arc::new(multiharp_device_stub::Multiharp160Stub {})
-                        as Arc<(dyn MultiharpDevice + Send + Sync)>
+                    Ok(Arc::new(multiharp_device_stub::Multiharp160Stub {})
+                        as Arc<(dyn MultiharpDevice + Send + Sync)>)
                 }
-            };
-            let recording_thread = thread::spawn(move || {
+            }?;
+            let recording_thread = thread::spawn(move || -> Result<()> {
                 recording::record_multiharp_to_parquet(
                     device.clone(),
                     &output_dir,
                     *duration,
                     &name,
-                );
+                )?;
+                Ok(())
             });
 
-            let progress_bar = ProgressBar::new(duration.as_millis().try_into().unwrap())
-                .with_style(
-                    ProgressStyle::with_template("[{elapsed_precise}] {bar:40} {msg}").unwrap(),
-                )
+            let progress_bar = ProgressBar::new(duration.as_millis().try_into()?)
+                .with_style(ProgressStyle::with_template(
+                    "[{elapsed_precise}] {bar:40} {msg}",
+                )?)
                 .with_message("Recording...");
             let start_time = Instant::now();
             while start_time.elapsed() < *duration {
-                progress_bar.set_position(start_time.elapsed().as_millis().try_into().unwrap());
+                progress_bar.set_position(start_time.elapsed().as_millis().try_into()?);
                 thread::sleep(Duration::from_millis(100));
             }
 
-            recording_thread.join().unwrap();
+            // TODO this isn't sufficient, see note in recording.rs
+            if let Err(recording_error) = recording_thread.join() {
+                if let Some(recording_anyhow_error) = recording_error.downcast_ref::<Error>() {
+                    return Err(anyhow!("Something happened {}", recording_anyhow_error));
+                }
+            }
+
             progress_bar.finish_with_message("Recording complete");
+            Ok(())
         }
     }
 }
