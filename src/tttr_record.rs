@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::sync::mpsc;
 
 // A tuple representing a single T2 record.
@@ -47,17 +48,18 @@ impl T2RecordChannelProcessor {
         &mut self,
         rx_channel: mpsc::Receiver<Vec<u32>>,
         mut tx_channel: mpsc::Sender<Vec<(u16, u64)>>,
-    ) {
+    ) -> Result<()> {
         for raw_records in rx_channel {
-            self.process_raw_records(raw_records, &mut tx_channel);
+            self.process_raw_records(raw_records, &mut tx_channel)?;
         }
+        Ok(())
     }
 
     fn process_raw_records(
         &mut self,
         raw_records: Vec<u32>,
         tx_channel: &mut mpsc::Sender<Vec<(u16, u64)>>,
-    ) {
+    ) -> Result<()> {
         // Channels have very limited throughput, about 20 million
         // messages a second if Kanal's benchmarks are accurate. Batch
         // messages together in a vector to avoid this overhead.
@@ -75,7 +77,8 @@ impl T2RecordChannelProcessor {
                 self.process_normal_record(channel, time_tag, &mut tx_vec);
             }
         }
-        tx_channel.send(tx_vec).expect("failed to send message");
+        tx_channel.send(tx_vec)?;
+        Ok(())
     }
 
     fn process_special_records(

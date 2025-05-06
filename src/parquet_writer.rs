@@ -63,9 +63,8 @@ impl T2RecordParquetWriter {
         let initial_file = File::create_new(output_dir.join(format!(
             "{}_{}_{:0>4}.parquet",
             file_timestamp, name, total_files
-        )))
-        .unwrap();
-        let mut arrow_writer = ArrowWriter::try_new(initial_file, schema.clone(), None).unwrap();
+        )))?;
+        let mut arrow_writer = ArrowWriter::try_new(initial_file, schema.clone(), None)?;
         let mut channel_array_builder = UInt16Array::builder(self.max_chunk_rows);
         let mut time_tag_array_builder = UInt64Array::builder(self.max_chunk_rows);
         let mut array_length = 0;
@@ -85,25 +84,23 @@ impl T2RecordParquetWriter {
                         Arc::new(channel_array_builder.finish()),
                         Arc::new(time_tag_array_builder.finish()),
                     ],
-                )
-                .unwrap();
-                arrow_writer.write(&batch).unwrap();
+                )?;
+                arrow_writer.write(&batch)?;
                 array_length = 0;
                 chunk_count += 1;
             }
 
             if chunk_count > max_chunk_count {
                 // close and replace file
-                arrow_writer.close().unwrap();
+                arrow_writer.close()?;
                 chunk_count = 0;
                 total_files += 1;
 
                 let new_file = File::create_new(output_dir.join(format!(
                     "{}_{}_{:0>4}.parquet",
                     file_timestamp, name, total_files
-                )))
-                .unwrap();
-                arrow_writer = ArrowWriter::try_new(new_file, schema.clone(), None).unwrap();
+                )))?;
+                arrow_writer = ArrowWriter::try_new(new_file, schema.clone(), None)?;
             }
         }
 
@@ -115,11 +112,10 @@ impl T2RecordParquetWriter {
                     Arc::new(channel_array_builder.finish()),
                     Arc::new(time_tag_array_builder.finish()),
                 ],
-            )
-            .unwrap();
-            arrow_writer.write(&batch).unwrap();
+            )?;
+            arrow_writer.write(&batch)?;
         }
-        arrow_writer.close().unwrap();
+        arrow_writer.close()?;
 
         Ok(())
     }

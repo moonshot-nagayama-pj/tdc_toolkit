@@ -24,7 +24,7 @@ pub fn record_multiharp_to_parquet(
 
     let processor_thread = thread::spawn(move || -> Result<()> {
         let mut processor = tttr_record::T2RecordChannelProcessor::new();
-        processor.process(raw_rx_channel, processed_tx_channel);
+        processor.process(raw_rx_channel, processed_tx_channel)?;
         Ok(())
     });
 

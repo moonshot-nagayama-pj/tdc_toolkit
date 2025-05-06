@@ -39,9 +39,7 @@ impl MultiharpDevice for Multiharp160Stub {
     ) -> Result<()> {
         let start_time = Instant::now();
         while start_time.elapsed() < *measurement_time {
-            tx_channel
-                .send(self.generate_raw_records())
-                .expect("send raw_records to channel failed");
+            tx_channel.send(self.generate_raw_records())?;
             thread::sleep(Duration::from_millis(100));
         }
         Ok(())

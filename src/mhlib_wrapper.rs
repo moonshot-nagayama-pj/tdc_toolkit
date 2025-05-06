@@ -487,8 +487,8 @@ mod tests {
     #[test]
     fn test_open_device() {
         assert_eq!(
-            open_device(0),
-            Err(anyhow!(String::from("MH_ERROR_DEVICE_OPEN_FAIL")))
+            open_device(0).unwrap_err().to_string(),
+            String::from("MH_ERROR_DEVICE_OPEN_FAIL")
         );
     }
 }
