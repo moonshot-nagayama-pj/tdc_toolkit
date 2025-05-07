@@ -61,8 +61,6 @@ pub fn record_multiharp_to_parquet(
     let writer = parquet_writer::T2RecordParquetWriter::new();
     writer.write(processed_rx_channel, output_dir, name)?;
 
-    // TODO still need to ensure clean signaling between threads if
-    // one shuts down early to stop channel from running forever
     match join_and_collect_thread_errors(handles) {
         None => Ok(()),
         Some(error) => Err(error),

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::mpsc;
@@ -128,6 +128,33 @@ impl Multiharp160 {
 
         Ok(Multiharp160 { device_index })
     }
+
+    fn do_stream_measurement(
+        &self,
+        measurement_time: &Duration,
+        tx_channel: mpsc::Sender<Vec<u32>>,
+    ) -> Result<()> {
+        mhlib_wrapper::start_measurement(
+            self.device_index,
+            measurement_time.as_millis().try_into()?,
+        )?;
+        loop {
+            let flags = mhlib_wrapper::get_flags(self.device_index)?;
+            if flags & 2 > 0 {
+                // FLAG_FIFOFULL
+                bail!("FLAG_FIFOFULL seen, FIFO overrun. Stopping measurement.");
+            }
+            let records = mhlib_wrapper::read_fifo_to_vec(self.device_index)?;
+            if !records.is_empty() {
+                tx_channel.send(records)?;
+            } else if mhlib_wrapper::ctc_status(self.device_index)? != 0 {
+                // measurement completed
+                break;
+            }
+        }
+        // measurement is stopped in higher-level function
+        Ok(())
+    }
 }
 
 impl MultiharpDevice for Multiharp160 {
@@ -153,29 +180,17 @@ impl MultiharpDevice for Multiharp160 {
         measurement_time: &Duration,
         tx_channel: mpsc::Sender<Vec<u32>>,
     ) -> Result<()> {
-        mhlib_wrapper::start_measurement(
-            self.device_index,
-            measurement_time.as_millis().try_into()?,
-        )?;
-        loop {
-            let flags = mhlib_wrapper::get_flags(self.device_index)?;
-            if flags & 2 > 0 {
-                // FLAG_FIFOFULL
-                panic!("FIFO overrun");
+        let measurement_result = self.do_stream_measurement(measurement_time, tx_channel);
+        let stop_result = mhlib_wrapper::stop_measurement(self.device_index);
+        if let Err(root_error) = measurement_result {
+            let mut final_error =
+                anyhow!("Error while performing MultiHarp measurement.").context(root_error);
+            if let Err(stop_error) = stop_result {
+                final_error = final_error.context(stop_error);
             }
-            let records = mhlib_wrapper::read_fifo_to_vec(self.device_index)?;
-            if !records.is_empty() {
-                tx_channel.send(records)?;
-            } else if mhlib_wrapper::ctc_status(self.device_index)? != 0 {
-                // measurement completed
-                break;
-            }
+            return Err(final_error);
         }
-        mhlib_wrapper::stop_measurement(self.device_index)?;
         Ok(())
-        // TODO how to implement the equivalent of try/finally? Put
-        // this in its own higher-level function? Make a measurement
-        // into into its own struct, implementing Drop?
     }
 }
 
