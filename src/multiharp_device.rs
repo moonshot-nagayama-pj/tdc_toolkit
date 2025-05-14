@@ -144,7 +144,7 @@ impl Multiharp160 {
                 // FLAG_FIFOFULL
                 bail!("FLAG_FIFOFULL seen, FIFO overrun. Stopping measurement.");
             }
-            let records = mhlib_wrapper::read_fifo_to_vec(self.device_index)?;
+            let records = mhlib_wrapper::read_fifo(self.device_index)?;
             if !records.is_empty() {
                 tx_channel.send(records)?;
             } else if mhlib_wrapper::ctc_status(self.device_index)? != 0 {

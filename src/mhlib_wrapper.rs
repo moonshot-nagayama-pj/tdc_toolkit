@@ -101,6 +101,7 @@ pub fn get_serial_number(device_index: u8) -> Result<String> {
         Ok(convert_into_string(&vec_serial))
     }
 }
+
 pub fn get_base_resolution(device_index: u8) -> Result<(f64, i32)> {
     let mut resolution: f64 = 0.0;
     let mut bin_steps: i32 = 0;
@@ -351,6 +352,7 @@ pub fn get_histogram(device_index: u8, channel: u8) -> Result<Vec<u32>> {
         Ok(histogram_vec.to_vec())
     }
 }
+
 pub fn get_all_histogram(device_index: u8) -> Result<Vec<u32>> {
     let mut histogram_vec = [0u32; 65536];
     unsafe {
@@ -377,6 +379,7 @@ pub fn get_sync_rate(device_index: u8) -> Result<i32> {
         Ok(sync_rate)
     }
 }
+
 pub fn get_count_rate(device_index: u8, channel: u8) -> Result<i32> {
     let mut count_rate: i32 = 0;
     unsafe {
@@ -441,16 +444,7 @@ pub fn get_warnings(device_index: u8) -> Result<String> {
     }
 }
 
-pub fn read_fifo(device_index: u8, buffer: &mut [u32]) -> Result<u32> {
-    let mut num_records: i32 = 0;
-    unsafe {
-        let ret = MH_ReadFiFo(device_index.into(), buffer.as_mut_ptr(), &mut num_records);
-        handle_error(ret)?;
-        Ok(num_records as u32)
-    }
-}
-
-pub fn read_fifo_to_vec(device_index: u8) -> Result<Vec<u32>> {
+pub fn read_fifo(device_index: u8) -> Result<Vec<u32>> {
     let mut num_records: i32 = 0;
     // TODO there should be a way to use Vec's spare_capacity_mut here
     // to avoid initialization overhead, but we would need to change
