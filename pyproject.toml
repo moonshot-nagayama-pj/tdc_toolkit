@@ -13,21 +13,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = [
-    "pandas>=2.1.2",
-    "pint>=0.24.4",
-    "plotly>=5.18.0",
-    "polars>=0.20.5",
-    "pyarrow>=14.0.2",
-    "structlog>=24.4.0",
-]
-
-[project.scripts]
-calc-g2 = "tdc_toolkit.calc_g2:main"
-mh-measure = "tdc_toolkit.cmd:measure"
-mh-ptu2arrow = "tdc_toolkit.cmd:ptu2arrow"
-mh-histogram = "tdc_toolkit.cmd:histogram"
-mh-coincidence = "tdc_toolkit.cmd:coincidence"
+dependencies = []
 
 [build-system]
 requires = ["maturin>=1.4,<2.0"]
@@ -36,18 +22,12 @@ build-backend = "maturin"
 [dependency-groups]
 dev = [
     "black>=24.8.0",
-    "coverage>=7.6.1",
-    "ipykernel>=6.26.0",
     "isort>=5.13.2",
     'maturin>=1.4.0 ; platform_system == "Windows"',
     'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
     "mypy>=1.11.2",
-    "nbformat>=5.9.2",
-    "pip>=24.2",
-    "pyarrow-stubs>=17.13", # maturin requires pip to be installed to build
+    "pip>=24.2", # maturin requires pip to be installed to build
     "pylint>=3.3.1",
-    "pytest>=8.3.2",
-    "pytest-asyncio>=0.25.2",
     "ruff>=0.8.2",
 ]
 
@@ -80,8 +60,3 @@ max-line-length = "88"
 # See https://pylint.pycqa.org/en/latest/user_guide/messages/index.html
 [tool.pylint."messages control"]
 disable = ["raw-checker-failed", "bad-inline-option", "locally-disabled", "file-ignored", "suppressed-message", "deprecated-pragma", "use-symbolic-message-instead", "use-implicit-booleaness-not-comparison-to-string", "use-implicit-booleaness-not-comparison-to-zero", "missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "line-too-long", "duplicate-code", "too-many-instance-attributes", "too-few-public-methods", "too-many-public-methods", "too-many-arguments", "too-many-locals", "too-many-positional-arguments", "fixme"]
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["python_tests"]
-asyncio_default_fixture_loop_scope = "function"
