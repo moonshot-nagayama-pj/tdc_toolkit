@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Error, Result};
+use anyhow::{Error, Result, anyhow};
 use std::path::Path;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::Duration;
 
@@ -19,7 +19,9 @@ fn join_and_collect_thread_errors<T>(handles: Vec<thread::JoinHandle<T>>) -> Opt
                     thread_name, anyhow_error
                 ));
             } else {
-                panic!("Failed downcast to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error.");
+                panic!(
+                    "Failed downcast to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error."
+                );
             }
         }
     }

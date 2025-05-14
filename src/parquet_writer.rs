@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use arrow::array::{UInt16Array, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
@@ -6,7 +6,7 @@ use chrono::Utc;
 use parquet::arrow::ArrowWriter;
 use std::fs::File;
 use std::path::Path;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 
 /// Write a series of Parquet files to disk containing the data from
 /// the input queue.
