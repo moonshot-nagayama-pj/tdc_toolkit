@@ -9,10 +9,10 @@ use std::thread;
 use std::time::{Duration, Instant};
 use strum_macros::Display;
 
-use tdc_toolkit::multiharp_device;
-use tdc_toolkit::multiharp_device::MultiharpDevice;
-use tdc_toolkit::multiharp_device_stub;
-use tdc_toolkit::recording;
+use tdc_toolkit::multiharp::device;
+use tdc_toolkit::multiharp::device::MultiharpDevice;
+use tdc_toolkit::multiharp::device_stub;
+use tdc_toolkit::multiharp::recording;
 
 #[derive(Debug, Parser)]
 #[command(name = "tdc_toolkit")]
@@ -86,10 +86,10 @@ fn main() -> Result<()> {
         } => {
             let device = match device_type {
                 DeviceType::Multiharp160 => {
-                    let config: multiharp_device::MultiharpDeviceConfig =
+                    let config: device::MultiharpDeviceConfig =
                         serde_json::from_str(fs::read_to_string(device_config)?.as_str())?;
                     let device =
-                        multiharp_device::Multiharp160::from_config(mh_device_index, config)?;
+                        device::Multiharp160::from_config(mh_device_index, config)?;
                     let device_arc = Arc::new(device) as Arc<(dyn MultiharpDevice + Send + Sync)>;
                     Ok::<Arc<dyn MultiharpDevice + Send + Sync>, Error>(device_arc)
                 }
@@ -97,7 +97,7 @@ fn main() -> Result<()> {
                 // MultiharpDevice trait signature. Although is it
                 // really a good idea to make this Sync?
                 DeviceType::Multiharp160StubGenerator => {
-                    Ok(Arc::new(multiharp_device_stub::Multiharp160Stub {})
+                    Ok(Arc::new(device_stub::Multiharp160Stub {})
                         as Arc<(dyn MultiharpDevice + Send + Sync)>)
                 }
             }?;

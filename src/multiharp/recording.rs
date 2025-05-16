@@ -4,9 +4,9 @@ use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::Duration;
 
-use crate::multiharp_device::MultiharpDevice;
-use crate::parquet_writer;
-use crate::tttr_record;
+use super::device::MultiharpDevice;
+use crate::output::parquet;
+use super::tttr_record;
 
 fn join_and_collect_thread_errors<T>(handles: Vec<thread::JoinHandle<T>>) -> Option<Error> {
     let mut error_str = String::from("");
@@ -60,7 +60,7 @@ pub fn record_multiharp_to_parquet(
         })?;
     handles.push(processor_thread);
 
-    let writer = parquet_writer::T2RecordParquetWriter::new();
+    let writer = parquet::TimeTagStreamParquetWriter::new();
     writer.write(processed_rx_channel, output_dir, name)?;
 
     match join_and_collect_thread_errors(handles) {

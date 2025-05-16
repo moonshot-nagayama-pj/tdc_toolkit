@@ -4,8 +4,8 @@ use std::collections::HashSet;
 use std::sync::mpsc;
 use std::time::Duration;
 
-use crate::mhlib_wrapper;
-use crate::mhlib_wrapper_header::{Edge, Mode, RefSource};
+use super::mhlib_wrapper;
+use super::mhlib_wrapper_header::{Edge, Mode, RefSource};
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MultiharpDeviceConfig {

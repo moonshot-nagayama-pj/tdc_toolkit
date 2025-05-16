@@ -21,7 +21,7 @@ use std::sync::{Arc, mpsc};
 /// approximately 214,700,000 rows. For simplicity, we set the default
 /// size limit for each file to 200,000,000 rows, and default chunk
 /// size to 20,000,000.
-pub struct T2RecordParquetWriter {
+pub struct TimeTagStreamParquetWriter {
     // The maximum number of total rows (records) that should be
     // collected before writing to disk.
     max_chunk_rows: usize,
@@ -30,9 +30,9 @@ pub struct T2RecordParquetWriter {
     max_file_rows: usize,
 }
 
-impl T2RecordParquetWriter {
-    pub fn new() -> T2RecordParquetWriter {
-        T2RecordParquetWriter {
+impl TimeTagStreamParquetWriter {
+    pub fn new() -> TimeTagStreamParquetWriter {
+        TimeTagStreamParquetWriter {
             max_chunk_rows: 20_000_000,
             max_file_rows: 200_000_000,
         }
@@ -121,7 +121,7 @@ impl T2RecordParquetWriter {
     }
 }
 
-impl Default for T2RecordParquetWriter {
+impl Default for TimeTagStreamParquetWriter {
     fn default() -> Self {
         Self::new()
     }

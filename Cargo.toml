@@ -34,5 +34,5 @@ harness = false
 
 [features]
 extension-module = ["pyo3/extension-module"]
-stub = []
-default = ["extension-module"]
+multiharp = []
+default = ["extension-module", "multiharp"]

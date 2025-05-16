@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::multiharp_device::{MultiharpDevice, MultiharpDeviceInfo};
+use super::device::{MultiharpDevice, MultiharpDeviceInfo};
 
 pub struct Multiharp160Stub {}
 

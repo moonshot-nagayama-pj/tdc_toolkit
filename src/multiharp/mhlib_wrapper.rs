@@ -8,8 +8,8 @@ mod bindings {
 
 use self::bindings::*;
 
-use crate::mhlib_wrapper_header;
-use crate::{Edge, MeasurementControl, Mode, RefSource};
+use super::mhlib_wrapper_header;
+use super::mhlib_wrapper_header::{Edge, MeasurementControl, Mode, RefSource};
 
 fn handle_error(ret: c_int) -> Result<()> {
     let mut error_string: [u8; 40] = [0; 40];
