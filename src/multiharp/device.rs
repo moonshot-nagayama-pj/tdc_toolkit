@@ -8,13 +8,13 @@ use super::mhlib_wrapper;
 use super::mhlib_wrapper_header::{Edge, Mode, RefSource};
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
-pub struct MultiharpDeviceConfig {
-    pub sync_channel: Option<MultiharpDeviceSyncChannelConfig>,
-    pub input_channels: Vec<MultiharpDeviceInputChannelConfig>,
+pub struct MH160DeviceConfig {
+    pub sync_channel: Option<MH160DeviceSyncChannelConfig>,
+    pub input_channels: Vec<MH160DeviceInputChannelConfig>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
-pub struct MultiharpDeviceSyncChannelConfig {
+pub struct MH160DeviceSyncChannelConfig {
     pub divider: i32,
     pub edge_trigger_level: i32, // mV
     pub edge_trigger: Edge,
@@ -22,7 +22,7 @@ pub struct MultiharpDeviceSyncChannelConfig {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
-pub struct MultiharpDeviceInputChannelConfig {
+pub struct MH160DeviceInputChannelConfig {
     pub id: u8,
     pub edge_trigger_level: i32, // mV
     pub edge_trigger: Edge,
@@ -30,7 +30,7 @@ pub struct MultiharpDeviceInputChannelConfig {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
-pub struct MultiharpDeviceInfo {
+pub struct MH160DeviceInfo {
     // Amalgamation of device-related information collected from
     // several different API calls, for convenience.
     pub device_index: u8,
@@ -54,8 +54,8 @@ pub struct MultiharpDeviceInfo {
     pub num_channels: u32,
 }
 
-pub trait MultiharpDevice {
-    fn get_device_info(&self) -> Result<MultiharpDeviceInfo>;
+pub trait MH160 {
+    fn get_device_info(&self) -> Result<MH160DeviceInfo>;
     fn stream_measurement(
         &self,
         measurement_time: &Duration,
@@ -63,12 +63,12 @@ pub trait MultiharpDevice {
     ) -> Result<()>;
 }
 
-pub struct Multiharp160 {
+pub struct MH160Device {
     device_index: u8,
 }
 
-impl Multiharp160 {
-    pub fn from_config(device_index: u8, config: MultiharpDeviceConfig) -> Result<Multiharp160> {
+impl MH160Device {
+    pub fn from_config(device_index: u8, config: MH160DeviceConfig) -> Result<MH160Device> {
         mhlib_wrapper::open_device(device_index)?;
 
         // TODO in theory we could support T3 mode relatively easily,
@@ -126,7 +126,7 @@ impl Multiharp160 {
             }
         }
 
-        Ok(Multiharp160 { device_index })
+        Ok(MH160Device { device_index })
     }
 
     fn do_stream_measurement(
@@ -157,11 +157,11 @@ impl Multiharp160 {
     }
 }
 
-impl MultiharpDevice for Multiharp160 {
-    fn get_device_info(&self) -> Result<MultiharpDeviceInfo> {
+impl MH160 for MH160Device {
+    fn get_device_info(&self) -> Result<MH160DeviceInfo> {
         let (model, partno, version) = mhlib_wrapper::get_hardware_info(self.device_index)?;
         let (base_resolution, binsteps) = mhlib_wrapper::get_base_resolution(self.device_index)?;
-        Ok(MultiharpDeviceInfo {
+        Ok(MH160DeviceInfo {
             device_index: self.device_index,
             library_version: mhlib_wrapper::get_library_version()?,
             model,
@@ -194,7 +194,7 @@ impl MultiharpDevice for Multiharp160 {
     }
 }
 
-impl Drop for Multiharp160 {
+impl Drop for MH160Device {
     fn drop(&mut self) {
         if let Err(e) = mhlib_wrapper::close_device(self.device_index) {
             println!("TODO: Implement logging and log close error {:?}", e);

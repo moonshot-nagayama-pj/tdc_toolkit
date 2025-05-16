@@ -9,9 +9,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 use strum_macros::Display;
 
-use tdc_toolkit::multiharp::device;
-use tdc_toolkit::multiharp::device::MultiharpDevice;
-use tdc_toolkit::multiharp::device_stub;
+use tdc_toolkit::multiharp::device::{MH160, MH160Device, MH160DeviceConfig};
+use tdc_toolkit::multiharp::device_stub::MH160Stub;
 use tdc_toolkit::multiharp::recording;
 
 #[derive(Debug, Parser)]
@@ -55,7 +54,7 @@ enum Command {
         duration: humantime::Duration,
 
         /// The type of device being connected.
-        #[arg(long, default_value_t = DeviceType::Multiharp160)]
+        #[arg(long, default_value_t = DeviceType::MH160Device)]
         device_type: DeviceType,
 
         /// A string that will be used as part of the output filename,
@@ -69,8 +68,8 @@ enum Command {
 #[derive(Copy, Clone, Debug, Display, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 #[strum(serialize_all = "kebab-case")]
 enum DeviceType {
-    Multiharp160,
-    Multiharp160StubGenerator,
+    MH160Device,
+    MH160StubGenerator,
 }
 
 fn main() -> Result<()> {
@@ -85,20 +84,18 @@ fn main() -> Result<()> {
             name,
         } => {
             let device = match device_type {
-                DeviceType::Multiharp160 => {
-                    let config: device::MultiharpDeviceConfig =
+                DeviceType::MH160Device => {
+                    let config: MH160DeviceConfig =
                         serde_json::from_str(fs::read_to_string(device_config)?.as_str())?;
-                    let device =
-                        device::Multiharp160::from_config(mh_device_index, config)?;
-                    let device_arc = Arc::new(device) as Arc<(dyn MultiharpDevice + Send + Sync)>;
-                    Ok::<Arc<dyn MultiharpDevice + Send + Sync>, Error>(device_arc)
+                    let device = MH160Device::from_config(mh_device_index, config)?;
+                    let device_arc = Arc::new(device) as Arc<(dyn MH160 + Send + Sync)>;
+                    Ok::<Arc<dyn MH160 + Send + Sync>, Error>(device_arc)
                 }
                 // TODO + Send + Sync should be part of the
                 // MultiharpDevice trait signature. Although is it
                 // really a good idea to make this Sync?
-                DeviceType::Multiharp160StubGenerator => {
-                    Ok(Arc::new(device_stub::Multiharp160Stub {})
-                        as Arc<(dyn MultiharpDevice + Send + Sync)>)
+                DeviceType::MH160StubGenerator => {
+                    Ok(Arc::new(MH160Stub {}) as Arc<(dyn MH160 + Send + Sync)>)
                 }
             }?;
             let recording_thread = thread::spawn(move || -> Result<()> {

@@ -3,11 +3,11 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use super::device::{MultiharpDevice, MultiharpDeviceInfo};
+use super::device::{MH160, MH160DeviceInfo};
 
-pub struct Multiharp160Stub {}
+pub struct MH160Stub {}
 
-impl Multiharp160Stub {
+impl MH160Stub {
     fn generate_raw_records(&self) -> Vec<u32> {
         let mut raw_records = Vec::with_capacity(1); // Can be up to mhlib_wrapper_header::TTREADMAX
         for event_time in 0..raw_records.capacity() as u32 {
@@ -17,9 +17,9 @@ impl Multiharp160Stub {
     }
 }
 
-impl MultiharpDevice for Multiharp160Stub {
-    fn get_device_info(&self) -> Result<MultiharpDeviceInfo> {
-        Ok(MultiharpDeviceInfo {
+impl MH160 for MH160Stub {
+    fn get_device_info(&self) -> Result<MH160DeviceInfo> {
+        Ok(MH160DeviceInfo {
             library_version: "1.0".to_string(),
             device_index: 1,
             model: "Base stub device".to_string(),

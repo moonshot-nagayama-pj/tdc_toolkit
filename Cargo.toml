@@ -36,3 +36,16 @@ harness = false
 extension-module = ["pyo3/extension-module"]
 multiharp = []
 default = ["extension-module", "multiharp"]
+
+# [lints.clippy]
+# all = "deny"
+# pedantic = "deny"
+# nursery = "deny"
+# cargo = "deny"
+
+# # Restrictions from the restriction group
+# # TODO finish configuring this
+# # https://rust-lang.github.io/rust-clippy/master/index.html?groups=restriction
+# absolute_paths = "deny"
+# allow_attributes = "deny"
+# allow_attributes_without_reason = "deny"

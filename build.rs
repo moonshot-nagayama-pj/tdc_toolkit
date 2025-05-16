@@ -10,7 +10,7 @@ fn main() {
     let os = env::consts::OS;
     let arch = env::consts::ARCH;
 
-    if !(arch == "x86_64" && (os == "linux" || os == "windows")) || ! cfg!(feature = "multiharp") {
+    if !(arch == "x86_64" && (os == "linux" || os == "windows")) || !cfg!(feature = "multiharp") {
         // cannot link to the driver library on non-x64 architectures,
         // just use the stub
         println!("cargo::warning=Using the stub driver implementation.");

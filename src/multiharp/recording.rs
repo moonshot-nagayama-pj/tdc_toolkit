@@ -4,9 +4,9 @@ use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::Duration;
 
-use super::device::MultiharpDevice;
-use crate::output::parquet;
+use super::device::MH160;
 use super::tttr_record;
+use crate::output::parquet;
 
 fn join_and_collect_thread_errors<T>(handles: Vec<thread::JoinHandle<T>>) -> Option<Error> {
     let mut error_str = String::from("");
@@ -32,7 +32,7 @@ fn join_and_collect_thread_errors<T>(handles: Vec<thread::JoinHandle<T>>) -> Opt
 }
 
 pub fn record_multiharp_to_parquet(
-    device: Arc<(dyn MultiharpDevice + Send + Sync)>,
+    device: Arc<(dyn MH160 + Send + Sync)>,
     output_dir: &Path,
     duration: Duration,
     name: &str,
