@@ -8,6 +8,8 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, mpsc};
 
+use crate::types::NormalizedTimeTag;
+
 /// Write a series of Parquet files to disk containing the data from
 /// the input queue.
 ///
@@ -40,7 +42,7 @@ impl TimeTagStreamParquetWriter {
 
     pub fn write(
         &self,
-        rx_channel: mpsc::Receiver<Vec<(u16, u64)>>,
+        rx_channel: mpsc::Receiver<Vec<NormalizedTimeTag>>,
         output_dir: &Path,
         name: &str,
     ) -> Result<()> {
@@ -72,8 +74,8 @@ impl TimeTagStreamParquetWriter {
         for rx_batch in rx_channel {
             for event in rx_batch {
                 array_length += 1;
-                channel_array_builder.append_value(event.0);
-                time_tag_array_builder.append_value(event.1);
+                channel_array_builder.append_value(event.channel_id);
+                time_tag_array_builder.append_value(event.time_tag_ps);
             }
 
             if array_length >= self.max_chunk_rows {
