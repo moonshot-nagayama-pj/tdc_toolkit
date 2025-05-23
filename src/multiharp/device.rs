@@ -54,7 +54,7 @@ pub struct MH160DeviceInfo {
     pub num_channels: u32,
 }
 
-pub trait MH160 {
+pub trait MH160: Send + Sync {
     fn get_device_info(&self) -> Result<MH160DeviceInfo>;
     fn stream_measurement(
         &self,
@@ -197,7 +197,7 @@ impl MH160 for MH160Device {
 impl Drop for MH160Device {
     fn drop(&mut self) {
         if let Err(e) = mhlib_wrapper::close_device(self.device_index) {
-            println!("TODO: Implement logging and log close error {:?}", e);
+            panic!("Error while closing MultiHarp. {:?}", e);
         }
     }
 }

@@ -1,4 +1,4 @@
-use anyhow::{Error, Result, anyhow};
+use anyhow::{Error, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum, ValueHint};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
@@ -88,25 +88,23 @@ fn main() -> Result<()> {
                     let config: MH160DeviceConfig =
                         serde_json::from_str(fs::read_to_string(device_config)?.as_str())?;
                     let device = MH160Device::from_config(mh_device_index, config)?;
-                    let device_arc = Arc::new(device) as Arc<(dyn MH160 + Send + Sync)>;
-                    Ok::<Arc<dyn MH160 + Send + Sync>, Error>(device_arc)
+                    let device_arc = Arc::new(device) as Arc<(dyn MH160)>;
+                    Ok::<Arc<dyn MH160>, Error>(device_arc)
                 }
-                // TODO + Send + Sync should be part of the
-                // MultiharpDevice trait signature. Although is it
-                // really a good idea to make this Sync?
-                DeviceType::MH160StubGenerator => {
-                    Ok(Arc::new(MH160Stub {}) as Arc<(dyn MH160 + Send + Sync)>)
-                }
+                DeviceType::MH160StubGenerator => Ok(Arc::new(MH160Stub {}) as Arc<(dyn MH160)>),
             }?;
-            let recording_thread = thread::spawn(move || -> Result<()> {
-                recording::record_multiharp_to_parquet(
-                    device.clone(),
-                    &output_dir,
-                    *duration,
-                    &name,
-                )?;
-                Ok(())
-            });
+
+            let recording_thread = thread::Builder::new()
+                .name("recording_thread".into())
+                .spawn(move || -> Result<()> {
+                    recording::record_multiharp_to_parquet(
+                        device.clone(),
+                        &output_dir,
+                        *duration,
+                        &name,
+                    )?;
+                    Ok(())
+                })?;
 
             let progress_bar = ProgressBar::new(duration.as_millis().try_into()?)
                 .with_style(ProgressStyle::with_template(
@@ -119,10 +117,22 @@ fn main() -> Result<()> {
                 thread::sleep(Duration::from_millis(100));
             }
 
-            // TODO this isn't sufficient, see note in recording.rs
-            if let Err(recording_error) = recording_thread.join() {
-                if let Some(recording_anyhow_error) = recording_error.downcast_ref::<Error>() {
-                    return Err(anyhow!("Something happened {}", recording_anyhow_error));
+            let recording_thread_name = recording_thread
+                .thread()
+                .name()
+                .unwrap_or("unnamed")
+                .to_owned();
+            if let Err(error) = recording_thread.join() {
+                if let Some(anyhow_error) = error.downcast_ref::<Error>() {
+                    bail!(
+                        "Error returned from thread {}:\n{:?}",
+                        recording_thread_name,
+                        anyhow_error
+                    );
+                } else {
+                    panic!(
+                        "Failed downcast of thread {recording_thread_name} error result to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error."
+                    );
                 }
             }
 
