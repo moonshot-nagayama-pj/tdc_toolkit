@@ -129,11 +129,10 @@ fn main() -> Result<()> {
                         recording_thread_name,
                         anyhow_error
                     );
-                } else {
-                    panic!(
-                        "Failed downcast of thread {recording_thread_name} error result to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error."
-                    );
                 }
+                panic!(
+                    "Failed downcast of thread {recording_thread_name} error result to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error."
+                );
             }
 
             progress_bar.finish_with_message("Recording complete");

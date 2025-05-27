@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 //
 // The original constant names are preserved as comments.
 
-pub const TTREADMAX: usize = 1048576;
+pub const TTREADMAX: usize = 1_048_576;
 
 #[derive(Clone, Debug)]
 #[repr(i32)]
@@ -36,6 +36,7 @@ pub enum RefSource {
     WhiteRabbitGrandMasterMultiHarp = 9, // REFSRC_WR_GRANDM_MHARP
 }
 
+#[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[repr(i32)]
 #[pyclass]

@@ -6,6 +6,7 @@ use std::process::Command;
 
 // TODO write idiomatic, clear Rust
 
+#[allow(clippy::too_many_lines)]
 fn main() {
     let os = env::consts::OS;
     let arch = env::consts::ARCH;
@@ -76,9 +77,9 @@ fn main() {
                         }
                     }
                 }
-                unknown_error => {
+                VarError::NotUnicode(_) => {
                     panic!(
-                        "Unknown error occurred trying to read the MHLIB_PATH environment variable, are you sure this is Linux? Error: {unknown_error}"
+                        "Error occurred trying to read the MHLIB_PATH environment variable; Rust claims that the value is not valid Unicode."
                     );
                 }
             },
@@ -89,7 +90,7 @@ fn main() {
             println!(
                 "cargo::warning=Found Multiharp header files in the same directory as the shared library. Using them."
             );
-            include_dir = lib_dir.clone();
+            include_dir.clone_from(&lib_dir);
         } else {
             // Most likely someone decided to properly separate header
             // files into the system include directory.
@@ -106,20 +107,19 @@ fn main() {
             include_dir = include_dir_path.to_string_lossy().into_owned();
         }
 
-        println!("cargo::rustc-link-search=native={}", lib_dir);
+        println!("cargo::rustc-link-search=native={lib_dir}");
         println!("cargo::rustc-link-lib=dylib=mhlib");
-        println!("cargo::rustc-link-arg=-Wl,-rpath={}", lib_dir);
+        println!("cargo::rustc-link-arg=-Wl,-rpath={lib_dir}");
     } else if os == "windows" && arch == "x86_64" {
         include_dir = String::from("C:\\Program Files\\PicoQuant\\MultiHarp-MHLibv31");
         lib_dir = include_dir.clone();
 
         assert!(
             Path::new(&include_dir).exists(),
-            "Include and library directory does not exist: {}",
-            include_dir
+            "Include and library directory does not exist: {include_dir}"
         );
 
-        println!("cargo::rustc-link-search=native={}", lib_dir);
+        println!("cargo::rustc-link-search=native={lib_dir}");
         println!("cargo::rustc-link-lib=dylib=mhlib64");
     }
 
@@ -130,7 +130,7 @@ fn main() {
         // The input header we would like to generate
         // bindings for.
         .header("wrapper.h")
-        .clang_arg(format!("-I{}", include_dir))
+        .clang_arg(format!("-I{include_dir}"))
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))

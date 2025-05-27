@@ -95,7 +95,7 @@ impl MH160Device {
             }
         }
 
-        for input_channel in config.input_channels.iter() {
+        for input_channel in &config.input_channels {
             mhlib_wrapper::set_input_channel_enable(device_index, input_channel.id, true)?;
             mhlib_wrapper::set_input_edge_trigger(
                 device_index,
@@ -132,7 +132,7 @@ impl MH160Device {
     fn do_stream_measurement(
         &self,
         measurement_time: &Duration,
-        tx_channel: mpsc::Sender<Vec<u32>>,
+        tx_channel: &mpsc::Sender<Vec<u32>>,
     ) -> Result<()> {
         mhlib_wrapper::start_measurement(
             self.device_index,
@@ -180,7 +180,7 @@ impl MH160 for MH160Device {
         measurement_time: &Duration,
         tx_channel: mpsc::Sender<Vec<u32>>,
     ) -> Result<()> {
-        let measurement_result = self.do_stream_measurement(measurement_time, tx_channel);
+        let measurement_result = self.do_stream_measurement(measurement_time, &tx_channel);
         let stop_result = mhlib_wrapper::stop_measurement(self.device_index);
         if let Err(root_error) = measurement_result {
             let mut final_error =
@@ -197,7 +197,7 @@ impl MH160 for MH160Device {
 impl Drop for MH160Device {
     fn drop(&mut self) {
         if let Err(e) = mhlib_wrapper::close_device(self.device_index) {
-            panic!("Error while closing MultiHarp. {:?}", e);
+            panic!("Error while closing MultiHarp. {e:?}");
         }
     }
 }

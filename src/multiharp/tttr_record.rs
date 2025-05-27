@@ -21,11 +21,11 @@ use std::sync::mpsc;
 //
 // A tuple is used to avoid performance penalties that would be caused
 // by creating a new object for each record.
-fn split_raw_t2_record(raw_record: u32) -> (u32, u32, u64) {
-    let special = (raw_record >> 31) & 0x01; // highest bit
-    let channel = (raw_record >> 25) & 0x3F; // next six bits
-    let time_tag = raw_record & 0x1FFFFFF; // the rest
-    (special, channel, time_tag as u64)
+fn split_raw_t2_record(raw_record: u32) -> (u8, u16, u64) {
+    let special = ((raw_record >> 31) & 0x01) as u8; // highest bit
+    let channel = ((raw_record >> 25) & 0x3F) as u16; // next six bits
+    let time_tag = raw_record & 0x01FF_FFFF; // the rest
+    (special, channel, u64::from(time_tag))
 }
 
 pub struct T2RecordChannelProcessor {
@@ -38,9 +38,10 @@ pub struct T2RecordChannelProcessor {
 }
 
 impl T2RecordChannelProcessor {
+    #[must_use]
     pub fn new() -> T2RecordChannelProcessor {
         T2RecordChannelProcessor {
-            t2wraparound_v2: 33554432,
+            t2wraparound_v2: 33_554_432,
             overflow_correction: 0,
             resolution: 5,
         }
@@ -73,8 +74,8 @@ impl T2RecordChannelProcessor {
         //
         // https://docs.rs/kanal/latest/kanal/index.html
         let mut tx_vec: Vec<NormalizedTimeTag> = Vec::with_capacity(raw_records.len());
-        for raw_record in raw_records.iter() {
-            let (special, channel, time_tag) = split_raw_t2_record(*raw_record);
+        for raw_record in raw_records {
+            let (special, channel, time_tag) = split_raw_t2_record(raw_record);
             if !self.process_special_records(special, channel, time_tag, &mut tx_vec) {
                 self.process_normal_record(channel, time_tag, &mut tx_vec);
             }
@@ -85,8 +86,8 @@ impl T2RecordChannelProcessor {
 
     fn process_special_records(
         &mut self,
-        special: u32,
-        channel: u32,
+        special: u8,
+        channel: u16,
         time_tag: u64,
         tx_vec: &mut Vec<NormalizedTimeTag>,
     ) -> bool {
@@ -121,13 +122,13 @@ impl T2RecordChannelProcessor {
 
     fn process_normal_record(
         &self,
-        channel: u32,
+        channel: u16,
         time_tag: u64,
         tx_vec: &mut Vec<NormalizedTimeTag>,
     ) {
         let true_time = self.overflow_correction + time_tag;
         tx_vec.push(NormalizedTimeTag {
-            channel_id: (channel as u16 + 1),
+            channel_id: (channel + 1),
             time_tag_ps: (true_time * self.resolution),
         });
     }

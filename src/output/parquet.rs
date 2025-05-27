@@ -33,6 +33,7 @@ pub struct TimeTagStreamParquetWriter {
 }
 
 impl TimeTagStreamParquetWriter {
+    #[must_use]
     pub fn new() -> TimeTagStreamParquetWriter {
         TimeTagStreamParquetWriter {
             max_chunk_rows: 20_000_000,
@@ -62,10 +63,9 @@ impl TimeTagStreamParquetWriter {
         let file_timestamp = Utc::now().format("%Y%m%dT%H%M%SZ");
 
         let mut total_files = 1;
-        let initial_file = File::create_new(output_dir.join(format!(
-            "{}_{}_{:0>4}.parquet",
-            file_timestamp, name, total_files
-        )))?;
+        let initial_file = File::create_new(
+            output_dir.join(format!("{file_timestamp}_{name}_{total_files:0>4}.parquet")),
+        )?;
         let mut arrow_writer = ArrowWriter::try_new(initial_file, schema.clone(), None)?;
         let mut channel_array_builder = UInt16Array::builder(self.max_chunk_rows);
         let mut time_tag_array_builder = UInt64Array::builder(self.max_chunk_rows);
@@ -98,10 +98,9 @@ impl TimeTagStreamParquetWriter {
                 chunk_count = 0;
                 total_files += 1;
 
-                let new_file = File::create_new(output_dir.join(format!(
-                    "{}_{}_{:0>4}.parquet",
-                    file_timestamp, name, total_files
-                )))?;
+                let new_file = File::create_new(
+                    output_dir.join(format!("{file_timestamp}_{name}_{total_files:0>4}.parquet")),
+                )?;
                 arrow_writer = ArrowWriter::try_new(new_file, schema.clone(), None)?;
             }
         }

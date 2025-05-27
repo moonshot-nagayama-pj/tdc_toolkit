@@ -1,6 +1,11 @@
 [package]
 name = "tdc_toolkit"
+description = "Rust CLI and library, as well as Python bindings, for working with time-to-digital converters (TDCs) such as the PicoQuant MultiHarp 160."
 version = "0.1.0"
+license = "BSD-3-Clause"
+repository = "https://github.com/moonshot-nagayama-pj/tdc-toolkit"
+keywords = ["tdc", "multiharp", "physics", "quantum"]
+categories = ["api-bindings", "date-and-time", "science"]
 edition = "2024"
 
 [lib]
@@ -37,11 +42,11 @@ extension-module = ["pyo3/extension-module"]
 multiharp = []
 default = ["extension-module", "multiharp"]
 
-# [lints.clippy]
-# all = "deny"
-# pedantic = "deny"
-# nursery = "deny"
-# cargo = "deny"
+[lints.clippy]
+all = "deny"
+pedantic = "deny"
+cargo = "deny"
+missing_errors_doc = { level = "allow", priority = 1 }
 
 # # Restrictions from the restriction group
 # # TODO finish configuring this

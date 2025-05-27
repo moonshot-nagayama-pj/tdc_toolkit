@@ -8,10 +8,11 @@ use super::device::{MH160, MH160DeviceInfo};
 pub struct MH160Stub {}
 
 impl MH160Stub {
-    fn generate_raw_records(&self) -> Vec<u32> {
-        let mut raw_records = Vec::with_capacity(1); // Can be up to mhlib_wrapper_header::TTREADMAX
-        for event_time in 0..raw_records.capacity() as u32 {
-            raw_records.push(0x02000001 + event_time);
+    fn generate_raw_records() -> Vec<u32> {
+        let capacity = 1u32;
+        let mut raw_records = Vec::with_capacity(capacity as usize); // Can be up to mhlib_wrapper_header::TTREADMAX
+        for event_time in 0..capacity {
+            raw_records.push(0x0200_0001 + event_time);
         }
         raw_records
     }
@@ -39,7 +40,7 @@ impl MH160 for MH160Stub {
     ) -> Result<()> {
         let start_time = Instant::now();
         while start_time.elapsed() < *measurement_time {
-            tx_channel.send(self.generate_raw_records())?;
+            tx_channel.send(MH160Stub::generate_raw_records())?;
             thread::sleep(Duration::from_millis(100));
         }
         Ok(())

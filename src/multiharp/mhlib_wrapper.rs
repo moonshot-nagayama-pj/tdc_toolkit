@@ -2,11 +2,22 @@ use anyhow::{Result, anyhow};
 use std::os::raw::c_int;
 
 mod bindings {
-    #![allow(dead_code)]
+    #![allow(dead_code, clippy::unreadable_literal)]
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 
-use self::bindings::*;
+use self::bindings::{
+    MAXINPCHAN, MH_CTCStatus, MH_ClearHistMem, MH_CloseDevice, MH_GetAllCountRates,
+    MH_GetAllHistograms, MH_GetBaseResolution, MH_GetCountRate, MH_GetDebugInfo,
+    MH_GetElapsedMeasTime, MH_GetErrorString, MH_GetFeatures, MH_GetFlags, MH_GetHardwareInfo,
+    MH_GetHistogram, MH_GetLibraryVersion, MH_GetModuleInfo, MH_GetNumOfInputChannels,
+    MH_GetNumOfModules, MH_GetResolution, MH_GetSerialNumber, MH_GetStartTime, MH_GetSyncRate,
+    MH_GetWarnings, MH_GetWarningsText, MH_Initialize, MH_OpenDevice, MH_ReadFiFo, MH_SetBinning,
+    MH_SetHistoLen, MH_SetInputChannelEnable, MH_SetInputChannelOffset, MH_SetInputDeadTime,
+    MH_SetInputEdgeTrg, MH_SetInputHysteresis, MH_SetMeasControl, MH_SetOffset, MH_SetStopOverflow,
+    MH_SetSyncChannelEnable, MH_SetSyncChannelOffset, MH_SetSyncDeadTime, MH_SetSyncDiv,
+    MH_SetSyncEdgeTrg, MH_SetTriggerOutput, MH_StartMeas, MH_StopMeas,
+};
 
 use super::mhlib_wrapper_header;
 use super::mhlib_wrapper_header::{Edge, MeasurementControl, Mode, RefSource};
@@ -15,7 +26,7 @@ fn handle_error(ret: c_int) -> Result<()> {
     let mut error_string: [u8; 40] = [0; 40];
     if ret != 0 {
         unsafe {
-            MH_GetErrorString(error_string.as_mut_ptr() as *mut i8, ret);
+            MH_GetErrorString(error_string.as_mut_ptr().cast::<i8>(), ret);
         }
         return Err(anyhow!(convert_into_string(&error_string)));
     }
@@ -33,7 +44,7 @@ fn convert_into_string(vec: &[u8]) -> String {
 pub fn get_library_version() -> Result<String> {
     unsafe {
         let mut ver_str: [u8; 8] = [0; 8];
-        let ret = MH_GetLibraryVersion(ver_str.as_mut_ptr() as *mut i8);
+        let ret = MH_GetLibraryVersion(ver_str.as_mut_ptr().cast::<i8>());
         handle_error(ret)?;
         Ok(convert_into_string(&ver_str))
     }
@@ -42,7 +53,7 @@ pub fn get_library_version() -> Result<String> {
 pub fn open_device(device_index: u8) -> Result<String> {
     let mut vec_serial: [u8; 9] = [0; 9];
     unsafe {
-        let ret = MH_OpenDevice(device_index.into(), vec_serial.as_mut_ptr() as *mut i8);
+        let ret = MH_OpenDevice(device_index.into(), vec_serial.as_mut_ptr().cast::<i8>());
         handle_error(ret)?;
         Ok(convert_into_string(&vec_serial))
     }
@@ -71,9 +82,9 @@ pub fn get_hardware_info(device_index: u8) -> Result<(String, String, String)> {
     unsafe {
         let ret = MH_GetHardwareInfo(
             device_index.into(),
-            model_vec.as_mut_ptr() as *mut i8,
-            partno_vec.as_mut_ptr() as *mut i8,
-            version_vec.as_mut_ptr() as *mut i8,
+            model_vec.as_mut_ptr().cast::<i8>(),
+            partno_vec.as_mut_ptr().cast::<i8>(),
+            version_vec.as_mut_ptr().cast::<i8>(),
         );
         handle_error(ret)?;
         Ok((
@@ -96,7 +107,7 @@ pub fn get_feature(device_index: u8) -> Result<i32> {
 pub fn get_serial_number(device_index: u8) -> Result<String> {
     let mut vec_serial: [u8; 9] = [0; 9];
     unsafe {
-        let ret = MH_GetSerialNumber(device_index.into(), vec_serial.as_mut_ptr() as *mut i8);
+        let ret = MH_GetSerialNumber(device_index.into(), vec_serial.as_mut_ptr().cast::<i8>());
         handle_error(ret)?;
         Ok(convert_into_string(&vec_serial))
     }
@@ -146,11 +157,14 @@ pub fn get_module_info(device_index: u8, module_index: u8) -> Result<(i32, i32)>
 }
 
 pub fn get_debug_info(device_index: u8) -> Result<String> {
-    let mut debug_info: [u8; 65536] = [0; 65536];
+    // This looks like a mistake in the MultiHarp API; typically text
+    // bytes would be unsigned.
+    let mut debug_info: Vec<i8> = vec![0i8; 65536];
     unsafe {
-        let ret = MH_GetDebugInfo(device_index.into(), debug_info.as_mut_ptr() as *mut i8);
+        let ret = MH_GetDebugInfo(device_index.into(), debug_info.as_mut_ptr());
         handle_error(ret)?;
-        Ok(convert_into_string(&debug_info))
+        let unsigned_debug_info: Vec<u8> = debug_info.into_iter().map(i8::cast_unsigned).collect();
+        Ok(convert_into_string(&unsigned_debug_info))
     }
 }
 
@@ -180,7 +194,7 @@ pub fn set_sync_channel_offset(device_index: u8, sync_timing_offset: i32) -> Res
 
 pub fn set_sync_channel_enable(device_index: u8, enable: bool) -> Result<()> {
     unsafe {
-        let ret = MH_SetSyncChannelEnable(device_index.into(), if enable { 1 } else { 0 });
+        let ret = MH_SetSyncChannelEnable(device_index.into(), i32::from(enable));
         handle_error(ret)?;
         Ok(())
     }
@@ -188,7 +202,7 @@ pub fn set_sync_channel_enable(device_index: u8, enable: bool) -> Result<()> {
 
 pub fn set_sync_deadtime(device_index: u8, on: bool, deadtime_ps: i32) -> Result<()> {
     unsafe {
-        let ret = MH_SetSyncDeadTime(device_index.into(), if on { 1 } else { 0 }, deadtime_ps);
+        let ret = MH_SetSyncDeadTime(device_index.into(), i32::from(on), deadtime_ps);
         handle_error(ret)?;
         Ok(())
     }
@@ -217,7 +231,7 @@ pub fn set_input_channel_offset(device_index: u8, channel: u8, offset: i32) -> R
 
 pub fn set_input_channel_enable(device_index: u8, channel: u8, enable: bool) -> Result<()> {
     unsafe {
-        let ret = MH_SetInputChannelEnable(device_index.into(), channel.into(), enable as i32);
+        let ret = MH_SetInputChannelEnable(device_index.into(), channel.into(), i32::from(enable));
         handle_error(ret)?;
         Ok(())
     }
@@ -228,7 +242,7 @@ pub fn set_input_deadtime(device_index: u8, channel: u8, on: bool, deadtime_ps: 
         let ret = MH_SetInputDeadTime(
             device_index.into(),
             channel.into(),
-            if on { 1 } else { 0 },
+            i32::from(on),
             deadtime_ps,
         );
         handle_error(ret)?;
@@ -246,11 +260,7 @@ pub fn set_input_hysteresis(device_index: u8, hyst_code: u8) -> Result<()> {
 
 pub fn set_stop_overflow(device_index: u8, stop_overflow: bool, stop_count: u32) -> Result<()> {
     unsafe {
-        let ret = MH_SetStopOverflow(
-            device_index.into(),
-            if stop_overflow { 1 } else { 0 },
-            stop_count,
-        );
+        let ret = MH_SetStopOverflow(device_index.into(), i32::from(stop_overflow), stop_count);
         handle_error(ret)?;
         Ok(())
     }
@@ -341,7 +351,7 @@ pub fn ctc_status(device_index: u8) -> Result<i32> {
 }
 
 pub fn get_histogram(device_index: u8, channel: u8) -> Result<Vec<u32>> {
-    let mut histogram_vec = [0u32; 65536];
+    let mut histogram_vec: Vec<u32> = vec![0u32; 65536];
     unsafe {
         let ret = MH_GetHistogram(
             device_index.into(),
@@ -349,16 +359,16 @@ pub fn get_histogram(device_index: u8, channel: u8) -> Result<Vec<u32>> {
             channel.into(),
         );
         handle_error(ret)?;
-        Ok(histogram_vec.to_vec())
+        Ok(histogram_vec)
     }
 }
 
 pub fn get_all_histogram(device_index: u8) -> Result<Vec<u32>> {
-    let mut histogram_vec = [0u32; 65536];
+    let mut histogram_vec: Vec<u32> = vec![0u32; 65536];
     unsafe {
         let ret = MH_GetAllHistograms(device_index.into(), histogram_vec.as_mut_ptr());
         handle_error(ret)?;
-        Ok(histogram_vec.to_vec())
+        Ok(histogram_vec)
     }
 }
 
@@ -438,7 +448,11 @@ pub fn get_warnings(device_index: u8) -> Result<String> {
     unsafe {
         let ret = MH_GetWarnings(device_index.into(), &mut warnings);
         handle_error(ret)?;
-        let ret = MH_GetWarningsText(device_index.into(), text.as_mut_ptr() as *mut i8, warnings);
+        let ret = MH_GetWarningsText(
+            device_index.into(),
+            text.as_mut_ptr().cast::<i8>(),
+            warnings,
+        );
         handle_error(ret)?;
         Ok(convert_into_string(&text))
     }
