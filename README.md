@@ -26,10 +26,21 @@ If you are not using `direnv` or a similar tool, be sure to activate the virtual
 source .venv/bin/activate
 ```
 
-If you are using a devcontainer on Apple Silicon, you will also need to install the [`polars-lts-cpu`](https://pypi.org/project/polars-lts-cpu/) extension (see "Legacy" in the linked PyPI page).
+## Python bindings
 
-```sh
-$ python -m pip install polars-lts-cpu
+Basic typesafe Python bindings are available to control MultiHarp devices, and closely track the Rust API. They are documented in the `.pyi` files in `python/` and have not been extensively tested.
+
+At the moment, submodules such as `tdc_toolkit.multiharp` are not available as subpackages. This means that the following will not work:
+
+```python
+# This will not work
+from tdc_toolkit.multiharp import MH160Device
 ```
 
-The wrapper interface to the proprietary library is described in `python/tdc_toolkit/tdctk_rs.pyi`.
+Instead, this style is necessary:
+
+```python
+from tdc_toolkit import multiharp
+
+multiharp.MH160Device(...)
+```

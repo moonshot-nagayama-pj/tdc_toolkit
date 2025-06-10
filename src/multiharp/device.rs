@@ -1,18 +1,24 @@
 use anyhow::{Result, anyhow, bail};
+use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
 
 use super::mhlib_wrapper;
 use super::mhlib_wrapper_header::{Edge, Mode, RefSource};
 
+#[allow(clippy::unsafe_derive_deserialize)]
+#[pyclass(get_all, set_all)]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceConfig {
     pub sync_channel: Option<MH160DeviceSyncChannelConfig>,
     pub input_channels: Vec<MH160DeviceInputChannelConfig>,
 }
 
+#[allow(clippy::unsafe_derive_deserialize)]
+#[pyclass(get_all, set_all)]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceSyncChannelConfig {
     pub divider: i32,
@@ -21,6 +27,8 @@ pub struct MH160DeviceSyncChannelConfig {
     pub offset: i32, // picoseconds
 }
 
+#[allow(clippy::unsafe_derive_deserialize)]
+#[pyclass(get_all, set_all)]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInputChannelConfig {
     pub id: u8,
@@ -29,6 +37,8 @@ pub struct MH160DeviceInputChannelConfig {
     pub offset: i32, // picoseconds
 }
 
+#[allow(clippy::unsafe_derive_deserialize)]
+#[pyclass(get_all, str)]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInfo {
     // Amalgamation of device-related information collected from
@@ -52,6 +62,12 @@ pub struct MH160DeviceInfo {
 
     // MH_GetNumOfInputChannels
     pub num_channels: u32,
+}
+
+impl Display for MH160DeviceInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&serde_json::to_string(&self).unwrap())
+    }
 }
 
 pub trait MH160: Send + Sync {

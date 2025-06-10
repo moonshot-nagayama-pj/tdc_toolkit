@@ -1,6 +1,6 @@
 [project]
 name = "tdc-toolkit"
-version = "0.2.0"
+version = "0.3.0"
 description = "Rust and Python wrappers and helper libraries for working with time-to-digital converters."
 authors = [
     { name = "zigen", email = "hrlclb@gmail.com" },
@@ -33,9 +33,6 @@ dev = [
 
 [tool.hatch.metadata]
 allow-direct-references = true
-
-[tool.hatch.version]
-path = "python/tdc_toolkit/__init__.py"
 
 [tool.isort]
 profile = "black"
