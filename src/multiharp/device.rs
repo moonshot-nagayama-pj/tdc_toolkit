@@ -84,6 +84,12 @@ pub struct MH160Device {
 }
 
 impl MH160Device {
+    pub fn from_current_config(device_index: u8) -> Result<MH160Device> {
+        mhlib_wrapper::open_device(device_index)?;
+        mhlib_wrapper::initialize(device_index, Mode::T2, RefSource::InternalClock)?;
+        Ok(MH160Device { device_index })
+    }
+
     pub fn from_config(device_index: u8, config: MH160DeviceConfig) -> Result<MH160Device> {
         mhlib_wrapper::open_device(device_index)?;
 

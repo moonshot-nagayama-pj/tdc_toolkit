@@ -23,11 +23,28 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Output information about the device, in JSON format. The
+    /// schema is device-specific.
+    Info {
+        /// Multiharp-specfic. When more than one device is connected
+        /// to the computer, select the one to connect to.
+        #[arg(long, default_value_t = 0)]
+        mh_device_index: u8,
+
+        /// The type of device being connected.
+        #[arg(long, default_value_t = DeviceType::MH160Device)]
+        device_type: DeviceType,
+    },
+
     /// Record the output of a device to a series of Parquet
-    /// files. Regardless of the input device, all output files contain the following fields:
+    /// files.
+    ///
+    /// Regardless of the input device, all output files contain the
+    /// following fields:
     ///
     /// * `channel`: The device channel associated with the
     ///   event. [`arrow::datatypes::DataType::UInt16`]
+    ///
     /// * `time_tag`: The monotonic timestamp associated with the
     ///   event, in picoseconds. [`arrow::datatypes::DataType::UInt64`]
     Record {
@@ -75,6 +92,22 @@ enum DeviceType {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
+        Command::Info {
+            mh_device_index,
+            device_type,
+        } => {
+            let device = match device_type {
+                DeviceType::MH160Device => Ok::<Box<dyn MH160>, Error>(Box::new(
+                    MH160Device::from_current_config(mh_device_index)?,
+                )),
+                DeviceType::MH160StubGenerator => Ok(Box::new(MH160Stub {}) as Box<dyn MH160>),
+            }?;
+            println!(
+                "{}",
+                &serde_json::to_string_pretty(&device.get_device_info()?)?
+            );
+            Ok(())
+        }
         Command::Record {
             output_dir,
             device_config,

@@ -48,6 +48,7 @@ stdmsg "Building and verifying Rust component..."
 cargo fmt --all -- --check
 cargo clippy
 cargo test
+cargo build
 maturin develop
 
 stdmsg "Checking Python type hints with mypy..."
