@@ -55,10 +55,11 @@ enum Command {
         output_dir: PathBuf,
 
         /// Path to the configuration file for the
-        /// device. Configuration is device-specific; if a device
-        /// requires no configuration, this field may be omitted.
-        #[arg(long, value_hint = ValueHint::FilePath, default_value_os_t = PathBuf::from_str("./conf.json").unwrap())]
-        device_config: PathBuf,
+        /// device. Configuration is device-specific; if this field is
+        /// omitted and the device supports it, the device will be
+        /// opened without changing its current configuration.
+        #[arg(long, value_hint = ValueHint::FilePath)]
+        device_config: Option<PathBuf>,
 
         /// Multiharp-specfic. When more than one device is connected
         /// to the computer, select the one to connect to.
@@ -118,11 +119,15 @@ fn main() -> Result<()> {
         } => {
             let device = match device_type {
                 DeviceType::MH160Device => {
-                    let config: MH160DeviceConfig =
-                        serde_json::from_str(fs::read_to_string(device_config)?.as_str())?;
-                    let device = MH160Device::from_config(mh_device_index, config)?;
-                    let device_arc = Arc::new(device) as Arc<(dyn MH160)>;
-                    Ok::<Arc<dyn MH160>, Error>(device_arc)
+                    let unboxed_device = match device_config {
+                        Some(device_config) => {
+                            let config: MH160DeviceConfig =
+                                serde_json::from_str(fs::read_to_string(device_config)?.as_str())?;
+                            MH160Device::from_config(mh_device_index, config)?
+                        }
+                        None => MH160Device::from_current_config(mh_device_index)?,
+                    };
+                    Ok::<Arc<dyn MH160>, Error>(Arc::new(unboxed_device) as Arc<(dyn MH160)>)
                 }
                 DeviceType::MH160StubGenerator => Ok(Arc::new(MH160Stub {}) as Arc<(dyn MH160)>),
             }?;
