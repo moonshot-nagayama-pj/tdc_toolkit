@@ -2,9 +2,11 @@ use anyhow::{Error, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum, ValueHint};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
+use std::panic::panic_any;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 use strum_macros::Display;
@@ -132,15 +134,21 @@ fn main() -> Result<()> {
                 DeviceType::MH160StubGenerator => Ok(Arc::new(MH160Stub {}) as Arc<(dyn MH160)>),
             }?;
 
+            let recording_failed = Arc::new(AtomicBool::new(false));
+            let recording_failed_thread_clone = recording_failed.clone();
+
             let recording_thread = thread::Builder::new()
                 .name("recording_thread".into())
                 .spawn(move || -> Result<()> {
-                    recording::record_multiharp_to_parquet(
+                    if let Err(recording_error) = recording::record_multiharp_to_parquet(
                         device.clone(),
-                        &output_dir,
+                        output_dir,
                         *duration,
-                        &name,
-                    )?;
+                        name,
+                    ) {
+                        recording_failed_thread_clone.store(true, Ordering::Relaxed);
+                        panic_any(recording_error);
+                    }
                     Ok(())
                 })?;
 
@@ -151,6 +159,11 @@ fn main() -> Result<()> {
                 .with_message("Recording...");
             let start_time = Instant::now();
             while start_time.elapsed() < *duration {
+                if recording_failed.load(Ordering::Relaxed) {
+                    progress_bar.finish_with_message("Recording failed");
+                    break;
+                }
+
                 progress_bar.set_position(start_time.elapsed().as_millis().try_into()?);
                 thread::sleep(Duration::from_millis(100));
             }
@@ -160,12 +173,12 @@ fn main() -> Result<()> {
                 .name()
                 .unwrap_or("unnamed")
                 .to_owned();
-            if let Err(error) = recording_thread.join() {
-                if let Some(anyhow_error) = error.downcast_ref::<Error>() {
+            if let Err(recording_panic) = recording_thread.join() {
+                if let Ok(recording_panic_anyhow) = recording_panic.downcast::<Error>() {
                     bail!(
                         "Error returned from thread {}:\n{:?}",
                         recording_thread_name,
-                        anyhow_error
+                        recording_panic_anyhow
                     );
                 }
                 panic!(

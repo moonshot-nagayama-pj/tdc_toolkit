@@ -65,12 +65,7 @@ pub fn record_mh160stub_to_parquet(
     duration: Duration,
     name: &str,
 ) -> Result<()> {
-    wrapped_record_multiharp_to_parquet(
-        device.wrapped,
-        &output_dir.into_boxed_path(),
-        duration,
-        name,
-    )
+    wrapped_record_multiharp_to_parquet(device.wrapped, output_dir, duration, name.to_owned())
 }
 
 #[pyfunction]
@@ -80,12 +75,7 @@ pub fn record_mh160device_to_parquet(
     duration: Duration,
     name: &str,
 ) -> Result<()> {
-    wrapped_record_multiharp_to_parquet(
-        device.wrapped,
-        &output_dir.into_boxed_path(),
-        duration,
-        name,
-    )
+    wrapped_record_multiharp_to_parquet(device.wrapped, output_dir, duration, name.to_owned())
 }
 
 #[pymodule]
