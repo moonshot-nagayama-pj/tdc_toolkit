@@ -87,19 +87,11 @@ pub fn set_input_edge_trigger(
     Ok(())
 }
 
-pub fn set_input_channel_offset(
-    _device_index: u8,
-    _channel: u8,
-    _offset: i32,
-) -> Result<()> {
+pub fn set_input_channel_offset(_device_index: u8, _channel: u8, _offset: i32) -> Result<()> {
     Ok(())
 }
 
-pub fn set_input_channel_enable(
-    _device_index: u8,
-    _channel: u8,
-    _enable: bool,
-) -> Result<()> {
+pub fn set_input_channel_enable(_device_index: u8, _channel: u8, _enable: bool) -> Result<()> {
     Ok(())
 }
 
@@ -116,11 +108,7 @@ pub fn set_input_hysteresis(_device_index: u8, _hyst_code: u8) -> Result<()> {
     Ok(())
 }
 
-pub fn set_stop_overflow(
-    _device_index: u8,
-    _stop_overflow: bool,
-    _stop_count: u32,
-) -> Result<()> {
+pub fn set_stop_overflow(_device_index: u8, _stop_overflow: bool, _stop_count: u32) -> Result<()> {
     Ok(())
 }
 
@@ -208,7 +196,7 @@ pub fn get_warnings(_device_index: u8) -> Result<String> {
 }
 
 pub fn read_fifo(_device_index: u8) -> Result<Vec<u32>> {
-    Ok(vec![0u32,])
+    Ok(vec![0u32])
 }
 
 pub fn is_measurement_running(_device_index: u8) -> Result<bool> {
