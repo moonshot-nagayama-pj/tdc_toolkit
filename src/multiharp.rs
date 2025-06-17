@@ -8,7 +8,7 @@ pub mod mhlib_wrapper_header;
         )),
         not(feature = "multiharp")
     ),
-    path = "mhlib_wrapper_stub.rs"
+    path = "multiharp/mhlib_wrapper_stub.rs"
 )]
 pub mod mhlib_wrapper;
 
