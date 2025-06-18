@@ -2,6 +2,11 @@
 
 Rust CLI and library, as well as Python bindings, for working with [time-to-digital converters (TDCs)](https://en.wikipedia.org/wiki/Time-to-digital_converter) such as the [PicoQuant MultiHarp 160](https://www.picoquant.com/products/category/tcspc-and-time-tagging-modules/multiharp-160).
 
+
+## Under rewrite
+
+Please note that as of spring 2025, this project is being rewritten to move most logic into Rust and provide a generic interface for non-MultiHarp time-to-digital devices in the branch `api-refactor`.
+
 ## Prerequisites
 
 Please see [our engineering documentation](https://github.com/moonshot-nagayama-pj/public-documents) for information on prerequisite development tools.
