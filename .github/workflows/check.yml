@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      # TODO install uv
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -20,7 +19,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-          version: "0.5.4"
+          version: "0.7.13"
 
       - name: Set up Python with uv
         run: uv python install
