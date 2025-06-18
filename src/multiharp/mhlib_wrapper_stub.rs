@@ -154,13 +154,13 @@ pub fn ctc_status(_device_index: u8) -> Result<i32> {
 }
 
 pub fn get_histogram(_device_index: u8, _channel: u8) -> Result<Vec<u32>> {
-    let histogram_vec = [0u32; 65536];
-    Ok(histogram_vec.to_vec())
+    let histogram_vec: Vec<u32> = vec![0u32; 65536];
+    Ok(histogram_vec)
 }
 
 pub fn get_all_histogram(_device_index: u8) -> Result<Vec<u32>> {
-    let histogram_vec = [0u32; 65536];
-    Ok(histogram_vec.to_vec())
+    let histogram_vec: Vec<u32> = vec![0u32; 65536];
+    Ok(histogram_vec)
 }
 
 pub fn get_resolution(_device_index: u8) -> Result<f64> {
@@ -175,7 +175,7 @@ pub fn get_count_rate(_device_index: u8, _channel: u8) -> Result<i32> {
 }
 
 pub fn get_all_count_rates(_device_index: u8) -> Result<(i32, Vec<i32>)> {
-    let count_rates = [0i32; 64 as usize];
+    let count_rates = [0i32; 64];
     Ok((0i32, count_rates.to_vec()))
 }
 
