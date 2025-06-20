@@ -6,8 +6,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd -P)"
-
 # Print functions
 stdmsg() {
   local IFS=' '
@@ -18,16 +16,12 @@ errmsg() {
   stdmsg "$*" 1>&2
 }
 
-tmp_dir_install_rye=$(mktemp --tmpdir -d 'install-rye.XXXXXXXX')
-
 # Trap exit handler
 trap_exit() {
   # It is critical that the first line capture the exit code. Nothing
   # else can come before this. The exit code recorded here comes from
   # the command that caused the script to exit.
   local exit_status="$?"
-
-  rm -rf "${tmp_dir_install_rye}"
 
   if [[ ${exit_status} -ne 0 ]]; then
     errmsg 'There is an error installing the dependencies.'
@@ -49,5 +43,3 @@ sudo apt-get install -y shfmt llvm-dev libclang-dev clang
 # Ensure optional Rust components present
 rustup component add clippy
 rustup component add rustfmt
-
-"${base_dir}"/install-rye.bash "${tmp_dir_install_rye}"

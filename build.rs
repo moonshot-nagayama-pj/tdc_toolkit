@@ -6,17 +6,22 @@ use std::process::Command;
 
 // TODO write idiomatic, clear Rust
 
+#[allow(clippy::too_many_lines)]
 fn main() {
     let os = env::consts::OS;
     let arch = env::consts::ARCH;
-    if arch != "x86_64" || (os != "linux" && os != "windows") {
-        panic!("Only x86_64 Linux or Windows is supported.");
+
+    if !(arch == "x86_64" && (os == "linux" || os == "windows")) || !cfg!(feature = "multiharp") {
+        // cannot link to the driver library on non-x64 architectures,
+        // just use the stub
+        println!("cargo::warning=Using the stub driver implementation.");
+        return;
     }
 
     let mut include_dir = String::from("not_found");
     let mut lib_dir = String::from("not_found");
     let mut lib_dir_path: PathBuf;
-    if os == "linux" {
+    if os == "linux" && arch == "x86_64" {
         // locate the lib dir or download the files if necessary
         match env::var("MHLIB_LIB_DIR") {
             Ok(val) => {
@@ -27,7 +32,9 @@ fn main() {
                     "MHLIB_LIB_DIR was set, but the path does not seem to exist. Don't know what to do, exiting. Value was: {}",
                     lib_dir_path.display()
                 );
-                println!("cargo::warning=Using the value of the MHLIB_LIB_DIR environment variable to find the Multiharp shared library.");
+                println!(
+                    "cargo::warning=Using the value of the MHLIB_LIB_DIR environment variable to find the Multiharp shared library."
+                );
             }
             Err(e) => match e {
                 VarError::NotPresent => {
@@ -39,12 +46,16 @@ fn main() {
                         PathBuf::from(manifest_dir.clone()).join("MHLib_v3.1.0.0_64bit/library");
 
                     if lib_dir_path.exists() {
-                        println!("cargo::warning=Using an existing copy of the Multiharp shared library in CARGO_MANIFEST_DIR {manifest_dir}");
+                        println!(
+                            "cargo::warning=Using an existing copy of the Multiharp shared library in CARGO_MANIFEST_DIR {manifest_dir}"
+                        );
                     } else {
                         // Check to see if it was installed systemwide.
                         lib_dir_path = PathBuf::from("/usr/local/lib/mh150");
                         if lib_dir_path.exists() {
-                            println!("cargo::warning=Using the system installation of the Multiharp shared library.");
+                            println!(
+                                "cargo::warning=Using the system installation of the Multiharp shared library."
+                            );
                         } else {
                             // Download it ourselves.
                             Command::new(
@@ -60,20 +71,26 @@ fn main() {
                                 lib_dir_path.exists(),
                                 "Could not find a copy of the Multiharp library. Attempted to download the Multiharp library and failed. Don't know what to do. Exiting.",
                             );
-                            println!("cargo::warning=Downloaded a new copy of the Multiharp shared library and placed it in CARGO_MANIFEST_DIR {manifest_dir}.");
+                            println!(
+                                "cargo::warning=Downloaded a new copy of the Multiharp shared library and placed it in CARGO_MANIFEST_DIR {manifest_dir}."
+                            );
                         }
                     }
                 }
-                unknown_error => {
-                    panic!("Unknown error occurred trying to read the MHLIB_PATH environment variable, are you sure this is Linux? Error: {unknown_error}");
+                VarError::NotUnicode(_) => {
+                    panic!(
+                        "Error occurred trying to read the MHLIB_PATH environment variable; Rust claims that the value is not valid Unicode."
+                    );
                 }
             },
         }
 
         lib_dir = lib_dir_path.to_string_lossy().into_owned();
         if lib_dir_path.join("mhlib.h").exists() {
-            println!("cargo::warning=Found Multiharp header files in the same directory as the shared library. Using them.");
-            include_dir = lib_dir.clone();
+            println!(
+                "cargo::warning=Found Multiharp header files in the same directory as the shared library. Using them."
+            );
+            include_dir.clone_from(&lib_dir);
         } else {
             // Most likely someone decided to properly separate header
             // files into the system include directory.
@@ -84,24 +101,25 @@ fn main() {
                 lib_dir_path.display(),
                 include_dir_path.display(),
             );
-            println!("cargo::warning=Did not find Multiharp header files in the same directory as the shared library. Using a separate include directory.");
+            println!(
+                "cargo::warning=Did not find Multiharp header files in the same directory as the shared library. Using a separate include directory."
+            );
             include_dir = include_dir_path.to_string_lossy().into_owned();
         }
 
-        println!("cargo::rustc-link-search=native={}", lib_dir);
+        println!("cargo::rustc-link-search=native={lib_dir}");
         println!("cargo::rustc-link-lib=dylib=mhlib");
-        println!("cargo::rustc-link-arg=-Wl,-rpath={}", lib_dir);
-    } else if os == "windows" {
+        println!("cargo::rustc-link-arg=-Wl,-rpath={lib_dir}");
+    } else if os == "windows" && arch == "x86_64" {
         include_dir = String::from("C:\\Program Files\\PicoQuant\\MultiHarp-MHLibv31");
         lib_dir = include_dir.clone();
 
         assert!(
             Path::new(&include_dir).exists(),
-            "Include and library directory does not exist: {}",
-            include_dir
+            "Include and library directory does not exist: {include_dir}"
         );
 
-        println!("cargo::rustc-link-search=native={}", lib_dir);
+        println!("cargo::rustc-link-search=native={lib_dir}");
         println!("cargo::rustc-link-lib=dylib=mhlib64");
     }
 
@@ -112,7 +130,7 @@ fn main() {
         // The input header we would like to generate
         // bindings for.
         .header("wrapper.h")
-        .clang_arg(format!("-I{}", include_dir))
+        .clang_arg(format!("-I{include_dir}"))
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
