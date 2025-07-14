@@ -31,10 +31,39 @@ pub struct MH160DeviceSyncChannelConfig {
 #[pyclass(get_all, set_all)]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInputChannelConfig {
-    pub id: u8,
+    pub id: MH160ChannelId,
     pub edge_trigger_level: i32, // mV
     pub edge_trigger: Edge,
     pub offset: i32, // picoseconds
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
+#[pyclass]
+#[serde(try_from = "u8", into = "u8")]
+pub struct MH160ChannelId(u8);
+
+impl MH160ChannelId {
+    pub fn new(value: u8) -> Result<Self> {
+        if value > 0 {
+            Ok(Self(value))
+        } else {
+            bail!("Value must be greater than 0, but {value} was passed.")
+        }
+    }
+}
+
+impl Into<u8> for MH160ChannelId {
+    fn into(self) -> u8 {
+        self.0
+    }
+}
+
+impl TryFrom<u8> for MH160ChannelId {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u8) -> Result<Self> {
+        Self::new(value)
+    }
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -118,16 +147,16 @@ impl MH160Device {
         }
 
         for input_channel in &config.input_channels {
-            mhlib_wrapper::set_input_channel_enable(device_index, input_channel.id, true)?;
+            mhlib_wrapper::set_input_channel_enable(device_index, input_channel.id.into(), true)?;
             mhlib_wrapper::set_input_edge_trigger(
                 device_index,
-                input_channel.id,
+                input_channel.id.into(),
                 input_channel.edge_trigger_level,
                 input_channel.edge_trigger.clone(),
             )?;
             mhlib_wrapper::set_input_channel_offset(
                 device_index,
-                input_channel.id,
+                input_channel.id.into(),
                 input_channel.offset,
             )?;
         }
@@ -142,9 +171,11 @@ impl MH160Device {
             });
         let total_channels: u8 =
             mhlib_wrapper::get_number_of_input_channels(device_index)?.try_into()?;
-        for channel_id in 0..total_channels {
+        for channel_id in 1..=total_channels {
+            #[expect(clippy::missing_panics_doc)]
+            let channel_id = MH160ChannelId::new(channel_id).expect("This should not happen");
             if !enabled_channels.contains(&channel_id) {
-                mhlib_wrapper::set_input_channel_enable(device_index, channel_id, false)?;
+                mhlib_wrapper::set_input_channel_enable(device_index, channel_id.into(), false)?;
             }
         }
 

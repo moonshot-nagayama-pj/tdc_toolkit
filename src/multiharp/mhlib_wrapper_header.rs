@@ -1,5 +1,8 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::convert::Into;
+
+use super::device::MH160ChannelId;
 
 // These values are derived from mhdefin.h, which is bundled with the
 // MultiHarp driver release. The values are copied here to avoid a
@@ -56,4 +59,26 @@ pub enum MeasurementControl {
     WhiteRabbitM2S = 4_i32,        // MEASCTRL_WR_M2S
     WhiteRabbitS2M = 5_i32,        // MEASCTRL_WR_S2M
     SwitchStartSwitchStop = 6_i32, // MEASCTRL_SW_START_SW_STOP
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct MH160InternalChannelId(u8);
+
+impl MH160InternalChannelId {
+    #[must_use]
+    pub fn new(value: u8) -> Self {
+        Self(value)
+    }
+}
+
+impl From<MH160ChannelId> for MH160InternalChannelId {
+    fn from(value: MH160ChannelId) -> Self {
+        Self::new(Into::<u8>::into(value) - 1)
+    }
+}
+
+impl Into<u8> for MH160InternalChannelId {
+    fn into(self) -> u8 {
+        self.0
+    }
 }

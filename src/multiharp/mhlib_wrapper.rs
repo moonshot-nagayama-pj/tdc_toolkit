@@ -20,7 +20,9 @@ use self::bindings::{
 };
 
 use super::mhlib_wrapper_header;
-use super::mhlib_wrapper_header::{Edge, MeasurementControl, Mode, RefSource};
+use super::mhlib_wrapper_header::{
+    Edge, MH160InternalChannelId, MeasurementControl, Mode, RefSource,
+};
 
 fn handle_error(ret: c_int) -> Result<()> {
     let mut error_string: [u8; 40] = [0; 40];
@@ -210,38 +212,61 @@ pub fn set_sync_deadtime(device_index: u8, on: bool, deadtime_ps: i32) -> Result
 
 pub fn set_input_edge_trigger(
     device_index: u8,
-    channel: u8,
+    channel: MH160InternalChannelId,
     level: i32,
     mac_edge: Edge,
 ) -> Result<()> {
+    let channel_u8: u8 = channel.into();
     unsafe {
-        let ret = MH_SetInputEdgeTrg(device_index.into(), channel.into(), level, mac_edge as i32);
+        let ret = MH_SetInputEdgeTrg(
+            device_index.into(),
+            channel_u8.into(),
+            level,
+            mac_edge as i32,
+        );
         handle_error(ret)?;
         Ok(())
     }
 }
 
-pub fn set_input_channel_offset(device_index: u8, channel: u8, offset: i32) -> Result<()> {
+pub fn set_input_channel_offset(
+    device_index: u8,
+    channel: MH160InternalChannelId,
+    offset: i32,
+) -> Result<()> {
+    let channel_u8: u8 = channel.into();
     unsafe {
-        let ret = MH_SetInputChannelOffset(device_index.into(), channel.into(), offset);
+        let ret = MH_SetInputChannelOffset(device_index.into(), channel_u8.into(), offset);
         handle_error(ret)?;
         Ok(())
     }
 }
 
-pub fn set_input_channel_enable(device_index: u8, channel: u8, enable: bool) -> Result<()> {
+pub fn set_input_channel_enable(
+    device_index: u8,
+    channel: MH160InternalChannelId,
+    enable: bool,
+) -> Result<()> {
+    let channel_u8: u8 = channel.into();
     unsafe {
-        let ret = MH_SetInputChannelEnable(device_index.into(), channel.into(), i32::from(enable));
+        let ret =
+            MH_SetInputChannelEnable(device_index.into(), channel_u8.into(), i32::from(enable));
         handle_error(ret)?;
         Ok(())
     }
 }
 
-pub fn set_input_deadtime(device_index: u8, channel: u8, on: bool, deadtime_ps: i32) -> Result<()> {
+pub fn set_input_deadtime(
+    device_index: u8,
+    channel: MH160InternalChannelId,
+    on: bool,
+    deadtime_ps: i32,
+) -> Result<()> {
+    let channel_u8: u8 = channel.into();
     unsafe {
         let ret = MH_SetInputDeadTime(
             device_index.into(),
-            channel.into(),
+            channel_u8.into(),
             i32::from(on),
             deadtime_ps,
         );
@@ -350,13 +375,14 @@ pub fn ctc_status(device_index: u8) -> Result<i32> {
     }
 }
 
-pub fn get_histogram(device_index: u8, channel: u8) -> Result<Vec<u32>> {
+pub fn get_histogram(device_index: u8, channel: MH160InternalChannelId) -> Result<Vec<u32>> {
+    let channel_u8: u8 = channel.into();
     let mut histogram_vec: Vec<u32> = vec![0u32; 65536];
     unsafe {
         let ret = MH_GetHistogram(
             device_index.into(),
             histogram_vec.as_mut_ptr(),
-            channel.into(),
+            channel_u8.into(),
         );
         handle_error(ret)?;
         Ok(histogram_vec)
@@ -390,10 +416,11 @@ pub fn get_sync_rate(device_index: u8) -> Result<i32> {
     }
 }
 
-pub fn get_count_rate(device_index: u8, channel: u8) -> Result<i32> {
+pub fn get_count_rate(device_index: u8, channel: MH160InternalChannelId) -> Result<i32> {
     let mut count_rate: i32 = 0;
+    let channel_u8: u8 = channel.into();
     unsafe {
-        let ret = MH_GetCountRate(device_index.into(), channel.into(), &mut count_rate);
+        let ret = MH_GetCountRate(device_index.into(), channel_u8.into(), &mut count_rate);
         handle_error(ret)?;
         Ok(count_rate)
     }
