@@ -77,8 +77,8 @@ impl From<MH160ChannelId> for MH160InternalChannelId {
     }
 }
 
-impl Into<u8> for MH160InternalChannelId {
-    fn into(self) -> u8 {
-        self.0
+impl From<MH160InternalChannelId> for u8 {
+    fn from(value: MH160InternalChannelId) -> Self {
+        value.0
     }
 }

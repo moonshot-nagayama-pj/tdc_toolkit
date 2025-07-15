@@ -100,7 +100,7 @@ pub fn get_hardware_info(device_index: u8) -> Result<(String, String, String)> {
 pub fn get_feature(device_index: u8) -> Result<i32> {
     let mut features = 0i32;
     unsafe {
-        let ret = MH_GetFeatures(device_index.into(), &mut features);
+        let ret = MH_GetFeatures(device_index.into(), &raw mut features);
         handle_error(ret)?;
         Ok(features)
     }
@@ -119,7 +119,8 @@ pub fn get_base_resolution(device_index: u8) -> Result<(f64, i32)> {
     let mut resolution: f64 = 0.0;
     let mut bin_steps: i32 = 0;
     unsafe {
-        let ret = MH_GetBaseResolution(device_index.into(), &mut resolution, &mut bin_steps);
+        let ret =
+            MH_GetBaseResolution(device_index.into(), &raw mut resolution, &raw mut bin_steps);
         handle_error(ret)?;
         Ok((resolution, bin_steps))
     }
@@ -128,7 +129,7 @@ pub fn get_base_resolution(device_index: u8) -> Result<(f64, i32)> {
 pub fn get_number_of_input_channels(device_index: u8) -> Result<i32> {
     let mut num_channels: i32 = 0;
     unsafe {
-        let ret = MH_GetNumOfInputChannels(device_index.into(), &mut num_channels);
+        let ret = MH_GetNumOfInputChannels(device_index.into(), &raw mut num_channels);
         handle_error(ret)?;
         Ok(num_channels)
     }
@@ -137,7 +138,7 @@ pub fn get_number_of_input_channels(device_index: u8) -> Result<i32> {
 pub fn get_number_of_modules(device_index: u8) -> Result<i32> {
     let mut number_of_modules = 0;
     unsafe {
-        let ret = MH_GetNumOfModules(device_index.into(), &mut number_of_modules);
+        let ret = MH_GetNumOfModules(device_index.into(), &raw mut number_of_modules);
         handle_error(ret)?;
         Ok(number_of_modules)
     }
@@ -150,8 +151,8 @@ pub fn get_module_info(device_index: u8, module_index: u8) -> Result<(i32, i32)>
         let ret = MH_GetModuleInfo(
             device_index.into(),
             module_index.into(),
-            &mut model_code,
-            &mut version_code,
+            &raw mut model_code,
+            &raw mut version_code,
         );
         handle_error(ret)?;
         Ok((model_code, version_code))
@@ -310,7 +311,7 @@ pub fn set_offset(device_index: u8, offset: i32) -> Result<()> {
 pub fn set_histogram_length(device_index: u8, len_code: i32) -> Result<i32> {
     let mut actual_length = 0i32;
     unsafe {
-        let ret = MH_SetHistoLen(device_index.into(), len_code, &mut actual_length);
+        let ret = MH_SetHistoLen(device_index.into(), len_code, &raw mut actual_length);
         handle_error(ret)?;
         Ok(actual_length)
     }
@@ -369,7 +370,7 @@ pub fn stop_measurement(device_index: u8) -> Result<()> {
 pub fn ctc_status(device_index: u8) -> Result<i32> {
     let mut ctc_status_val = 0i32;
     unsafe {
-        let ret = MH_CTCStatus(device_index.into(), &mut ctc_status_val);
+        let ret = MH_CTCStatus(device_index.into(), &raw mut ctc_status_val);
         handle_error(ret)?;
         Ok(ctc_status_val)
     }
@@ -401,7 +402,7 @@ pub fn get_all_histogram(device_index: u8) -> Result<Vec<u32>> {
 pub fn get_resolution(device_index: u8) -> Result<f64> {
     let mut resolution: f64 = 0.0;
     unsafe {
-        let ret = MH_GetResolution(device_index.into(), &mut resolution);
+        let ret = MH_GetResolution(device_index.into(), &raw mut resolution);
         handle_error(ret)?;
         Ok(resolution)
     }
@@ -410,7 +411,7 @@ pub fn get_resolution(device_index: u8) -> Result<f64> {
 pub fn get_sync_rate(device_index: u8) -> Result<i32> {
     let mut sync_rate: i32 = 0;
     unsafe {
-        let ret = MH_GetSyncRate(device_index.into(), &mut sync_rate);
+        let ret = MH_GetSyncRate(device_index.into(), &raw mut sync_rate);
         handle_error(ret)?;
         Ok(sync_rate)
     }
@@ -420,7 +421,7 @@ pub fn get_count_rate(device_index: u8, channel: MH160InternalChannelId) -> Resu
     let mut count_rate: i32 = 0;
     let channel_u8: u8 = channel.into();
     unsafe {
-        let ret = MH_GetCountRate(device_index.into(), channel_u8.into(), &mut count_rate);
+        let ret = MH_GetCountRate(device_index.into(), channel_u8.into(), &raw mut count_rate);
         handle_error(ret)?;
         Ok(count_rate)
     }
@@ -432,7 +433,7 @@ pub fn get_all_count_rates(device_index: u8) -> Result<(i32, Vec<i32>)> {
     unsafe {
         let ret = MH_GetAllCountRates(
             device_index.into(),
-            &mut sync_rate,
+            &raw mut sync_rate,
             count_rates.as_mut_ptr(),
         );
         handle_error(ret)?;
@@ -443,7 +444,7 @@ pub fn get_all_count_rates(device_index: u8) -> Result<(i32, Vec<i32>)> {
 pub fn get_flags(device_index: u8) -> Result<i32> {
     let mut flags = 0i32;
     unsafe {
-        let ret = MH_GetFlags(device_index.into(), &mut flags);
+        let ret = MH_GetFlags(device_index.into(), &raw mut flags);
         handle_error(ret)?;
         Ok(flags)
     }
@@ -452,7 +453,7 @@ pub fn get_flags(device_index: u8) -> Result<i32> {
 pub fn get_elapsed_measurement_time(device_index: u8) -> Result<f64> {
     let mut elapsed_time = 0f64;
     unsafe {
-        let ret = MH_GetElapsedMeasTime(device_index.into(), &mut elapsed_time);
+        let ret = MH_GetElapsedMeasTime(device_index.into(), &raw mut elapsed_time);
         handle_error(ret)?;
         Ok(elapsed_time)
     }
@@ -463,7 +464,12 @@ pub fn get_start_time(device_index: u8) -> Result<(u32, u32, u32)> {
     let mut time1 = 0u32;
     let mut time0 = 0u32;
     unsafe {
-        let ret = MH_GetStartTime(device_index.into(), &mut time2, &mut time1, &mut time0);
+        let ret = MH_GetStartTime(
+            device_index.into(),
+            &raw mut time2,
+            &raw mut time1,
+            &raw mut time0,
+        );
         handle_error(ret)?;
         Ok((time2, time1, time0))
     }
@@ -473,7 +479,7 @@ pub fn get_warnings(device_index: u8) -> Result<String> {
     let mut warnings: i32 = 0;
     let mut text = [0u8; 16384];
     unsafe {
-        let ret = MH_GetWarnings(device_index.into(), &mut warnings);
+        let ret = MH_GetWarnings(device_index.into(), &raw mut warnings);
         handle_error(ret)?;
         let ret = MH_GetWarningsText(
             device_index.into(),
@@ -495,7 +501,7 @@ pub fn read_fifo(device_index: u8) -> Result<Vec<u32>> {
         let ret = MH_ReadFiFo(
             device_index.into(),
             record_buffer.as_mut_ptr(),
-            &mut num_records,
+            &raw mut num_records,
         );
         handle_error(ret)?;
         record_buffer.set_len(num_records.try_into()?);
@@ -506,7 +512,7 @@ pub fn read_fifo(device_index: u8) -> Result<Vec<u32>> {
 pub fn is_measurement_running(device_index: u8) -> Result<bool> {
     let mut ctc_status: i32 = 0;
     unsafe {
-        let ret = MH_CTCStatus(device_index.into(), &mut ctc_status);
+        let ret = MH_CTCStatus(device_index.into(), &raw mut ctc_status);
         handle_error(ret)?;
         Ok(ctc_status == 0)
     }

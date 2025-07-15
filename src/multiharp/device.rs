@@ -52,17 +52,17 @@ impl MH160ChannelId {
     }
 }
 
-impl Into<u8> for MH160ChannelId {
-    fn into(self) -> u8 {
-        self.0
-    }
-}
-
 impl TryFrom<u8> for MH160ChannelId {
     type Error = anyhow::Error;
 
     fn try_from(value: u8) -> Result<Self> {
         Self::new(value)
+    }
+}
+
+impl From<MH160ChannelId> for u8 {
+    fn from(value: MH160ChannelId) -> Self {
+        value.0
     }
 }
 
