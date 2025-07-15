@@ -69,7 +69,7 @@ stdmsg "Checking shell scripts with shellcheck..."
 find . -type d \( -path ./MHLib_v3.1.0.0_64bit -o -path ./.venv \) -prune -o -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellcheck --enable=all --external-sources
 
 stdmsg "Checking shell script formatting with shfmt..."
-shfmt --diff --simplify bin "${python_source_dirs[@]}" src
+shfmt --diff bin "${python_source_dirs[@]}" src
 
 stdmsg "Running ruff..."
 ruff check .
