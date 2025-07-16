@@ -1,6 +1,8 @@
 use anyhow::Result;
 
-use super::mhlib_wrapper_header::{Edge, MeasurementControl, Mode, RefSource};
+use super::mhlib_wrapper_header::{
+    Edge, MH160InternalChannelId, MeasurementControl, Mode, RefSource,
+};
 
 pub fn get_library_version() -> Result<String> {
     Ok("Stub".to_string())
@@ -80,24 +82,32 @@ pub fn set_sync_deadtime(_device_index: u8, _on: bool, _deadtime_ps: i32) -> Res
 
 pub fn set_input_edge_trigger(
     _device_index: u8,
-    _channel: u8,
+    _channel: MH160InternalChannelId,
     _level: i32,
     _mac_edge: Edge,
 ) -> Result<()> {
     Ok(())
 }
 
-pub fn set_input_channel_offset(_device_index: u8, _channel: u8, _offset: i32) -> Result<()> {
+pub fn set_input_channel_offset(
+    _device_index: u8,
+    _channel: MH160InternalChannelId,
+    _offset: i32,
+) -> Result<()> {
     Ok(())
 }
 
-pub fn set_input_channel_enable(_device_index: u8, _channel: u8, _enable: bool) -> Result<()> {
+pub fn set_input_channel_enable(
+    _device_index: u8,
+    _channel: MH160InternalChannelId,
+    _enable: bool,
+) -> Result<()> {
     Ok(())
 }
 
 pub fn set_input_deadtime(
     _device_index: u8,
-    _channel: u8,
+    _channel: MH160InternalChannelId,
     _on: bool,
     _deadtime_ps: i32,
 ) -> Result<()> {
@@ -153,7 +163,7 @@ pub fn ctc_status(_device_index: u8) -> Result<i32> {
     Ok(0i32)
 }
 
-pub fn get_histogram(_device_index: u8, _channel: u8) -> Result<Vec<u32>> {
+pub fn get_histogram(_device_index: u8, _channel: MH160InternalChannelId) -> Result<Vec<u32>> {
     let histogram_vec: Vec<u32> = vec![0u32; 65536];
     Ok(histogram_vec)
 }
@@ -170,7 +180,8 @@ pub fn get_resolution(_device_index: u8) -> Result<f64> {
 pub fn get_sync_rate(_device_index: u8) -> Result<i32> {
     Ok(0i32)
 }
-pub fn get_count_rate(_device_index: u8, _channel: u8) -> Result<i32> {
+
+pub fn get_count_rate(_device_index: u8, _channel: MH160InternalChannelId) -> Result<i32> {
     Ok(0i32)
 }
 
