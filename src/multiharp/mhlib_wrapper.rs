@@ -217,14 +217,8 @@ pub fn set_input_edge_trigger(
     level: i32,
     mac_edge: Edge,
 ) -> Result<()> {
-    let channel_u8: u8 = channel.into();
     unsafe {
-        let ret = MH_SetInputEdgeTrg(
-            device_index.into(),
-            channel_u8.into(),
-            level,
-            mac_edge as i32,
-        );
+        let ret = MH_SetInputEdgeTrg(device_index.into(), channel.into(), level, mac_edge as i32);
         handle_error(ret)?;
         Ok(())
     }
@@ -235,9 +229,8 @@ pub fn set_input_channel_offset(
     channel: MH160InternalChannelId,
     offset: i32,
 ) -> Result<()> {
-    let channel_u8: u8 = channel.into();
     unsafe {
-        let ret = MH_SetInputChannelOffset(device_index.into(), channel_u8.into(), offset);
+        let ret = MH_SetInputChannelOffset(device_index.into(), channel.into(), offset);
         handle_error(ret)?;
         Ok(())
     }
@@ -248,10 +241,8 @@ pub fn set_input_channel_enable(
     channel: MH160InternalChannelId,
     enable: bool,
 ) -> Result<()> {
-    let channel_u8: u8 = channel.into();
     unsafe {
-        let ret =
-            MH_SetInputChannelEnable(device_index.into(), channel_u8.into(), i32::from(enable));
+        let ret = MH_SetInputChannelEnable(device_index.into(), channel.into(), i32::from(enable));
         handle_error(ret)?;
         Ok(())
     }
@@ -263,11 +254,10 @@ pub fn set_input_deadtime(
     on: bool,
     deadtime_ps: i32,
 ) -> Result<()> {
-    let channel_u8: u8 = channel.into();
     unsafe {
         let ret = MH_SetInputDeadTime(
             device_index.into(),
-            channel_u8.into(),
+            channel.into(),
             i32::from(on),
             deadtime_ps,
         );
@@ -377,13 +367,12 @@ pub fn ctc_status(device_index: u8) -> Result<i32> {
 }
 
 pub fn get_histogram(device_index: u8, channel: MH160InternalChannelId) -> Result<Vec<u32>> {
-    let channel_u8: u8 = channel.into();
     let mut histogram_vec: Vec<u32> = vec![0u32; 65536];
     unsafe {
         let ret = MH_GetHistogram(
             device_index.into(),
             histogram_vec.as_mut_ptr(),
-            channel_u8.into(),
+            channel.into(),
         );
         handle_error(ret)?;
         Ok(histogram_vec)
@@ -419,9 +408,8 @@ pub fn get_sync_rate(device_index: u8) -> Result<i32> {
 
 pub fn get_count_rate(device_index: u8, channel: MH160InternalChannelId) -> Result<i32> {
     let mut count_rate: i32 = 0;
-    let channel_u8: u8 = channel.into();
     unsafe {
-        let ret = MH_GetCountRate(device_index.into(), channel_u8.into(), &raw mut count_rate);
+        let ret = MH_GetCountRate(device_index.into(), channel.into(), &raw mut count_rate);
         handle_error(ret)?;
         Ok(count_rate)
     }

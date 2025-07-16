@@ -82,3 +82,9 @@ impl From<MH160InternalChannelId> for u8 {
         value.0
     }
 }
+
+impl From<MH160InternalChannelId> for i32 {
+    fn from(value: MH160InternalChannelId) -> Self {
+        value.0.into()
+    }
+}
