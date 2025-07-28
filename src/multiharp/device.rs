@@ -24,7 +24,7 @@
 use anyhow::{Result, anyhow, bail};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
@@ -55,9 +55,9 @@ pub struct MH160DeviceConfig {
     /// channel; if no declaration is present for a particular
     /// channel, it is disabled.
     ///
-    /// If a channel is configured twice in this vector, the last
-    /// declaration takes precedence over earlier declarations.
-    pub input_channels: Vec<MH160DeviceInputChannelConfig>,
+    /// Attempting to configure the same channel more than once will
+    /// cause an error.
+    pub input_channels: MH160DeviceInputChannelConfigs,
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -84,6 +84,52 @@ pub struct MH160DeviceInputChannelConfig {
     pub edge_trigger_level: i32, // mV
     pub edge_trigger: Edge,
     pub offset: i32, // picoseconds
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[pyclass]
+#[serde(
+    try_from = "Vec<MH160DeviceInputChannelConfig>",
+    into = "Vec<MH160DeviceInputChannelConfig>"
+)]
+pub struct MH160DeviceInputChannelConfigs(Vec<MH160DeviceInputChannelConfig>);
+
+impl MH160DeviceInputChannelConfigs {
+    pub fn new(value: Vec<MH160DeviceInputChannelConfig>) -> Result<Self> {
+        Self::check_duplicates(&value)?;
+        Ok(Self(value))
+    }
+
+    fn check_duplicates(configs: &Vec<MH160DeviceInputChannelConfig>) -> Result<()> {
+        let mut id_counts = HashMap::new();
+        for config in configs {
+            id_counts
+                .entry(config.id)
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+        }
+        let duplicate_ids: Vec<_> = id_counts.extract_if(|_k, v| *v > 1).collect();
+        if !duplicate_ids.is_empty() {
+            bail!(
+                "More than one configuration for the following channel IDs was found: {duplicate_ids:#?}"
+            )
+        }
+        Ok(())
+    }
+}
+
+impl TryFrom<Vec<MH160DeviceInputChannelConfig>> for MH160DeviceInputChannelConfigs {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Vec<MH160DeviceInputChannelConfig>) -> Result<Self> {
+        Self::new(value)
+    }
+}
+
+impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig> {
+    fn from(value: MH160DeviceInputChannelConfigs) -> Self {
+        value.0
+    }
 }
 
 /// The channel ID, corresponding to the channel ID numbers on the
@@ -203,7 +249,8 @@ impl MH160Device {
             }
         }
 
-        for input_channel in &config.input_channels {
+        let input_channels: Vec<MH160DeviceInputChannelConfig> = config.input_channels.into();
+        for input_channel in &input_channels {
             mhlib_wrapper::set_input_channel_enable(device_index, input_channel.id.into(), true)?;
             mhlib_wrapper::set_input_edge_trigger(
                 device_index,
@@ -219,13 +266,10 @@ impl MH160Device {
         }
 
         // disable all other input channels
-        let enabled_channels = config
-            .input_channels
-            .iter()
-            .fold(HashSet::new(), |mut acc, x| {
-                acc.insert(x.id);
-                acc
-            });
+        let enabled_channels = input_channels.iter().fold(HashSet::new(), |mut acc, x| {
+            acc.insert(x.id);
+            acc
+        });
         let total_channels: u8 =
             mhlib_wrapper::get_number_of_input_channels(device_index)?.try_into()?;
         for channel_id in 1..=total_channels {
