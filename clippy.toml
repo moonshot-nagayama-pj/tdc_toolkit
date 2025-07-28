@@ -1,1 +1,2 @@
 allowed-duplicate-crates = ["getrandom", "twox-hash", "wasi"]
+doc-valid-idents = ["MultiHarp", "PicoQuant", ".."]

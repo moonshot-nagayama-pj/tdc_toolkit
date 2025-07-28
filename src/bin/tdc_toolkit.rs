@@ -60,6 +60,10 @@ enum Command {
         /// device. Configuration is device-specific; if this field is
         /// omitted and the device supports it, the device will be
         /// opened without changing its current configuration.
+        ///
+        /// The configuration format for MultiHarp is documented in
+        /// [`MH160DeviceConfig`]. JSON examples are available in the
+        /// source distribution's `sample_config` directory.
         #[arg(long, value_hint = ValueHint::FilePath)]
         device_config: Option<PathBuf>,
 

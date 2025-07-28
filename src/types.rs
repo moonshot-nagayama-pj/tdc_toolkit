@@ -1,3 +1,5 @@
+//! Common, normalized types used to communicate across channels.
+
 pub struct NormalizedTimeTag {
     pub channel_id: u16,
 
