@@ -49,6 +49,7 @@ cargo fmt --all -- --check
 cargo clippy
 cargo test
 cargo build
+cargo doc --no-deps
 maturin develop
 
 stdmsg "Checking Python type hints with mypy..."

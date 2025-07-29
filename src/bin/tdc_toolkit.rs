@@ -1,4 +1,4 @@
-use anyhow::{Error, Result, bail};
+use anyhow::{Context, Error, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum, ValueHint};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
@@ -11,7 +11,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use strum_macros::Display;
 
-use tdc_toolkit::multiharp::device::{MH160, MH160Device, MH160DeviceConfig};
+use tdc_toolkit::multiharp::device::{MH160, MH160Device};
 use tdc_toolkit::multiharp::device_stub::MH160Stub;
 use tdc_toolkit::multiharp::recording;
 
@@ -127,8 +127,15 @@ fn main() -> Result<()> {
                 DeviceType::MH160Device => {
                     let unboxed_device = match device_config {
                         Some(device_config) => {
-                            let config: MH160DeviceConfig =
-                                serde_json::from_str(fs::read_to_string(device_config)?.as_str())?;
+                            let config =
+                                serde_json::from_str(fs::read_to_string(&device_config)?.as_str())
+                                    .with_context(|| {
+                                        format!(
+                                            "Error while parsing config file at {}",
+                                            device_config.display()
+                                        )
+                                    })?;
+
                             MH160Device::from_config(mh_device_index, config)?
                         }
                         None => MH160Device::from_current_config(mh_device_index)?,
