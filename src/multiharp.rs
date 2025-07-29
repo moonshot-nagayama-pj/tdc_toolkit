@@ -1,3 +1,5 @@
+//! Devices and normalizers related to the PicoQuant MultiHarp series of time-to-digital converters.
+
 pub mod mhlib_wrapper_header;
 
 #[cfg_attr(
