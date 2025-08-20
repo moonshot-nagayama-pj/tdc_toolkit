@@ -11,12 +11,15 @@ fn main() {
     let os = env::consts::OS;
     let arch = env::consts::ARCH;
 
-    if !(arch == "x86_64" && (os == "linux" || os == "windows")) || !cfg!(feature = "multiharp") {
-        // cannot link to the driver library on non-x64 architectures,
-        // just use the stub
-        println!("cargo::warning=Using the stub driver implementation.");
+    if cfg!(not(feature = "multiharp")) {
+        println!("cargo::warning=Using the mhlib_wrapper stub implementation.");
         return;
     }
+
+    assert!(
+        !(!(arch == "x86_64" && (os == "linux" || os == "windows")) && cfg!(feature = "multiharp")),
+        "feature multiharp was requested, but cannot be built on this architecture or operating system. Check your build configuration."
+    );
 
     let mut include_dir = String::from("not_found");
     let mut lib_dir = String::from("not_found");

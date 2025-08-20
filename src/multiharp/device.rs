@@ -29,8 +29,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
 
-use super::mhlib_wrapper;
-use super::mhlib_wrapper_header::{Edge, Mode, RefSource};
+use super::mhlib_wrapper::meta::{Edge, MhlibWrapper, Mode, RefSource};
 
 /// MultiHarp 160 device configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -139,7 +138,7 @@ impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig>
 /// Internally, the MultiHarp software counts channel IDs from zero
 /// and does not assign an ID to the sync channel. Lower-level APIs
 /// which require that internal representation use
-/// [`MH160InternalChannelId`](super::mhlib_wrapper_header::MH160InternalChannelId).
+/// [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId).
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
 #[pyclass]
 #[serde(try_from = "u8", into = "u8")]
@@ -211,23 +210,23 @@ pub trait MH160: Send + Sync {
     ) -> Result<()>;
 }
 
-pub struct MH160Device {
-    device_index: u8,
+pub struct MH160Device<T: MhlibWrapper> {
+    mhlib_wrapper: T,
 }
 
-impl MH160Device {
-    pub fn from_current_config(device_index: u8) -> Result<MH160Device> {
-        mhlib_wrapper::open_device(device_index)?;
-        mhlib_wrapper::initialize(device_index, Mode::T2, RefSource::InternalClock)?;
-        Ok(MH160Device { device_index })
+impl<T: MhlibWrapper> MH160Device<T> {
+    pub fn from_current_config(mhlib_wrapper: T) -> Result<MH160Device<T>> {
+        mhlib_wrapper.open_device()?;
+        mhlib_wrapper.initialize(Mode::T2, RefSource::InternalClock)?;
+        Ok(MH160Device { mhlib_wrapper })
     }
 
-    pub fn from_config(device_index: u8, config: MH160DeviceConfig) -> Result<MH160Device> {
-        mhlib_wrapper::open_device(device_index)?;
+    pub fn from_config(mhlib_wrapper: T, config: MH160DeviceConfig) -> Result<MH160Device<T>> {
+        mhlib_wrapper.open_device()?;
 
         // TODO in theory we could support T3 mode relatively easily,
         // since the record processing is decoupled from the device
-        mhlib_wrapper::initialize(device_index, Mode::T2, RefSource::InternalClock)?;
+        mhlib_wrapper.initialize(Mode::T2, RefSource::InternalClock)?;
 
         // TODO sync channel must be enabled for histogramming and T3
         // mode; more configuration validation is necessary if we want
@@ -235,34 +234,29 @@ impl MH160Device {
         // sync in T2; in theory we could just permanently disable it.
         match config.sync_channel {
             Some(sync_config) => {
-                mhlib_wrapper::set_sync_channel_enable(device_index, true)?;
-                mhlib_wrapper::set_sync_divider(device_index, sync_config.divider)?;
-                mhlib_wrapper::set_sync_edge_trigger(
-                    device_index,
+                mhlib_wrapper.set_sync_channel_enable(true)?;
+                mhlib_wrapper.set_sync_divider(sync_config.divider)?;
+                mhlib_wrapper.set_sync_edge_trigger(
                     sync_config.edge_trigger_level,
                     sync_config.edge_trigger,
                 )?;
-                mhlib_wrapper::set_sync_channel_offset(device_index, sync_config.offset)?;
+                mhlib_wrapper.set_sync_channel_offset(sync_config.offset)?;
             }
             None => {
-                mhlib_wrapper::set_sync_channel_enable(device_index, false)?;
+                mhlib_wrapper.set_sync_channel_enable(false)?;
             }
         }
 
         let input_channels: Vec<MH160DeviceInputChannelConfig> = config.input_channels.into();
         for input_channel in &input_channels {
-            mhlib_wrapper::set_input_channel_enable(device_index, input_channel.id.into(), true)?;
-            mhlib_wrapper::set_input_edge_trigger(
-                device_index,
+            mhlib_wrapper.set_input_channel_enable(input_channel.id.into(), true)?;
+            mhlib_wrapper.set_input_edge_trigger(
                 input_channel.id.into(),
                 input_channel.edge_trigger_level,
                 input_channel.edge_trigger.clone(),
             )?;
-            mhlib_wrapper::set_input_channel_offset(
-                device_index,
-                input_channel.id.into(),
-                input_channel.offset,
-            )?;
+            mhlib_wrapper
+                .set_input_channel_offset(input_channel.id.into(), input_channel.offset)?;
         }
 
         // disable all other input channels
@@ -270,17 +264,16 @@ impl MH160Device {
             acc.insert(x.id);
             acc
         });
-        let total_channels: u8 =
-            mhlib_wrapper::get_number_of_input_channels(device_index)?.try_into()?;
+        let total_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
         for channel_id in 1..=total_channels {
             #[expect(clippy::missing_panics_doc)]
             let channel_id = MH160ChannelId::new(channel_id).expect("This should not happen");
             if !enabled_channels.contains(&channel_id) {
-                mhlib_wrapper::set_input_channel_enable(device_index, channel_id.into(), false)?;
+                mhlib_wrapper.set_input_channel_enable(channel_id.into(), false)?;
             }
         }
 
-        Ok(MH160Device { device_index })
+        Ok(MH160Device { mhlib_wrapper })
     }
 
     fn do_stream_measurement(
@@ -288,20 +281,18 @@ impl MH160Device {
         measurement_time: &Duration,
         tx_channel: &mpsc::Sender<Vec<u32>>,
     ) -> Result<()> {
-        mhlib_wrapper::start_measurement(
-            self.device_index,
-            measurement_time.as_millis().try_into()?,
-        )?;
+        self.mhlib_wrapper
+            .start_measurement(measurement_time.as_millis().try_into()?)?;
         loop {
-            let flags = mhlib_wrapper::get_flags(self.device_index)?;
+            let flags = self.mhlib_wrapper.get_flags()?;
             if flags & 2 > 0 {
                 // FLAG_FIFOFULL
                 bail!("FLAG_FIFOFULL seen, FIFO overrun. Stopping measurement.");
             }
-            let records = mhlib_wrapper::read_fifo(self.device_index)?;
+            let records = self.mhlib_wrapper.read_fifo()?;
             if !records.is_empty() {
                 tx_channel.send(records)?;
-            } else if mhlib_wrapper::ctc_status(self.device_index)? != 0 {
+            } else if self.mhlib_wrapper.ctc_status()? != 0 {
                 // measurement completed
                 break;
             }
@@ -311,20 +302,22 @@ impl MH160Device {
     }
 }
 
-impl MH160 for MH160Device {
+impl<T: MhlibWrapper> MH160 for MH160Device<T> {
     fn get_device_info(&self) -> Result<MH160DeviceInfo> {
-        let (model, partno, version) = mhlib_wrapper::get_hardware_info(self.device_index)?;
-        let (base_resolution, binsteps) = mhlib_wrapper::get_base_resolution(self.device_index)?;
+        let (model, partno, version) = self.mhlib_wrapper.get_hardware_info()?;
+        let (base_resolution, binsteps) = self.mhlib_wrapper.get_base_resolution()?;
         Ok(MH160DeviceInfo {
-            device_index: self.device_index,
-            library_version: mhlib_wrapper::get_library_version()?,
+            device_index: self.mhlib_wrapper.device_index(),
+            library_version: self.mhlib_wrapper.get_library_version()?,
             model,
             partno,
             version,
-            serial_number: mhlib_wrapper::get_serial_number(self.device_index)?,
+            serial_number: self.mhlib_wrapper.get_serial_number()?,
             base_resolution,
             binsteps: binsteps.try_into()?,
-            num_channels: mhlib_wrapper::get_number_of_input_channels(self.device_index)?
+            num_channels: self
+                .mhlib_wrapper
+                .get_number_of_input_channels()?
                 .try_into()?,
         })
     }
@@ -335,7 +328,7 @@ impl MH160 for MH160Device {
         tx_channel: mpsc::Sender<Vec<u32>>,
     ) -> Result<()> {
         let measurement_result = self.do_stream_measurement(measurement_time, &tx_channel);
-        let stop_result = mhlib_wrapper::stop_measurement(self.device_index);
+        let stop_result = self.mhlib_wrapper.stop_measurement();
         if let Err(root_error) = measurement_result {
             let mut final_error =
                 anyhow!("Error while performing MultiHarp measurement.").context(root_error);
@@ -348,9 +341,9 @@ impl MH160 for MH160Device {
     }
 }
 
-impl Drop for MH160Device {
+impl<T: MhlibWrapper> Drop for MH160Device<T> {
     fn drop(&mut self) {
-        if let Err(e) = mhlib_wrapper::close_device(self.device_index) {
+        if let Err(e) = self.mhlib_wrapper.close_device() {
             panic!("Error while closing MultiHarp. {e:?}");
         }
     }

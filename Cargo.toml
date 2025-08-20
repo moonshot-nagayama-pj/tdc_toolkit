@@ -38,9 +38,7 @@ name = "raw_stream_benchmark"
 harness = false
 
 [features]
-extension-module = ["pyo3/extension-module"]
 multiharp = []
-default = ["extension-module", "multiharp"]
 
 [lints.clippy]
 all = "deny"

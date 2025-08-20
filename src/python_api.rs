@@ -10,7 +10,14 @@ use crate::multiharp::device::{
     MH160DeviceSyncChannelConfig,
 };
 use crate::multiharp::device_stub::MH160Stub as WrappedMH160Stub;
-use crate::multiharp::mhlib_wrapper_header::Edge;
+use crate::multiharp::mhlib_wrapper::meta::Edge;
+
+#[cfg(feature = "multiharp")]
+use crate::multiharp::mhlib_wrapper::real::MhlibWrapperReal;
+
+#[cfg(not(feature = "multiharp"))]
+use crate::multiharp::mhlib_wrapper::stub::MhlibWrapperStub;
+
 use crate::multiharp::recording::record_multiharp_to_parquet as wrapped_record_multiharp_to_parquet;
 
 #[pyclass]
@@ -42,14 +49,28 @@ impl Default for MH160Stub {
 #[pyclass]
 #[derive(Clone)]
 pub struct MH160Device {
-    pub wrapped: Arc<WrappedMH160Device>,
+    #[cfg(feature = "multiharp")]
+    pub wrapped: Arc<WrappedMH160Device<MhlibWrapperReal>>,
+
+    #[cfg(not(feature = "multiharp"))]
+    pub wrapped: Arc<WrappedMH160Device<MhlibWrapperStub>>,
 }
 
 #[pymethods]
 impl MH160Device {
     #[staticmethod]
     pub fn from_config(device_index: u8, config: MH160DeviceConfig) -> Result<MH160Device> {
-        let wrapped = Arc::new(WrappedMH160Device::from_config(device_index, config)?);
+        #[cfg(feature = "multiharp")]
+        let wrapped = Arc::new(WrappedMH160Device::from_config(
+            MhlibWrapperReal::new(device_index),
+            config,
+        )?);
+        #[cfg(not(feature = "multiharp"))]
+        let wrapped = Arc::new(WrappedMH160Device::from_config(
+            MhlibWrapperStub::new(device_index),
+            config,
+        )?);
+
         Ok(MH160Device { wrapped })
     }
 

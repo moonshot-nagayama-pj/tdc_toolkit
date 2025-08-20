@@ -10,7 +10,7 @@ pub struct MH160Stub {}
 impl MH160Stub {
     fn generate_raw_records() -> Vec<u32> {
         let capacity = 1u32;
-        let mut raw_records = Vec::with_capacity(capacity as usize); // Can be up to mhlib_wrapper_header::TTREADMAX
+        let mut raw_records = Vec::with_capacity(capacity as usize); // Can be up to TTREADMAX
         for event_time in 0..capacity {
             raw_records.push(0x0200_0001 + event_time);
         }

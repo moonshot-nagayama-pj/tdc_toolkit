@@ -1,3 +1,8 @@
+# TODO figure out how to make more of the project keys dynamic
+# https://www.maturin.rs/metadata.html
+#
+# TODO figure out how to conditionally activate the multiharp feature
+# so maturin doesn't always build it
 [project]
 name = "tdc-toolkit"
 version = "0.3.0"
@@ -38,7 +43,7 @@ allow-direct-references = true
 profile = "black"
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+features = ["multiharp", "pyo3/extension-module"]
 module-name = "tdc_toolkit"
 python-source = "python"
 
