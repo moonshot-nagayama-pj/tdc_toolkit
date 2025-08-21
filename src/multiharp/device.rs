@@ -45,8 +45,8 @@ pub struct MH160DeviceConfig {
     /// tdc-toolkit will assign the channel ID `0` to the sync channel
     /// during normalization.
     ///
-    /// When this field is set to [`None`](std::option::Option::None),
-    /// the sync channel is disabled.
+    /// When this field is set to [`None`], the sync channel is
+    /// disabled.
     pub sync_channel: Option<MH160DeviceSyncChannelConfig>,
 
     /// Configuration for all input channels other than the sync

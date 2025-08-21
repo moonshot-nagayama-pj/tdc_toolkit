@@ -40,6 +40,7 @@ trap trap_exit EXIT
 sudo apt-get update
 sudo apt-get install -y shfmt llvm-dev libclang-dev clang
 
-# Ensure optional Rust components present
+rustup update stable
+rustup default stable
 rustup component add clippy
 rustup component add rustfmt
