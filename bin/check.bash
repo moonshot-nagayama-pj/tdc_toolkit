@@ -38,18 +38,31 @@ python_source_dirs=(python sample_python)
 # cd to the project directory before running anything else
 cd "${project_dir}"
 
+stdmsg "Building and verifying Rust component without optional features..."
+cargo fmt --all -- --check
+cargo clippy
+cargo test
+cargo build
+cargo doc --no-deps
+
+arch=$(uname -m)
+os=$(uname -o)
+if [[ ${arch} == "x86_64" ]] && [[ ${os} =~ Linux ]]; then
+  stdmsg "Building and verifying Rust component with all features..."
+  cargo clippy --all-features
+  cargo test --all-features
+  cargo build --all-features
+  cargo doc --no-deps --all-features
+else
+  stdmsg "Not on x86_64 Linux, skipping all-features build."
+fi
+
 stdmsg "Running uv sync --dev..."
 uv sync --dev
 
 stdmsg "Activating virtual environment..."
 source .venv/bin/activate
 
-stdmsg "Building and verifying Rust component..."
-cargo fmt --all -- --check
-cargo clippy
-cargo test
-cargo build
-cargo doc --no-deps
 maturin develop
 
 stdmsg "Checking Python type hints with mypy..."

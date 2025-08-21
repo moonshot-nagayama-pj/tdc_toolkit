@@ -13,6 +13,11 @@ use strum_macros::Display;
 
 use tdc_toolkit::multiharp::device::{MH160, MH160Device};
 use tdc_toolkit::multiharp::device_stub::MH160Stub;
+
+#[cfg(feature = "multiharp")]
+use tdc_toolkit::multiharp::mhlib_wrapper::real::MhlibWrapperReal;
+
+use tdc_toolkit::multiharp::mhlib_wrapper::stub::MhlibWrapperStub;
 use tdc_toolkit::multiharp::recording;
 
 #[derive(Debug, Parser)]
@@ -28,10 +33,16 @@ enum Command {
     /// Output information about the device, in JSON format. The
     /// schema is device-specific.
     Info {
-        /// Multiharp-specfic. When more than one device is connected
+        /// MultiHarp-specfic. When more than one device is connected
         /// to the computer, select the one to connect to.
         #[arg(long, default_value_t = 0)]
         mh_device_index: u8,
+
+        /// MultiHarp-specific. Choose between implementations of the
+        /// wrapper of PicoQuant's proprietary Multiharp control
+        /// library.
+        #[arg(long, default_value_t = MhWrapperImplementation::default())]
+        mh_wrapper_implementation: MhWrapperImplementation,
 
         /// The type of device being connected.
         #[arg(long, default_value_t = DeviceType::MH160Device)]
@@ -67,10 +78,16 @@ enum Command {
         #[arg(long, value_hint = ValueHint::FilePath)]
         device_config: Option<PathBuf>,
 
-        /// Multiharp-specfic. When more than one device is connected
+        /// MultiHarp-specfic. When more than one device is connected
         /// to the computer, select the one to connect to.
         #[arg(long, default_value_t = 0)]
         mh_device_index: u8,
+
+        /// MultiHarp-specific. Choose between implementations for the
+        /// wrapper of PicoQuant's proprietary MultiHarp control
+        /// library.
+        #[arg(long, default_value_t = MhWrapperImplementation::default())]
+        mh_wrapper_implementation: MhWrapperImplementation,
 
         /// The duration of time to measure. Can be specified in any
         /// format allowed by [`humantime::parse_duration`].
@@ -89,6 +106,23 @@ enum Command {
     },
 }
 
+#[cfg(feature = "multiharp")]
+#[derive(Copy, Clone, Debug, Default, Display, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[strum(serialize_all = "kebab-case")]
+enum MhWrapperImplementation {
+    #[default]
+    Real,
+    Stub,
+}
+
+#[cfg(not(feature = "multiharp"))]
+#[derive(Copy, Clone, Debug, Default, Display, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[strum(serialize_all = "kebab-case")]
+enum MhWrapperImplementation {
+    #[default]
+    Stub,
+}
+
 #[derive(Copy, Clone, Debug, Display, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 #[strum(serialize_all = "kebab-case")]
 enum DeviceType {
@@ -96,17 +130,25 @@ enum DeviceType {
     MH160StubGenerator,
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Command::Info {
             mh_device_index,
+            mh_wrapper_implementation,
             device_type,
         } => {
             let device = match device_type {
-                DeviceType::MH160Device => Ok::<Box<dyn MH160>, Error>(Box::new(
-                    MH160Device::from_current_config(mh_device_index)?,
-                )),
+                DeviceType::MH160Device => match mh_wrapper_implementation {
+                    #[cfg(feature = "multiharp")]
+                    MhWrapperImplementation::Real => Ok::<Box<dyn MH160>, Error>(Box::new(
+                        MH160Device::from_current_config(MhlibWrapperReal::new(mh_device_index))?,
+                    )),
+                    MhWrapperImplementation::Stub => Ok::<Box<dyn MH160>, Error>(Box::new(
+                        MH160Device::from_current_config(MhlibWrapperStub::new(mh_device_index))?,
+                    )),
+                },
                 DeviceType::MH160StubGenerator => Ok(Box::new(MH160Stub {}) as Box<dyn MH160>),
             }?;
             println!(
@@ -119,13 +161,14 @@ fn main() -> Result<()> {
             output_dir,
             device_config,
             mh_device_index,
+            mh_wrapper_implementation,
             duration,
             device_type,
             name,
         } => {
             let device = match device_type {
                 DeviceType::MH160Device => {
-                    let unboxed_device = match device_config {
+                    match device_config {
                         Some(device_config) => {
                             let config =
                                 serde_json::from_str(fs::read_to_string(&device_config)?.as_str())
@@ -136,11 +179,38 @@ fn main() -> Result<()> {
                                         )
                                     })?;
 
-                            MH160Device::from_config(mh_device_index, config)?
+                            match mh_wrapper_implementation {
+                                #[cfg(feature = "multiharp")]
+                                MhWrapperImplementation::Real => Ok::<Arc<dyn MH160>, Error>(
+                                    Arc::new(MH160Device::from_config(
+                                        MhlibWrapperReal::new(mh_device_index),
+                                        config,
+                                    )?) as Arc<(dyn MH160)>,
+                                ),
+                                MhWrapperImplementation::Stub => Ok::<Arc<dyn MH160>, Error>(
+                                    Arc::new(MH160Device::from_config(
+                                        MhlibWrapperStub::new(mh_device_index),
+                                        config,
+                                    )?) as Arc<(dyn MH160)>,
+                                ),
+                            }
                         }
-                        None => MH160Device::from_current_config(mh_device_index)?,
-                    };
-                    Ok::<Arc<dyn MH160>, Error>(Arc::new(unboxed_device) as Arc<(dyn MH160)>)
+                        None => {
+                            match mh_wrapper_implementation {
+                                #[cfg(feature = "multiharp")]
+                                MhWrapperImplementation::Real => Ok::<Arc<dyn MH160>, Error>(
+                                    Arc::new(MH160Device::from_current_config(
+                                        MhlibWrapperReal::new(mh_device_index),
+                                    )?) as Arc<(dyn MH160)>,
+                                ),
+                                MhWrapperImplementation::Stub => Ok::<Arc<dyn MH160>, Error>(
+                                    Arc::new(MH160Device::from_current_config(
+                                        MhlibWrapperStub::new(mh_device_index),
+                                    )?) as Arc<(dyn MH160)>,
+                                ),
+                            }
+                        }
+                    }
                 }
                 DeviceType::MH160StubGenerator => Ok(Arc::new(MH160Stub {}) as Arc<(dyn MH160)>),
             }?;
