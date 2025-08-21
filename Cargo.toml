@@ -5,7 +5,8 @@ version = "0.3.0"
 license = "BSD-3-Clause"
 repository = "https://github.com/moonshot-nagayama-pj/tdc-toolkit"
 keywords = ["tdc", "multiharp", "physics", "quantum"]
-categories = ["api-bindings", "date-and-time", "science"]
+categories = ["api-bindings", "command-line-utilities", "date-and-time", "science"]
+links = "mhlib"
 edition = "2024"
 rust-version = "1.89"
 

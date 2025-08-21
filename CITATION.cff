@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: "tdc_toolkit"
+license: "BSD-3-Clause"
+type: software
+abstract: "Rust CLI and library, as well as Python bindings, for working with time-to-digital converters (TDCs) such as the PicoQuant MultiHarp 160."
+message: "If our software significantly contributed to your research, we ask that you cite it either with the concept DOI in this file, which represents all versions, or with the version-specific DOI matching the version you used."
+authors:
+  - given-names: Andrew
+    family-names: Todd
+    orcid: "https://orcid.org/0009-0008-5423-3500"
+  - given-names: Kentaro
+    family-names: Teramoto
+    orcid: "https://orcid.org/0009-0004-1899-9550"
+keywords:
+  - multiharp
+  - physics
+  - quantum
+  - tdc
