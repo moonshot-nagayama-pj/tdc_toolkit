@@ -26,14 +26,14 @@ build-backend = "maturin"
 
 [dependency-groups]
 dev = [
-    "black>=24.8.0",
-    "isort>=5.13.2",
-    'maturin>=1.4.0 ; platform_system == "Windows"',
-    'maturin[patchelf]>=1.4.0 ; platform_system != "Windows"',
-    "mypy>=1.11.2",
-    "pip>=24.2", # maturin requires pip to be installed to build
-    "pylint>=3.3.1",
-    "ruff>=0.8.2",
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    'maturin>=1.9.3 ; platform_system == "Windows"',
+    'maturin[patchelf]>=1.9.3 ; platform_system != "Windows"',
+    "mypy>=1.17.1",
+    "pip>=25.2", # maturin requires pip to be installed to build
+    "pylint>=3.3.8",
+    "ruff>=0.12.9",
 ]
 
 [tool.hatch.metadata]
