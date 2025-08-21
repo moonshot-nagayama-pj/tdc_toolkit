@@ -1,17 +1,17 @@
-# TODO figure out how to make more of the project keys dynamic
-# https://www.maturin.rs/metadata.html
-#
-# TODO figure out how to conditionally activate the multiharp feature
-# so maturin doesn't always build it
 [project]
-name = "tdc-toolkit"
-version = "0.3.0"
-description = "Rust and Python wrappers and helper libraries for working with time-to-digital converters."
-authors = [
-    { name = "zigen", email = "hrlclb@gmail.com" },
-    { name = "Andrew Todd", email = "at@auspicacious.org" }
+dynamic = [
+        "author",
+        "author_email",
+        "description",
+        "description_content_type",
+        "home_page",
+        "keywords",
+        "license",
+        "project_url",
+        "summary",
+        "version",
 ]
-readme = "README.md"
+name = "tdc-toolkit"
 requires-python = ">= 3.13"
 classifiers = [
     "Programming Language :: Rust",
@@ -42,8 +42,13 @@ allow-direct-references = true
 [tool.isort]
 profile = "black"
 
+# This will build tdc_toolkit without support for the proprietary
+# MultiHarp driver library. To build the Python bindings with
+# MultiHarp support, edit the `features` line to include the
+# `multiharp` feature or directly use the `maturin` command line with
+# `--features` instead of uv.
 [tool.maturin]
-features = ["multiharp", "pyo3/extension-module"]
+features = ["pyo3/extension-module"]
 module-name = "tdc_toolkit"
 python-source = "python"
 
@@ -61,4 +66,4 @@ max-line-length = "88"
 
 # See https://pylint.pycqa.org/en/latest/user_guide/messages/index.html
 [tool.pylint."messages control"]
-disable = ["raw-checker-failed", "bad-inline-option", "locally-disabled", "file-ignored", "suppressed-message", "deprecated-pragma", "use-symbolic-message-instead", "use-implicit-booleaness-not-comparison-to-string", "use-implicit-booleaness-not-comparison-to-zero", "missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "line-too-long", "duplicate-code", "too-many-instance-attributes", "too-few-public-methods", "too-many-public-methods", "too-many-arguments", "too-many-locals", "too-many-positional-arguments", "fixme"]
+disable = ["missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "too-few-public-methods"]

@@ -38,12 +38,6 @@ python_source_dirs=(python sample_python)
 # cd to the project directory before running anything else
 cd "${project_dir}"
 
-stdmsg "Running uv sync --dev..."
-uv sync --dev
-
-stdmsg "Activating virtual environment..."
-source .venv/bin/activate
-
 stdmsg "Building and verifying Rust component without optional features..."
 cargo fmt --all -- --check
 cargo clippy
@@ -62,6 +56,12 @@ if [[ ${arch} == "x86_64" ]] && [[ ${os} =~ Linux ]]; then
 else
   stdmsg "Not on x86_64 Linux, skipping all-features build."
 fi
+
+stdmsg "Running uv sync --dev..."
+uv sync --dev
+
+stdmsg "Activating virtual environment..."
+source .venv/bin/activate
 
 maturin develop
 
