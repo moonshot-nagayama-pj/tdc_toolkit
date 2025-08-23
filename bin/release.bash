@@ -106,11 +106,6 @@ main() {
   next_version="${next_version}-alpha.0"
   cargo set-version "${next_version}"
 
-  cargo set-version --bump patch
-  next_version=$(get_cargo_toml_version)
-  next_version="${next_version}-alpha.0"
-  cargo set-version "${next_version}"
-
   stdmsg "Committing next version..."
   git commit -am "Start next version: ${next_version}"
   git push origin "${branch_name}"
