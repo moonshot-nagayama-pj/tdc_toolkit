@@ -87,3 +87,6 @@ shfmt --diff bin "${python_source_dirs[@]}" src
 
 stdmsg "Running ruff..."
 ruff check .
+
+stdmsg "Validating the CFF file..."
+cffconvert --validate

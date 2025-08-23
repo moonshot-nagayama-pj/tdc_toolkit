@@ -10,19 +10,9 @@ use std::sync::{Arc, mpsc};
 
 use crate::types::NormalizedTimeTag;
 
-/// Write a series of Parquet files to disk containing the data from
-/// the input queue.
+/// Write a series of Parquet files to disk containing the data from the input queue.
 ///
-/// For write efficiency and ease in handling large volumes of data,
-/// we batch writes to Parquet files in chunks of about 200 MiB (as
-/// recommended in [this
-/// discussion](https://github.com/apache/arrow/issues/13142)), and
-/// then rotate to a new file approximately every 2 GiB. Rows are
-/// assumed to contain about 80 bits of data each; ignoring metadata
-/// overhead and compression, this means that a 2 GiB file can hold
-/// approximately 214,700,000 rows. For simplicity, we set the default
-/// size limit for each file to 200,000,000 rows, and default chunk
-/// size to 20,000,000.
+/// For write efficiency and ease in handling large volumes of data, we batch writes to Parquet files in chunks of about 200 MiB (as recommended in [this discussion](https://github.com/apache/arrow/issues/13142)), and then rotate to a new file approximately every 2 GiB. Rows are assumed to contain about 80 bits of data each; ignoring metadata overhead and compression, this means that a 2 GiB file can hold approximately 214,700,000 rows. For simplicity, we set the default size limit for each file to 200,000,000 rows, and default chunk size to 20,000,000.
 pub struct TimeTagStreamParquetWriter {
     // The maximum number of total rows (records) that should be
     // collected before writing to disk.

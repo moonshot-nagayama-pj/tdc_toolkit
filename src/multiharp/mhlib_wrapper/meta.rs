@@ -1,13 +1,8 @@
 //! Definitions needed by both impl and [`stub`](super::stub).
 //!
-//! Many of these values are derived from `mhdefin.h`, which is
-//! bundled with the MultiHarp driver release. The values are copied
-//! here to avoid a hard dependency on downloading the proprietary
-//! MultiHarp shared library when using this library on non-x64
-//! platforms or with non-MultiHarp systems.
+//! Many of these values are derived from `mhdefin.h`, which is bundled with the MultiHarp driver release. The values are copied here to avoid a hard dependency on downloading the proprietary MultiHarp shared library when using this library on non-x64 platforms or with non-MultiHarp systems.
 //!
-//! The original constant names from `mhdefin.h` are preserved as
-//! comments.
+//! The original constant names from `mhdefin.h` are preserved as comments.
 
 use anyhow::Result;
 use pyo3::prelude::*;
@@ -65,16 +60,11 @@ pub enum MeasurementControl {
     SwitchStartSwitchStop = 6_i32, // MEASCTRL_SW_START_SW_STOP
 }
 
-/// The channel ID corresponding to the internal representation used
-/// in the official mhlib library. The ID must be greater than or
-/// equal to `0`. The sync channel cannot be represented in this
-/// scheme.
+/// The channel ID corresponding to the internal representation used in the official mhlib library. The ID must be greater than or equal to `0`. The sync channel cannot be represented in this scheme.
 ///
-/// For example, the channel labeled `1` on the device's front panel
-/// is referred to as channel `0` here.
+/// For example, the channel labeled `1` on the device's front panel is referred to as channel `0` here.
 ///
-/// This struct is used for low-level APIs that interface directly
-/// with mhlib. Higher-level APIs use [`MH160ChannelId`].
+/// This struct is used for low-level APIs that interface directly with mhlib. Higher-level APIs use [`MH160ChannelId`].
 #[derive(PartialEq, Clone, Debug)]
 pub struct MH160InternalChannelId(u8);
 
