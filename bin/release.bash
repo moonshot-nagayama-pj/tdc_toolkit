@@ -94,6 +94,18 @@ main() {
   git push origin "${branch_name}"
   git push origin "v${release_version}"
 
+  # set-version does not allow version downgrades and the author is
+  # very skeptical of allowing this despite the obvious use cases
+  # (especially in the absence of a good way to bump to an alpha
+  # version)
+  #
+  # https://github.com/killercup/cargo-edit/issues/863
+  #
+  # Instead, use a much more fragile approach.
+  next_version=$(cargo set-version --dry-run --bump patch 2>&1 | sed -n -e 's/.*to \([0-9][.][0-9][.][0-9]\)/\1/p')
+  next_version="${next_version}-alpha.0"
+  cargo set-version "${next_version}"
+
   cargo set-version --bump patch
   next_version=$(get_cargo_toml_version)
   next_version="${next_version}-alpha.0"
