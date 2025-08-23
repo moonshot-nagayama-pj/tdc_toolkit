@@ -111,7 +111,7 @@ main() {
   git push origin "${branch_name}"
 
   # Create a pull request
-  pull_request_url="https://github.com/moonshot-nagayama-pj/pnpq/pull/new/${branch_name}"
+  pull_request_url="https://github.com/moonshot-nagayama-pj/tdc_toolkit/pull/new/${branch_name}"
   stdmsg "Please check the pull request at ${pull_request_url}."
   if command -v xdg-open &>/dev/null; then
     xdg-open "${pull_request_url}"
