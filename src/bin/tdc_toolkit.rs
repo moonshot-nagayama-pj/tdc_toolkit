@@ -30,17 +30,14 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// Output information about the device, in JSON format. The
-    /// schema is device-specific.
+    /// Output information about the device, in JSON format. The schema is device-specific.
     Info {
         /// MultiHarp-specfic. When more than one device is connected
         /// to the computer, select the one to connect to.
         #[arg(long, default_value_t = 0)]
         mh_device_index: u8,
 
-        /// MultiHarp-specific. Choose between implementations of the
-        /// wrapper of PicoQuant's proprietary Multiharp control
-        /// library.
+        /// MultiHarp-specific. Choose between implementations of the wrapper of PicoQuant's proprietary Multiharp control library.
         #[arg(long, default_value_t = MhWrapperImplementation::default())]
         mh_wrapper_implementation: MhWrapperImplementation,
 
@@ -49,48 +46,33 @@ enum Command {
         device_type: DeviceType,
     },
 
-    /// Record the output of a device to a series of Parquet
-    /// files.
+    /// Record the output of a device to a series of Parquet files.
     ///
-    /// Regardless of the input device, all output files contain the
-    /// following fields:
+    /// Regardless of the input device, all output files contain the following fields:
     ///
-    /// * `channel`: The device channel associated with the
-    ///   event. [`arrow::datatypes::DataType::UInt16`]
+    /// * `channel`: The device channel associated with the event. [`arrow::datatypes::DataType::UInt16`]
     ///
-    /// * `time_tag`: The monotonic timestamp associated with the
-    ///   event, in picoseconds. [`arrow::datatypes::DataType::UInt64`]
+    /// * `time_tag`: The monotonic timestamp associated with the event, in picoseconds. [`arrow::datatypes::DataType::UInt64`]
     Record {
-        /// The directory where output Parquet files will be
-        /// written. Must exist before the program is run; this
-        /// program will not create the directory.
+        /// The directory where output Parquet files will be written. Must exist before the program is run; this program will not create the directory.
         #[arg(long, value_hint = ValueHint::DirPath, default_value_os_t = PathBuf::from_str(".").unwrap())]
         output_dir: PathBuf,
 
-        /// Path to the configuration file for the
-        /// device. Configuration is device-specific; if this field is
-        /// omitted and the device supports it, the device will be
-        /// opened without changing its current configuration.
+        /// Path to the configuration file for the device. Configuration is device-specific; if this field is omitted and the device supports it, the device will be opened without changing its current configuration.
         ///
-        /// The configuration format for MultiHarp is documented in
-        /// [`MH160DeviceConfig`]. JSON examples are available in the
-        /// source distribution's `sample_config` directory.
+        /// The configuration format for MultiHarp is documented in [`MH160DeviceConfig`]. JSON examples are available in the source distribution's `sample_config` directory.
         #[arg(long, value_hint = ValueHint::FilePath)]
         device_config: Option<PathBuf>,
 
-        /// MultiHarp-specfic. When more than one device is connected
-        /// to the computer, select the one to connect to.
+        /// MultiHarp-specfic. When more than one device is connected to the computer, select the one to connect to.
         #[arg(long, default_value_t = 0)]
         mh_device_index: u8,
 
-        /// MultiHarp-specific. Choose between implementations for the
-        /// wrapper of PicoQuant's proprietary MultiHarp control
-        /// library.
+        /// MultiHarp-specific. Choose between implementations for the wrapper of PicoQuant's proprietary MultiHarp control library.
         #[arg(long, default_value_t = MhWrapperImplementation::default())]
         mh_wrapper_implementation: MhWrapperImplementation,
 
-        /// The duration of time to measure. Can be specified in any
-        /// format allowed by [`humantime::parse_duration`].
+        /// The duration of time to measure. Can be specified in any format allowed by [`humantime::parse_duration`].
         #[arg(long)]
         duration: humantime::Duration,
 
@@ -98,9 +80,7 @@ enum Command {
         #[arg(long, default_value_t = DeviceType::MH160Device)]
         device_type: DeviceType,
 
-        /// A string that will be used as part of the output filename,
-        /// to help distinguish this recording session from other
-        /// sessions in the same directory.
+        /// A string that will be used as part of the output filename, to help distinguish this recording session from other sessions in the same directory.
         #[arg(long, default_value_t = String::from("record"))]
         name: String,
     },

@@ -4,7 +4,7 @@
 
 Source code in this repository is available under [the 3-Clause BSD License](https://opensource.org/license/BSD-3-clause).
 
-> Copyright 2023-present https://github.com/moonshot-nagayama-pj/tdc-toolkit contributors
+> Copyright 2023-present https://github.com/moonshot-nagayama-pj/tdc_toolkit contributors
 >
 > Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 >
@@ -24,7 +24,7 @@ Non-code content in this repository is available under the [Creative Commons Att
 
 Non-trivial use of any content from this repository requires proper attribution to the authors. For non-source code content, the easiest way to do this is to link back to our repository in a way that makes sense in your comment. For example:
 
-> This document contains work from the tdc-toolkit documentation, available under the [Creative Commons Attribution 4.0 International license](https://creativecommons.org/licenses/by/4.0/) and [accessible from their GitHub repository](https://github.com/moonshot-nagayama-pj/tdc-toolkit).
+> This document contains work from the tdc\_toolkit documentation, available under the [Creative Commons Attribution 4.0 International license](https://creativecommons.org/licenses/by/4.0/) and [accessible from their GitHub repository](https://github.com/moonshot-nagayama-pj/tdc_toolkit).
 
 For source code, please follow the instructions in the license.
 

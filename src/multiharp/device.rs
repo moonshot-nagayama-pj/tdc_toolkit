@@ -4,22 +4,15 @@
 //!
 //! ### Lifecycle
 //!
-//! Generally speaking, a device is first opened, some action is
-//! performed, and the device is then closed. The device is opened
-//! when its struct is instantiated and closed when Drop is called.
+//! Generally speaking, a device is first opened, some action is performed, and the device is then closed. The device is opened when its struct is instantiated and closed when Drop is called.
 //!
 //! ### Configuration
 //!
-//! If the device is to be used for measurement, it must be configured
-//! during initialization. The device configuration cannot be changed
-//! once initialized. Instead, to change the configuration, drop the
-//! device instance and create a new instance. This will close the
-//! device and re-initialize it.
+//! If the device is to be used for measurement, it must be configured during initialization. The device configuration cannot be changed once initialized. Instead, to change the configuration, drop the device instance and create a new instance. This will close the device and re-initialize it.
 //!
 //! The root configuration struct is [`MH160DeviceConfig`].
 //!
-//! Some actions, such as [`MH160Device::get_device_info()`], do not require
-//! configuration.
+//! Some actions, such as [`MH160Device::get_device_info()`], do not require configuration.
 
 use anyhow::{Result, anyhow, bail};
 use pyo3::prelude::*;
@@ -36,26 +29,16 @@ use super::mhlib_wrapper::meta::{Edge, MhlibWrapper, Mode, RefSource};
 #[pyclass(get_all, set_all)]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceConfig {
-    /// Configuration for the sync channel. In the MultiHarp's
-    /// internal representation, the sync channel is
-    /// unnumbered. However, in TTTR T2 mode, the only mode
-    /// tdc-toolkit currently supports, the sync channel essentially
-    /// behaves as an extra channel, with no special properties.
+    /// Configuration for the sync channel. In the MultiHarp's internal representation, the sync channel is unnumbered. However, in TTTR T2 mode, the only mode `tdc_toolkit` currently supports, the sync channel essentially behaves as an extra channel, with no special properties.
     ///
-    /// tdc-toolkit will assign the channel ID `0` to the sync channel
-    /// during normalization.
+    /// `tdc_toolkit` will assign the channel ID `0` to the sync channel during normalization.
     ///
-    /// When this field is set to [`None`], the sync channel is
-    /// disabled.
+    /// When this field is set to [`None`], the sync channel is disabled.
     pub sync_channel: Option<MH160DeviceSyncChannelConfig>,
 
-    /// Configuration for all input channels other than the sync
-    /// channel. Providing a channel configuration here enables the
-    /// channel; if no declaration is present for a particular
-    /// channel, it is disabled.
+    /// Configuration for all input channels other than the sync channel. Providing a channel configuration here enables the channel; if no declaration is present for a particular channel, it is disabled.
     ///
-    /// Attempting to configure the same channel more than once will
-    /// cause an error.
+    /// Attempting to configure the same channel more than once will cause an error.
     pub input_channels: MH160DeviceInputChannelConfigs,
 }
 
@@ -73,12 +56,9 @@ pub struct MH160DeviceSyncChannelConfig {
 #[pyclass(get_all, set_all)]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInputChannelConfig {
-    /// The channel ID, corresponding to the channel ID numbers on the
-    /// MultiHarp's interface panel. The ID must be greater than or
-    /// equal to `1`. `0` is reserved for the sync channel.
+    /// The channel ID, corresponding to the channel ID numbers on the MultiHarp's interface panel. The ID must be greater than or equal to `1`. `0` is reserved for the sync channel.
     ///
-    /// Internally, the MultiHarp software counts channel IDs from
-    /// zero and does not assign an ID to the sync channel.
+    /// Internally, the MultiHarp software counts channel IDs from zero and does not assign an ID to the sync channel.
     pub id: MH160ChannelId,
     pub edge_trigger_level: i32, // mV
     pub edge_trigger: Edge,
@@ -131,14 +111,9 @@ impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig>
     }
 }
 
-/// The channel ID, corresponding to the channel ID numbers on the
-/// MultiHarp's interface panel. The ID must be greater than or equal
-/// to `1`. `0` is reserved for the sync channel.
+/// The channel ID, corresponding to the channel ID numbers on the MultiHarp's interface panel. The ID must be greater than or equal to `1`. `0` is reserved for the sync channel.
 ///
-/// Internally, the MultiHarp software counts channel IDs from zero
-/// and does not assign an ID to the sync channel. Lower-level APIs
-/// which require that internal representation use
-/// [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId).
+/// Internally, the MultiHarp software counts channel IDs from zero and does not assign an ID to the sync channel. Lower-level APIs which require that internal representation use [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId).
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
 #[pyclass]
 #[serde(try_from = "u8", into = "u8")]
