@@ -36,7 +36,7 @@ fn main() {
                     lib_dir_path.display()
                 );
                 println!(
-                    "cargo::warning=Using the value of the MHLIB_LIB_DIR environment variable to find the Multiharp shared library."
+                    "cargo::warning=Using the value of the MHLIB_LIB_DIR environment variable to find the MultiHarp shared library."
                 );
             }
             Err(e) => match e {
@@ -50,14 +50,14 @@ fn main() {
 
                     if lib_dir_path.exists() {
                         println!(
-                            "cargo::warning=Using an existing copy of the Multiharp shared library in CARGO_MANIFEST_DIR {manifest_dir}"
+                            "cargo::warning=Using an existing copy of the MultiHarp shared library in CARGO_MANIFEST_DIR {manifest_dir}"
                         );
                     } else {
                         // Check to see if it was installed systemwide.
                         lib_dir_path = PathBuf::from("/usr/local/lib/mh150");
                         if lib_dir_path.exists() {
                             println!(
-                                "cargo::warning=Using the system installation of the Multiharp shared library."
+                                "cargo::warning=Using the system installation of the MultiHarp shared library."
                             );
                         } else {
                             // Download it ourselves.
@@ -72,10 +72,10 @@ fn main() {
                                 .join("MHLib_v3.1.0.0_64bit/library");
                             assert!(
                                 lib_dir_path.exists(),
-                                "Could not find a copy of the Multiharp library. Attempted to download the Multiharp library and failed. Don't know what to do. Exiting.",
+                                "Could not find a copy of the MultiHarp library. Attempted to download the MultiHarp library and failed. Don't know what to do. Exiting.",
                             );
                             println!(
-                                "cargo::warning=Downloaded a new copy of the Multiharp shared library and placed it in CARGO_MANIFEST_DIR {manifest_dir}."
+                                "cargo::warning=Downloaded a new copy of the MultiHarp shared library and placed it in CARGO_MANIFEST_DIR {manifest_dir}."
                             );
                         }
                     }
@@ -91,7 +91,7 @@ fn main() {
         lib_dir = lib_dir_path.to_string_lossy().into_owned();
         if lib_dir_path.join("mhlib.h").exists() {
             println!(
-                "cargo::warning=Found Multiharp header files in the same directory as the shared library. Using them."
+                "cargo::warning=Found MultiHarp header files in the same directory as the shared library. Using them."
             );
             include_dir.clone_from(&lib_dir);
         } else {
@@ -105,7 +105,7 @@ fn main() {
                 include_dir_path.display(),
             );
             println!(
-                "cargo::warning=Did not find Multiharp header files in the same directory as the shared library. Using a separate include directory."
+                "cargo::warning=Did not find MultiHarp header files in the same directory as the shared library. Using a separate include directory."
             );
             include_dir = include_dir_path.to_string_lossy().into_owned();
         }
