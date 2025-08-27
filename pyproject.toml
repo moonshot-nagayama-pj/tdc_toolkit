@@ -60,7 +60,7 @@ profile = "black"
 # `multiharp` feature or directly use the `maturin` command line with
 # `--features` instead of uv.
 [tool.maturin]
-features = ["pyo3/extension-module"]
+features = ["pyo3/extension-module", "python"]
 module-name = "tdc_toolkit"
 python-source = "python"
 

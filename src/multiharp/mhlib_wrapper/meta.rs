@@ -5,7 +5,10 @@
 //! The original constant names from `mhdefin.h` are preserved as comments.
 
 use anyhow::Result;
+
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
+
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
 
@@ -15,7 +18,7 @@ pub const TTREADMAX: usize = 1_048_576;
 
 #[derive(Clone, Debug)]
 #[repr(i32)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum Mode {
     Hist = 0_i32, // MODE_HIST
     T2 = 2_i32,   // MODE_T2
@@ -24,7 +27,7 @@ pub enum Mode {
 
 #[derive(Clone, Debug)]
 #[repr(u32)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum RefSource {
     InternalClock = 0,                   // REFSRC_INTERNAL
     ExternalClock10MHz = 1,              // REFSRC_EXTERNAL_10MHZ
@@ -41,7 +44,7 @@ pub enum RefSource {
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[repr(i32)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum Edge {
     Falling = 0_i32, // EDGE_FALLING
     Rising = 1_i32,  // EDGE_RISING
@@ -49,7 +52,7 @@ pub enum Edge {
 
 #[derive(Clone)]
 #[repr(i32)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum MeasurementControl {
     SingleShotCtc = 0_i32,         // MEASCTRL_SINGLESHOT_CTC
     C1Gated = 1_i32,               // MEASCTRL_C1_GATED
