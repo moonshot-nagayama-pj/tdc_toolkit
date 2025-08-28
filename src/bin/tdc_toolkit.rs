@@ -37,7 +37,7 @@ enum Command {
         #[arg(long, default_value_t = 0)]
         mh_device_index: u8,
 
-        /// MultiHarp-specific. Choose between implementations of the wrapper of PicoQuant's proprietary Multiharp control library.
+        /// MultiHarp-specific. Choose between implementations of the wrapper of PicoQuant's proprietary MultiHarp control library.
         #[arg(long, default_value_t = MhWrapperImplementation::default())]
         mh_wrapper_implementation: MhWrapperImplementation,
 

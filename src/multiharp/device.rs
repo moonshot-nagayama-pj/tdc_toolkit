@@ -15,7 +15,10 @@
 //! Some actions, such as [`MH160Device::get_device_info()`], do not require configuration.
 
 use anyhow::{Result, anyhow, bail};
+
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
+
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -26,7 +29,7 @@ use super::mhlib_wrapper::meta::{Edge, MhlibWrapper, Mode, RefSource};
 
 /// MultiHarp 160 device configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
-#[pyclass(get_all, set_all)]
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceConfig {
     /// Configuration for the sync channel. In the MultiHarp's internal representation, the sync channel is unnumbered. However, in TTTR T2 mode, the only mode `tdc_toolkit` currently supports, the sync channel essentially behaves as an extra channel, with no special properties.
@@ -43,7 +46,7 @@ pub struct MH160DeviceConfig {
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
-#[pyclass(get_all, set_all)]
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceSyncChannelConfig {
     pub divider: i32,
@@ -53,7 +56,7 @@ pub struct MH160DeviceSyncChannelConfig {
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
-#[pyclass(get_all, set_all)]
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInputChannelConfig {
     /// The channel ID, corresponding to the channel ID numbers on the MultiHarp's interface panel. The ID must be greater than or equal to `1`. `0` is reserved for the sync channel.
@@ -66,7 +69,7 @@ pub struct MH160DeviceInputChannelConfig {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 #[serde(
     try_from = "Vec<MH160DeviceInputChannelConfig>",
     into = "Vec<MH160DeviceInputChannelConfig>"
@@ -115,7 +118,7 @@ impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig>
 ///
 /// Internally, the MultiHarp software counts channel IDs from zero and does not assign an ID to the sync channel. Lower-level APIs which require that internal representation use [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId).
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 #[serde(try_from = "u8", into = "u8")]
 pub struct MH160ChannelId(u8);
 
@@ -144,7 +147,7 @@ impl From<MH160ChannelId> for u8 {
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
-#[pyclass(get_all, str)]
+#[cfg_attr(feature = "python", pyclass(get_all, str))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInfo {
     // Amalgamation of device-related information collected from

@@ -30,7 +30,7 @@ If a change might need more discussion, please create a GitHub issue in this pro
 
 Before making a pull request, please be sure to run the script `bin/check.bash`. This will run our static analysis checks and unit tests, all of which must pass before a pull request will be accepted.
 
-Ensure that pull requests have meaningful titles. The title will be used in the changelog.
+Ensure that pull requests have meaningful titles. The title may be used in the changelog.
 
 ## Licensing and attribution
 
