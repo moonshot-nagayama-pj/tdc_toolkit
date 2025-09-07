@@ -1,5 +1,6 @@
 use anyhow::{Result, anyhow};
 use std::os::raw::c_int;
+use libloading::Symbol;
 
 mod bindings {
     #![allow(dead_code, clippy::unreadable_literal)]
@@ -17,6 +18,8 @@ use self::bindings::{
     MH_SetInputEdgeTrg, MH_SetInputHysteresis, MH_SetMeasControl, MH_SetOffset, MH_SetStopOverflow,
     MH_SetSyncChannelEnable, MH_SetSyncChannelOffset, MH_SetSyncDeadTime, MH_SetSyncDiv,
     MH_SetSyncEdgeTrg, MH_SetTriggerOutput, MH_StartMeas, MH_StopMeas,
+    MH_SetRowEventFilter, MH_EnableRowEventFilter, MH_SetMainEventFilterParams, MH_SetMainEventFilterChannels,
+    MH_EnableMainEventFilter, MH_SetFilterTestMode, MH_GetRowFilteredRates, MH_GetMainFilteredRates,
 };
 
 use super::meta;
@@ -52,6 +55,16 @@ impl MhlibWrapperReal {
     #[must_use]
     pub fn new(device_index: u8) -> Self {
         Self { device_index }
+    }
+    fn assert_event_filter_supported(&self) -> Result<()> {
+        let mut feat: i32 = 0;
+        let rc = unsafe { MH_GetFeatures(self.device_index.into(), &mut feat) };
+        handle_error(rc)?;
+        const FEATURE_EVNT_FILT: i32 = 1 << 7;
+        if (feat & FEATURE_EVNT_FILT) == 0 {
+            anyhow::bail!("Event filtering not supported by this device/firmware");
+        }
+        Ok(())
     }
 }
 
@@ -544,6 +557,105 @@ impl MhlibWrapper for MhlibWrapperReal {
             handle_error(ret)?;
             Ok(ctc_status == 0)
         }
+    }
+
+    fn set_row_event_filter(
+        &self,
+        rowidx: i32,
+        timerange_ps: i32,
+        matchcnt: i32,
+        inverse: bool,
+        usechannels_bits: i32,
+        passchannels_bits: i32,
+    ) -> Result<()> {
+        self.assert_event_filter_supported().ok(); // 任意（無ければ削除可）
+        let rc = unsafe {
+            MH_SetRowEventFilter(
+                self.device_index.into(),
+                rowidx,
+                timerange_ps,
+                matchcnt,
+                if inverse { 1 } else { 0 },
+                usechannels_bits,
+                passchannels_bits,
+            )
+        };
+        handle_error(rc)
+    }
+
+    fn enable_row_event_filter(&self, rowidx: i32, enable: bool) -> Result<()> {
+        let rc = unsafe {
+            MH_EnableRowEventFilter(self.device_index.into(), rowidx, if enable { 1 } else { 0 })
+        };
+        handle_error(rc)
+    }
+
+    fn set_main_event_filter_params(
+        &self,
+        timerange_ps: i32,
+        matchcnt: i32,
+        inverse: bool,
+    ) -> Result<()> {
+        let rc = unsafe {
+            MH_SetMainEventFilterParams(
+                self.device_index.into(),
+                timerange_ps,
+                matchcnt,
+                if inverse { 1 } else { 0 },
+            )
+        };
+        handle_error(rc)
+    }
+
+    fn set_main_event_filter_channels(
+        &self,
+        rowidx: i32,
+        usechannels_bits: i32,
+        passchannels_bits: i32,
+    ) -> Result<()> {
+        let rc = unsafe {
+            MH_SetMainEventFilterChannels(
+                self.device_index.into(),
+                rowidx,
+                usechannels_bits,
+                passchannels_bits,
+            )
+        };
+        handle_error(rc)
+    }
+
+    fn enable_main_event_filter(&self, enable: bool) -> Result<()> {
+        let rc = unsafe {
+            MH_EnableMainEventFilter(self.device_index.into(), if enable { 1 } else { 0 })
+        };
+        handle_error(rc)
+    }
+
+    fn set_filter_test_mode(&self, test_mode: bool) -> Result<()> {
+        let rc = unsafe {
+            MH_SetFilterTestMode(self.device_index.into(), if test_mode { 1 } else { 0 })
+        };
+        handle_error(rc)
+    }
+
+    fn get_row_filtered_rates(&self) -> Result<(i32, Vec<i32>)> {
+        let mut sync: i32 = 0;
+        let mut rates = vec![0i32; unsafe { MAXINPCHAN as usize }];
+        let rc = unsafe {
+            MH_GetRowFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
+        };
+        handle_error(rc)?;
+        Ok((sync, rates))
+    }
+
+    fn get_main_filtered_rates(&self) -> Result<(i32, Vec<i32>)> {
+        let mut sync: i32 = 0;
+        let mut rates = vec![0i32; unsafe { MAXINPCHAN as usize }];
+        let rc = unsafe {
+            MH_GetMainFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
+        };
+        handle_error(rc)?;
+        Ok((sync, rates))
     }
 }
 
