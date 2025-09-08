@@ -226,54 +226,79 @@ impl MhlibWrapper for MhlibWrapperStub {
     fn is_measurement_running(&self) -> Result<bool> {
         Ok(true)
     }
+    type Error = std::convert::Infallible;
+
     fn set_row_event_filter(
         &self,
+        _devidx: i32,
         _rowidx: i32,
         _timerange_ps: i32,
         _matchcnt: i32,
         _inverse: bool,
         _usechannels_bits: i32,
         _passchannels_bits: i32,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), Self::Error> {
         Ok(())
     }
 
-    fn enable_row_event_filter(&self, _rowidx: i32, _enable: bool) -> Result<()> {
+    fn enable_row_event_filter(
+        &self,
+        _devidx: i32,
+        _rowidx: i32,
+        _enable: bool,
+    ) -> std::result::Result<(), Self::Error> {
         Ok(())
     }
 
     fn set_main_event_filter_params(
         &self,
+        _devidx: i32,
         _timerange_ps: i32,
         _matchcnt: i32,
         _inverse: bool,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), Self::Error> {
         Ok(())
     }
 
     fn set_main_event_filter_channels(
         &self,
+        _devidx: i32,
         _rowidx: i32,
         _usechannels_bits: i32,
         _passchannels_bits: i32,
-    ) -> Result<()> {
+    ) -> std::result::Result<(), Self::Error> {
         Ok(())
     }
 
-    fn enable_main_event_filter(&self, _enable: bool) -> Result<()> {
+    fn enable_main_event_filter(
+        &self,
+        _devidx: i32,
+        _enable: bool,
+    ) -> std::result::Result<(), Self::Error> {
         Ok(())
     }
 
-    fn set_filter_test_mode(&self, _test_mode: bool) -> Result<()> {
+    fn set_filter_test_mode(
+        &self,
+        _devidx: i32,
+        _test_mode: bool,
+    ) -> std::result::Result<(), Self::Error> {
         Ok(())
     }
 
-    fn get_row_filtered_rates(&self) -> Result<(i32, Vec<i32>)> {
-        Ok((0, vec![0; 64]))
+    fn get_row_filtered_rates(
+        &self,
+        _devidx: i32,
+        num_channels: usize,
+    ) -> std::result::Result<(i32, Vec<i32>), Self::Error> {
+        Ok((0, vec![0; num_channels]))
     }
 
-    fn get_main_filtered_rates(&self) -> Result<(i32, Vec<i32>)> {
-        Ok((0, vec![0; 64]))
+    fn get_main_filtered_rates(
+        &self,
+        _devidx: i32,
+        num_channels: usize,
+    ) -> std::result::Result<(i32, Vec<i32>), Self::Error> {
+        Ok((0, vec![0; num_channels]))
     }
-}
 }

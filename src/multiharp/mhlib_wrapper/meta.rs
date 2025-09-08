@@ -158,6 +158,7 @@ pub trait MhlibWrapper: Send + Sync {
     fn set_trigger_output(&self, period_100ns: i32) -> Result<()>;
     fn start_measurement(&self, acquisition_time: i32) -> Result<()>;
     fn stop_measurement(&self) -> Result<()>;
+    type Error;
     fn set_row_event_filter(
         &self,
         devidx: i32,
@@ -167,32 +168,52 @@ pub trait MhlibWrapper: Send + Sync {
         inverse: bool,
         usechannels_bits: i32,
         passchannels_bits: i32,
-    ) -> Result<(), MhError>;
-    fn enable_row_event_filter(&self, devidx: i32, rowidx: i32, enable: bool) -> Result<(), MhError>;
+    ) -> Result<(), Self::Error>;
+
+    fn enable_row_event_filter(
+        &self,
+        devidx: i32,
+        rowidx: i32,
+        enable: bool,
+    ) -> Result<(), Self::Error>;
+
     fn set_main_event_filter_params(
         &self,
         devidx: i32,
         timerange_ps: i32,
         matchcnt: i32,
         inverse: bool,
-    ) -> Result<(), MhError>;
+    ) -> Result<(), Self::Error>;
+
     fn set_main_event_filter_channels(
         &self,
         devidx: i32,
         rowidx: i32,
         usechannels_bits: i32,
         passchannels_bits: i32,
-    ) -> Result<(), MhError>;
-    fn enable_main_event_filter(&self, devidx: i32, enable: bool) -> Result<(), MhError>;
-    fn set_filter_test_mode(&self, devidx: i32, test_mode: bool) -> Result<(), MhError>;
+    ) -> Result<(), Self::Error>;
+
+    fn enable_main_event_filter(
+        &self,
+        devidx: i32,
+        enable: bool,
+    ) -> Result<(), Self::Error>;
+
+    fn set_filter_test_mode(
+        &self,
+        devidx: i32,
+        test_mode: bool,
+    ) -> Result<(), Self::Error>;
+
     fn get_row_filtered_rates(
         &self,
         devidx: i32,
         num_channels: usize,
-    ) -> Result<(i32, Vec<i32>), MhError>;
+    ) -> Result<(i32, Vec<i32>), Self::Error>;
+
     fn get_main_filtered_rates(
         &self,
         devidx: i32,
         num_channels: usize,
-    ) -> Result<(i32, Vec<i32>), MhError>;
+    ) -> Result<(i32, Vec<i32>), Self::Error>;
 }
