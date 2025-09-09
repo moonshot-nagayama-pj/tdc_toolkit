@@ -297,9 +297,15 @@ where
                 let dev = i32::from(mhlib_wrapper.device_index());
 
                 ensure!(channels.len() <= 4, "too many rows for per-channel filter");
+                let total_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
 
                 for (rowidx, c) in channels.iter().enumerate() {
                     let rowidx = rowidx as i32;
+                    ensure!(
+                        c.channel >= 1 && c.channel <= total_channels,
+                        "per_channel: invalid channel {} (1..={} allowed)",
+                        c.channel, total_channels
+                    );
                     let timerange_ps: i32 = ((c.width_ps / 2).min(i32::MAX as u64)) as i32;
                     let matchcnt: i32 = 1;
 
@@ -346,7 +352,7 @@ where
     }
 }
 
-impl<T: MhlibWrapper> MH160 for MH160Device<T>
+impl<T> MH160 for MH160Device<T>
 where
     T: MhlibWrapper,
     T::Error: StdError + Send + Sync + 'static,
