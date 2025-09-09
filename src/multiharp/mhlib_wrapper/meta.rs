@@ -158,62 +158,53 @@ pub trait MhlibWrapper: Send + Sync {
     fn set_trigger_output(&self, period_100ns: i32) -> Result<()>;
     fn start_measurement(&self, acquisition_time: i32) -> Result<()>;
     fn stop_measurement(&self) -> Result<()>;
-    type Error;
     fn set_row_event_filter(
         &self,
-        devidx: i32,
         rowidx: i32,
-        timerange_ps: i32,
-        matchcnt: i32,
+        time_range_ps: i32,
+        match_count: i32,
         inverse: bool,
-        usechannels_bits: i32,
-        passchannels_bits: i32,
-    ) -> Result<(), Self::Error>;
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
 
     fn enable_row_event_filter(
         &self,
-        devidx: i32,
         rowidx: i32,
         enable: bool,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<()>;
 
     fn set_main_event_filter_params(
         &self,
-        devidx: i32,
-        timerange_ps: i32,
-        matchcnt: i32,
+        time_range_ps: i32,
+        match_count: i32,
         inverse: bool,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<()>;
 
     fn set_main_event_filter_channels(
         &self,
-        devidx: i32,
         rowidx: i32,
-        usechannels_bits: i32,
-        passchannels_bits: i32,
-    ) -> Result<(), Self::Error>;
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
 
     fn enable_main_event_filter(
         &self,
-        devidx: i32,
         enable: bool,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<()>;
 
     fn set_filter_test_mode(
         &self,
-        devidx: i32,
         test_mode: bool,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<()>;
 
     fn get_row_filtered_rates(
         &self,
-        devidx: i32,
         num_channels: usize,
-    ) -> Result<(i32, Vec<i32>), Self::Error>;
+    ) -> Result<(i32, Vec<i32>)>;
 
     fn get_main_filtered_rates(
         &self,
-        devidx: i32,
         num_channels: usize,
-    ) -> Result<(i32, Vec<i32>), Self::Error>;
+    ) -> Result<(i32, Vec<i32>)>;
 }

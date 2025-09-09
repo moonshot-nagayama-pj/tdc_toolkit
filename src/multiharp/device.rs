@@ -24,7 +24,6 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
-use std::error::Error as StdError;
 use anyhow::ensure;
 
 use super::mhlib_wrapper::meta::{Edge, MhlibWrapper, Mode, RefSource};
@@ -206,11 +205,7 @@ fn mask_for_channel(ch: u8) -> i32 {
     1 << ((ch - 1) as i32)
 }
 
-impl<T> MH160Device<T>
-where
-    T: MhlibWrapper,
-    T::Error: StdError + Send+ Sync + 'static,
-{
+impl<T: MhlibWrapper> MH160Device<T> {
     pub fn from_current_config(mhlib_wrapper: T) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
         mhlib_wrapper.initialize(Mode::T2, RefSource::InternalClock)?;
@@ -271,31 +266,27 @@ where
 
         match &config.event_filter {
             None | Some(EventFilterConfig::Off) => {
-                let dev = i32::from(mhlib_wrapper.device_index());
-                let _ = mhlib_wrapper.enable_main_event_filter(dev, false);
-                for rowidx in 0..4 { let _ = mhlib_wrapper.enable_row_event_filter(dev, rowidx, false); }
-                let _ = mhlib_wrapper.set_filter_test_mode(dev, false);
+                let _ = mhlib_wrapper.enable_main_event_filter(false);
+                for rowidx in 0..4 { let _ = mhlib_wrapper.enable_row_event_filter(rowidx, false); }
+                let _ = mhlib_wrapper.set_filter_test_mode(false);
             }
 
             Some(EventFilterConfig::Global { enable, center_ps: _, width_ps, invert }) => {
-                let dev = i32::from(mhlib_wrapper.device_index());
-                let timerange_ps: i32 = ((*width_ps / 2).min(i32::MAX as u64)) as i32;
-                let matchcnt: i32 = 1;
+                let time_range_ps: i32 = ((*width_ps / 2).min(i32::MAX as u64)) as i32;
+                let match_count: i32 = 1;
 
                 let enabled_channels = input_channels.iter().map(|c| u8::from(c.id)).collect::<Vec<_>>();
                 let use_bits  = mask_from_channels(&enabled_channels);
                 let pass_bits = use_bits;
 
-                mhlib_wrapper.set_main_event_filter_params(dev, timerange_ps, matchcnt, *invert)?;
-                mhlib_wrapper.set_main_event_filter_channels(dev, 0, use_bits, pass_bits)?;
-                mhlib_wrapper.enable_row_event_filter(dev, 0, true)?;
-                mhlib_wrapper.set_filter_test_mode(dev, false)?;
-                mhlib_wrapper.enable_main_event_filter(dev, *enable)?;
+                mhlib_wrapper.set_main_event_filter_params(time_range_ps, match_count, *invert)?;
+                mhlib_wrapper.set_main_event_filter_channels(0, use_bits, pass_bits)?;
+                mhlib_wrapper.enable_row_event_filter(0, true)?;
+                mhlib_wrapper.set_filter_test_mode(false)?;
+                mhlib_wrapper.enable_main_event_filter(*enable)?;
             }
 
             Some(EventFilterConfig::PerChannel { channels }) => {
-                let dev = i32::from(mhlib_wrapper.device_index());
-
                 ensure!(channels.len() <= 4, "too many rows for per-channel filter");
                 let total_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
 
@@ -306,20 +297,20 @@ where
                         "per_channel: invalid channel {} (1..={} allowed)",
                         c.channel, total_channels
                     );
-                    let timerange_ps: i32 = ((c.width_ps / 2).min(i32::MAX as u64)) as i32;
-                    let matchcnt: i32 = 1;
+                    let time_range_ps: i32 = ((c.width_ps / 2).min(i32::MAX as u64)) as i32;
+                    let match_count: i32 = 1;
 
                     let use_bits  = mask_for_channel(c.channel);
                     let pass_bits = use_bits;
 
                     mhlib_wrapper.set_row_event_filter(
-                        dev, rowidx, timerange_ps, matchcnt, c.invert, use_bits, pass_bits
+                        rowidx, time_range_ps, match_count,c.invert, use_bits, pass_bits
                     )?;
-                    mhlib_wrapper.enable_row_event_filter(dev, rowidx, c.enable)?;
+                    mhlib_wrapper.enable_row_event_filter(rowidx, c.enable)?;
                 }
 
                 let any_enabled = channels.iter().any(|c| c.enable);
-                mhlib_wrapper.enable_main_event_filter(dev, any_enabled)?;
+                mhlib_wrapper.enable_main_event_filter(any_enabled)?;
             }
         }
 
@@ -352,11 +343,7 @@ where
     }
 }
 
-impl<T> MH160 for MH160Device<T>
-where
-    T: MhlibWrapper,
-    T::Error: StdError + Send + Sync + 'static,
-{
+impl<T: MhlibWrapper> MH160 for MH160Device<T>{
     fn get_device_info(&self) -> Result<MH160DeviceInfo> {
         let (model, partno, version) = self.mhlib_wrapper.get_hardware_info()?;
         let (base_resolution, binsteps) = self.mhlib_wrapper.get_base_resolution()?;
@@ -399,13 +386,11 @@ const ROW_MAX: i32 = 4;
 
 impl<T: MhlibWrapper> Drop for MH160Device<T> {
     fn drop(&mut self) {
-        let dev: i32 = i32::from(self.mhlib_wrapper.device_index());
-
-        let _ = self.mhlib_wrapper.enable_main_event_filter(dev, false);
+        let _ = self.mhlib_wrapper.enable_main_event_filter(false);
         for rowidx in 0..ROW_MAX {
-            let _ = self.mhlib_wrapper.enable_row_event_filter(dev, rowidx, false);
+            let _ = self.mhlib_wrapper.enable_row_event_filter(rowidx, false);
         }
-        let _ = self.mhlib_wrapper.set_filter_test_mode(dev, false);
+        let _ = self.mhlib_wrapper.set_filter_test_mode(false);
 
         if let Err(e) = self.mhlib_wrapper.close_device() {
             panic!("Error while closing MultiHarp. {e:?}");

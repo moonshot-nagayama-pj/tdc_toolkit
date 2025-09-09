@@ -56,6 +56,7 @@ impl MhlibWrapperReal {
     pub fn new(device_index: u8) -> Self {
         Self { device_index }
     }
+
     fn assert_event_filter_supported(&self) -> Result<()> {
         let mut feat: i32 = 0;
         let rc = unsafe { MH_GetFeatures(self.device_index.into(), &mut feat) };
@@ -562,22 +563,23 @@ impl MhlibWrapper for MhlibWrapperReal {
     fn set_row_event_filter(
         &self,
         rowidx: i32,
-        timerange_ps: i32,
-        matchcnt: i32,
+        time_range_ps: i32,
+        match_count: i32,
         inverse: bool,
-        usechannels_bits: i32,
-        passchannels_bits: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
     ) -> Result<()> {
-        self.assert_event_filter_supported().ok(); // 任意（無ければ削除可）
+        self.assert_event_filter_supported()
+            .context("event filter not supported on this device")?;
         let rc = unsafe {
             MH_SetRowEventFilter(
                 self.device_index.into(),
                 rowidx,
-                timerange_ps,
-                matchcnt,
+                time_range_ps,
+                match_count,
                 if inverse { 1 } else { 0 },
-                usechannels_bits,
-                passchannels_bits,
+                use_channels_bits,
+                pass_channels_bits,
             )
         };
         handle_error(rc)
@@ -592,15 +594,15 @@ impl MhlibWrapper for MhlibWrapperReal {
 
     fn set_main_event_filter_params(
         &self,
-        timerange_ps: i32,
-        matchcnt: i32,
+        time_range_ps: i32,
+        match_count: i32,
         inverse: bool,
     ) -> Result<()> {
         let rc = unsafe {
             MH_SetMainEventFilterParams(
                 self.device_index.into(),
-                timerange_ps,
-                matchcnt,
+                time_range_ps,
+                match_count,
                 if inverse { 1 } else { 0 },
             )
         };
@@ -610,15 +612,15 @@ impl MhlibWrapper for MhlibWrapperReal {
     fn set_main_event_filter_channels(
         &self,
         rowidx: i32,
-        usechannels_bits: i32,
-        passchannels_bits: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
     ) -> Result<()> {
         let rc = unsafe {
             MH_SetMainEventFilterChannels(
                 self.device_index.into(),
                 rowidx,
-                usechannels_bits,
-                passchannels_bits,
+                use_channels_bits,
+                pass_channels_bits,
             )
         };
         handle_error(rc)
@@ -667,6 +669,7 @@ mod tests {
         let wrapper = MhlibWrapperReal::new(0);
         assert_eq!(wrapper.get_library_version().unwrap(), String::from("3.1"));
     }
+
     #[test]
     fn test_open_device() {
         let wrapper = MhlibWrapperReal::new(0);
