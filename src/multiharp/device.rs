@@ -19,7 +19,7 @@ use anyhow::{Result, anyhow, bail};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 
-use anyhow::ensure;
+use anyhow::{Context, ensure};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -280,7 +280,8 @@ impl<T: MhlibWrapper> MH160Device<T> {
                 width_ps,
                 invert,
             }) => {
-                let time_range_ps: i32 = i32::try_from(((*width_ps / 2).min(i32::MAX as u64)));
+                let time_range_ps: i32 = i32::try_from((*width_ps / 2).min(i32::MAX as u64))
+                    .context("min ensures value fits in i32")?;
                 let match_count: i32 = 1;
 
                 let enabled_channels = input_channels
@@ -303,28 +304,29 @@ impl<T: MhlibWrapper> MH160Device<T> {
                     mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
 
                 for (rowidx, c) in channels.iter().enumerate() {
-                    let rowidx = i32::try_from(rowidx);
+                    let rowidx_i32: i32 = i32::try_from(rowidx).context("rowidx <= 3")?;
                     ensure!(
                         c.channel >= 1 && c.channel <= total_channels,
                         "per_channel: invalid channel {} (1..={} allowed)",
                         c.channel,
                         total_channels
                     );
-                    let time_range_ps: i32 = i32::try_from(((c.width_ps / 2).min(i32::MAX as u64)));
+                    let time_range_ps: i32 = i32::try_from((c.width_ps / 2).min(i32::MAX as u64))
+                        .context("min ensures value fits in i32")?;
                     let match_count: i32 = 1;
 
                     let use_bits = mask_for_channel(c.channel);
                     let pass_bits = use_bits;
 
                     mhlib_wrapper.set_row_event_filter(
-                        rowidx,
+                        rowidx_i32,
                         time_range_ps,
                         match_count,
                         c.invert,
                         use_bits,
                         pass_bits,
                     )?;
-                    mhlib_wrapper.enable_row_event_filter(rowidx, c.enable)?;
+                    mhlib_wrapper.enable_row_event_filter(rowidx_i32, c.enable)?;
                 }
 
                 let any_enabled = channels.iter().any(|c| c.enable);
