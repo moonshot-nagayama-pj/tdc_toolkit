@@ -198,12 +198,12 @@ pub struct MH160Device<T: MhlibWrapper> {
 #[inline]
 fn mask_from_channels(chs: &[u8]) -> i32 {
     chs.iter()
-        .fold(0i32, |acc, &ch| acc | (1 << ((ch - 1) as i32)))
+    .fold(0i32, |acc, &ch| acc | (1 << i32::from(ch - 1)))
 }
 
 #[inline]
 fn mask_for_channel(ch: u8) -> i32 {
-    1 << ((ch - 1) as i32)
+    1 << i32::from(ch - 1)
 }
 
 impl<T: MhlibWrapper> MH160Device<T> {
@@ -280,7 +280,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
                 width_ps,
                 invert,
             }) => {
-                let time_range_ps: i32 = ((*width_ps / 2).min(i32::MAX as u64)) as i32;
+                let time_range_ps: i32 = i32::try_from(((*width_ps / 2).min(i32::MAX as u64)));
                 let match_count: i32 = 1;
 
                 let enabled_channels = input_channels
@@ -303,14 +303,14 @@ impl<T: MhlibWrapper> MH160Device<T> {
                     mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
 
                 for (rowidx, c) in channels.iter().enumerate() {
-                    let rowidx = rowidx as i32;
+                    let rowidx = i32::try_from(rowidx);
                     ensure!(
                         c.channel >= 1 && c.channel <= total_channels,
                         "per_channel: invalid channel {} (1..={} allowed)",
                         c.channel,
                         total_channels
                     );
-                    let time_range_ps: i32 = ((c.width_ps / 2).min(i32::MAX as u64)) as i32;
+                    let time_range_ps: i32 = i32::try_from(((c.width_ps / 2).min(i32::MAX as u64)));
                     let match_count: i32 = 1;
 
                     let use_bits = mask_for_channel(c.channel);
