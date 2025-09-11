@@ -1,6 +1,6 @@
 use anyhow::{Result, anyhow};
-use std::os::raw::c_int;
 use libloading::Symbol;
+use std::os::raw::c_int;
 
 mod bindings {
     #![allow(dead_code, clippy::unreadable_literal)]
@@ -8,18 +8,18 @@ mod bindings {
 }
 
 use self::bindings::{
-    MAXINPCHAN, MH_CTCStatus, MH_ClearHistMem, MH_CloseDevice, MH_GetAllCountRates,
-    MH_GetAllHistograms, MH_GetBaseResolution, MH_GetCountRate, MH_GetDebugInfo,
-    MH_GetElapsedMeasTime, MH_GetErrorString, MH_GetFeatures, MH_GetFlags, MH_GetHardwareInfo,
-    MH_GetHistogram, MH_GetLibraryVersion, MH_GetModuleInfo, MH_GetNumOfInputChannels,
-    MH_GetNumOfModules, MH_GetResolution, MH_GetSerialNumber, MH_GetStartTime, MH_GetSyncRate,
+    MAXINPCHAN, MH_CTCStatus, MH_ClearHistMem, MH_CloseDevice, MH_EnableMainEventFilter,
+    MH_EnableRowEventFilter, MH_GetAllCountRates, MH_GetAllHistograms, MH_GetBaseResolution,
+    MH_GetCountRate, MH_GetDebugInfo, MH_GetElapsedMeasTime, MH_GetErrorString, MH_GetFeatures,
+    MH_GetFlags, MH_GetHardwareInfo, MH_GetHistogram, MH_GetLibraryVersion,
+    MH_GetMainFilteredRates, MH_GetModuleInfo, MH_GetNumOfInputChannels, MH_GetNumOfModules,
+    MH_GetResolution, MH_GetRowFilteredRates, MH_GetSerialNumber, MH_GetStartTime, MH_GetSyncRate,
     MH_GetWarnings, MH_GetWarningsText, MH_Initialize, MH_OpenDevice, MH_ReadFiFo, MH_SetBinning,
-    MH_SetHistoLen, MH_SetInputChannelEnable, MH_SetInputChannelOffset, MH_SetInputDeadTime,
-    MH_SetInputEdgeTrg, MH_SetInputHysteresis, MH_SetMeasControl, MH_SetOffset, MH_SetStopOverflow,
-    MH_SetSyncChannelEnable, MH_SetSyncChannelOffset, MH_SetSyncDeadTime, MH_SetSyncDiv,
-    MH_SetSyncEdgeTrg, MH_SetTriggerOutput, MH_StartMeas, MH_StopMeas,
-    MH_SetRowEventFilter, MH_EnableRowEventFilter, MH_SetMainEventFilterParams, MH_SetMainEventFilterChannels,
-    MH_EnableMainEventFilter, MH_SetFilterTestMode, MH_GetRowFilteredRates, MH_GetMainFilteredRates,
+    MH_SetFilterTestMode, MH_SetHistoLen, MH_SetInputChannelEnable, MH_SetInputChannelOffset,
+    MH_SetInputDeadTime, MH_SetInputEdgeTrg, MH_SetInputHysteresis, MH_SetMainEventFilterChannels,
+    MH_SetMainEventFilterParams, MH_SetMeasControl, MH_SetOffset, MH_SetRowEventFilter,
+    MH_SetStopOverflow, MH_SetSyncChannelEnable, MH_SetSyncChannelOffset, MH_SetSyncDeadTime,
+    MH_SetSyncDiv, MH_SetSyncEdgeTrg, MH_SetTriggerOutput, MH_StartMeas, MH_StopMeas,
 };
 
 use super::meta;

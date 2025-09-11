@@ -239,11 +239,7 @@ impl MhlibWrapper for MhlibWrapperStub {
         Ok(())
     }
 
-    fn enable_row_event_filter(
-        &self,
-        _rowidx: i32,
-        _enable: bool,
-    ) -> Result<()> {
+    fn enable_row_event_filter(&self, _rowidx: i32, _enable: bool) -> Result<()> {
         Ok(())
     }
 
@@ -265,31 +261,19 @@ impl MhlibWrapper for MhlibWrapperStub {
         Ok(())
     }
 
-    fn enable_main_event_filter(
-        &self,
-        _enable: bool,
-    ) -> Result<()> {
+    fn enable_main_event_filter(&self, _enable: bool) -> Result<()> {
         Ok(())
     }
 
-    fn set_filter_test_mode(
-        &self,
-        _test_mode: bool,
-    ) -> Result<()> {
+    fn set_filter_test_mode(&self, _test_mode: bool) -> Result<()> {
         Ok(())
     }
 
-    fn get_row_filtered_rates(
-        &self,
-        num_channels: usize,
-    ) -> Result<(i32, Vec<i32>)> {
+    fn get_row_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)> {
         Ok((0, vec![0; num_channels]))
     }
 
-    fn get_main_filtered_rates(
-        &self,
-        num_channels: usize,
-    ) -> Result<(i32, Vec<i32>)> {
+    fn get_main_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)> {
         Ok((0, vec![0; num_channels]))
     }
 }

@@ -19,12 +19,12 @@ use anyhow::{Result, anyhow, bail};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 
+use anyhow::ensure;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
-use anyhow::ensure;
 
 use super::mhlib_wrapper::meta::{Edge, MhlibWrapper, Mode, RefSource};
 
@@ -197,7 +197,8 @@ pub struct MH160Device<T: MhlibWrapper> {
 
 #[inline]
 fn mask_from_channels(chs: &[u8]) -> i32 {
-    chs.iter().fold(0i32, |acc, &ch| acc | (1 << ((ch - 1) as i32)))
+    chs.iter()
+        .fold(0i32, |acc, &ch| acc | (1 << ((ch - 1) as i32)))
 }
 
 #[inline]
@@ -267,16 +268,26 @@ impl<T: MhlibWrapper> MH160Device<T> {
         match &config.event_filter {
             None | Some(EventFilterConfig::Off) => {
                 let _ = mhlib_wrapper.enable_main_event_filter(false);
-                for rowidx in 0..4 { let _ = mhlib_wrapper.enable_row_event_filter(rowidx, false); }
+                for rowidx in 0..4 {
+                    let _ = mhlib_wrapper.enable_row_event_filter(rowidx, false);
+                }
                 let _ = mhlib_wrapper.set_filter_test_mode(false);
             }
 
-            Some(EventFilterConfig::Global { enable, center_ps: _, width_ps, invert }) => {
+            Some(EventFilterConfig::Global {
+                enable,
+                center_ps: _,
+                width_ps,
+                invert,
+            }) => {
                 let time_range_ps: i32 = ((*width_ps / 2).min(i32::MAX as u64)) as i32;
                 let match_count: i32 = 1;
 
-                let enabled_channels = input_channels.iter().map(|c| u8::from(c.id)).collect::<Vec<_>>();
-                let use_bits  = mask_from_channels(&enabled_channels);
+                let enabled_channels = input_channels
+                    .iter()
+                    .map(|c| u8::from(c.id))
+                    .collect::<Vec<_>>();
+                let use_bits = mask_from_channels(&enabled_channels);
                 let pass_bits = use_bits;
 
                 mhlib_wrapper.set_main_event_filter_params(time_range_ps, match_count, *invert)?;
@@ -288,23 +299,30 @@ impl<T: MhlibWrapper> MH160Device<T> {
 
             Some(EventFilterConfig::PerChannel { channels }) => {
                 ensure!(channels.len() <= 4, "too many rows for per-channel filter");
-                let total_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
+                let total_channels: u8 =
+                    mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
 
                 for (rowidx, c) in channels.iter().enumerate() {
                     let rowidx = rowidx as i32;
                     ensure!(
                         c.channel >= 1 && c.channel <= total_channels,
                         "per_channel: invalid channel {} (1..={} allowed)",
-                        c.channel, total_channels
+                        c.channel,
+                        total_channels
                     );
                     let time_range_ps: i32 = ((c.width_ps / 2).min(i32::MAX as u64)) as i32;
                     let match_count: i32 = 1;
 
-                    let use_bits  = mask_for_channel(c.channel);
+                    let use_bits = mask_for_channel(c.channel);
                     let pass_bits = use_bits;
 
                     mhlib_wrapper.set_row_event_filter(
-                        rowidx, time_range_ps, match_count,c.invert, use_bits, pass_bits
+                        rowidx,
+                        time_range_ps,
+                        match_count,
+                        c.invert,
+                        use_bits,
+                        pass_bits,
                     )?;
                     mhlib_wrapper.enable_row_event_filter(rowidx, c.enable)?;
                 }
@@ -343,7 +361,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
     }
 }
 
-impl<T: MhlibWrapper> MH160 for MH160Device<T>{
+impl<T: MhlibWrapper> MH160 for MH160Device<T> {
     fn get_device_info(&self) -> Result<MH160DeviceInfo> {
         let (model, partno, version) = self.mhlib_wrapper.get_hardware_info()?;
         let (base_resolution, binsteps) = self.mhlib_wrapper.get_base_resolution()?;
@@ -402,8 +420,16 @@ impl<T: MhlibWrapper> Drop for MH160Device<T> {
 #[serde(rename_all = "snake_case", tag = "mode")]
 pub enum EventFilterConfig {
     Off,
-    Global { enable: bool, center_ps: i64, width_ps: u64, #[serde(default)] invert: bool },
-    PerChannel { channels: Vec<ChannelFilter> },
+    Global {
+        enable: bool,
+        center_ps: i64,
+        width_ps: u64,
+        #[serde(default)]
+        invert: bool,
+    },
+    PerChannel {
+        channels: Vec<ChannelFilter>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

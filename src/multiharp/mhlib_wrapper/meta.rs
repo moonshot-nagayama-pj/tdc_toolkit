@@ -168,11 +168,7 @@ pub trait MhlibWrapper: Send + Sync {
         pass_channels_bits: i32,
     ) -> Result<()>;
 
-    fn enable_row_event_filter(
-        &self,
-        rowidx: i32,
-        enable: bool,
-    ) -> Result<()>;
+    fn enable_row_event_filter(&self, rowidx: i32, enable: bool) -> Result<()>;
 
     fn set_main_event_filter_params(
         &self,
@@ -188,23 +184,11 @@ pub trait MhlibWrapper: Send + Sync {
         pass_channels_bits: i32,
     ) -> Result<()>;
 
-    fn enable_main_event_filter(
-        &self,
-        enable: bool,
-    ) -> Result<()>;
+    fn enable_main_event_filter(&self, enable: bool) -> Result<()>;
 
-    fn set_filter_test_mode(
-        &self,
-        test_mode: bool,
-    ) -> Result<()>;
+    fn set_filter_test_mode(&self, test_mode: bool) -> Result<()>;
 
-    fn get_row_filtered_rates(
-        &self,
-        num_channels: usize,
-    ) -> Result<(i32, Vec<i32>)>;
+    fn get_row_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)>;
 
-    fn get_main_filtered_rates(
-        &self,
-        num_channels: usize,
-    ) -> Result<(i32, Vec<i32>)>;
+    fn get_main_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)>;
 }
