@@ -158,4 +158,37 @@ pub trait MhlibWrapper: Send + Sync {
     fn set_trigger_output(&self, period_100ns: i32) -> Result<()>;
     fn start_measurement(&self, acquisition_time: i32) -> Result<()>;
     fn stop_measurement(&self) -> Result<()>;
+    fn set_row_event_filter(
+        &self,
+        rowidx: i32,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: bool,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
+
+    fn enable_row_event_filter(&self, rowidx: i32, enable: bool) -> Result<()>;
+
+    fn set_main_event_filter_params(
+        &self,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: bool,
+    ) -> Result<()>;
+
+    fn set_main_event_filter_channels(
+        &self,
+        rowidx: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
+
+    fn enable_main_event_filter(&self, enable: bool) -> Result<()>;
+
+    fn set_filter_test_mode(&self, test_mode: bool) -> Result<()>;
+
+    fn get_row_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)>;
+
+    fn get_main_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)>;
 }

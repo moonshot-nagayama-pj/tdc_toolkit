@@ -1,4 +1,5 @@
 use anyhow::{Result, anyhow};
+use libloading::Symbol;
 use std::os::raw::c_int;
 
 mod bindings {
@@ -7,16 +8,18 @@ mod bindings {
 }
 
 use self::bindings::{
-    MAXINPCHAN, MH_CTCStatus, MH_ClearHistMem, MH_CloseDevice, MH_GetAllCountRates,
-    MH_GetAllHistograms, MH_GetBaseResolution, MH_GetCountRate, MH_GetDebugInfo,
-    MH_GetElapsedMeasTime, MH_GetErrorString, MH_GetFeatures, MH_GetFlags, MH_GetHardwareInfo,
-    MH_GetHistogram, MH_GetLibraryVersion, MH_GetModuleInfo, MH_GetNumOfInputChannels,
-    MH_GetNumOfModules, MH_GetResolution, MH_GetSerialNumber, MH_GetStartTime, MH_GetSyncRate,
+    MAXINPCHAN, MH_CTCStatus, MH_ClearHistMem, MH_CloseDevice, MH_EnableMainEventFilter,
+    MH_EnableRowEventFilter, MH_GetAllCountRates, MH_GetAllHistograms, MH_GetBaseResolution,
+    MH_GetCountRate, MH_GetDebugInfo, MH_GetElapsedMeasTime, MH_GetErrorString, MH_GetFeatures,
+    MH_GetFlags, MH_GetHardwareInfo, MH_GetHistogram, MH_GetLibraryVersion,
+    MH_GetMainFilteredRates, MH_GetModuleInfo, MH_GetNumOfInputChannels, MH_GetNumOfModules,
+    MH_GetResolution, MH_GetRowFilteredRates, MH_GetSerialNumber, MH_GetStartTime, MH_GetSyncRate,
     MH_GetWarnings, MH_GetWarningsText, MH_Initialize, MH_OpenDevice, MH_ReadFiFo, MH_SetBinning,
-    MH_SetHistoLen, MH_SetInputChannelEnable, MH_SetInputChannelOffset, MH_SetInputDeadTime,
-    MH_SetInputEdgeTrg, MH_SetInputHysteresis, MH_SetMeasControl, MH_SetOffset, MH_SetStopOverflow,
-    MH_SetSyncChannelEnable, MH_SetSyncChannelOffset, MH_SetSyncDeadTime, MH_SetSyncDiv,
-    MH_SetSyncEdgeTrg, MH_SetTriggerOutput, MH_StartMeas, MH_StopMeas,
+    MH_SetFilterTestMode, MH_SetHistoLen, MH_SetInputChannelEnable, MH_SetInputChannelOffset,
+    MH_SetInputDeadTime, MH_SetInputEdgeTrg, MH_SetInputHysteresis, MH_SetMainEventFilterChannels,
+    MH_SetMainEventFilterParams, MH_SetMeasControl, MH_SetOffset, MH_SetRowEventFilter,
+    MH_SetStopOverflow, MH_SetSyncChannelEnable, MH_SetSyncChannelOffset, MH_SetSyncDeadTime,
+    MH_SetSyncDiv, MH_SetSyncEdgeTrg, MH_SetTriggerOutput, MH_StartMeas, MH_StopMeas,
 };
 
 use super::meta;
@@ -52,6 +55,17 @@ impl MhlibWrapperReal {
     #[must_use]
     pub fn new(device_index: u8) -> Self {
         Self { device_index }
+    }
+
+    fn assert_event_filter_supported(&self) -> Result<()> {
+        let mut feat: i32 = 0;
+        let rc = unsafe { MH_GetFeatures(self.device_index.into(), &mut feat) };
+        handle_error(rc)?;
+        const FEATURE_EVNT_FILT: i32 = 1 << 7;
+        if (feat & FEATURE_EVNT_FILT) == 0 {
+            anyhow::bail!("Event filtering not supported by this device/firmware");
+        }
+        Ok(())
     }
 }
 
@@ -545,6 +559,106 @@ impl MhlibWrapper for MhlibWrapperReal {
             Ok(ctc_status == 0)
         }
     }
+
+    fn set_row_event_filter(
+        &self,
+        rowidx: i32,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: bool,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()> {
+        self.assert_event_filter_supported()
+            .context("event filter not supported on this device")?;
+        let rc = unsafe {
+            MH_SetRowEventFilter(
+                self.device_index.into(),
+                rowidx,
+                time_range_ps,
+                match_count,
+                if inverse { 1 } else { 0 },
+                use_channels_bits,
+                pass_channels_bits,
+            )
+        };
+        handle_error(rc)
+    }
+
+    fn enable_row_event_filter(&self, rowidx: i32, enable: bool) -> Result<()> {
+        let rc = unsafe {
+            MH_EnableRowEventFilter(self.device_index.into(), rowidx, if enable { 1 } else { 0 })
+        };
+        handle_error(rc)
+    }
+
+    fn set_main_event_filter_params(
+        &self,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: bool,
+    ) -> Result<()> {
+        let rc = unsafe {
+            MH_SetMainEventFilterParams(
+                self.device_index.into(),
+                time_range_ps,
+                match_count,
+                if inverse { 1 } else { 0 },
+            )
+        };
+        handle_error(rc)
+    }
+
+    fn set_main_event_filter_channels(
+        &self,
+        rowidx: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()> {
+        let rc = unsafe {
+            MH_SetMainEventFilterChannels(
+                self.device_index.into(),
+                rowidx,
+                use_channels_bits,
+                pass_channels_bits,
+            )
+        };
+        handle_error(rc)
+    }
+
+    fn enable_main_event_filter(&self, enable: bool) -> Result<()> {
+        let rc = unsafe {
+            MH_EnableMainEventFilter(self.device_index.into(), if enable { 1 } else { 0 })
+        };
+        handle_error(rc)
+    }
+
+    fn set_filter_test_mode(&self, test_mode: bool) -> Result<()> {
+        let rc = unsafe {
+            MH_SetFilterTestMode(self.device_index.into(), if test_mode { 1 } else { 0 })
+        };
+        handle_error(rc)
+    }
+
+    fn get_row_filtered_rates(&self) -> Result<(i32, Vec<i32>)> {
+        let mut sync: i32 = 0;
+        let mut rates = vec![0i32; unsafe { MAXINPCHAN as usize }];
+        let rc = unsafe {
+            MH_GetRowFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
+        };
+        handle_error(rc)?;
+        Ok((sync, rates))
+    }
+
+    fn get_main_filtered_rates(&self) -> Result<(i32, Vec<i32>)> {
+        let mut sync: i32 = 0;
+        let mut rates = vec![0i32; unsafe { MAXINPCHAN as usize }];
+        let rc = unsafe {
+            MH_GetMainFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
+        };
+        handle_error(rc)?;
+        Ok((sync, rates))
+    }
 }
 
 #[cfg(test)]
@@ -555,6 +669,7 @@ mod tests {
         let wrapper = MhlibWrapperReal::new(0);
         assert_eq!(wrapper.get_library_version().unwrap(), String::from("3.1"));
     }
+
     #[test]
     fn test_open_device() {
         let wrapper = MhlibWrapperReal::new(0);
