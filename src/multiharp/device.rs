@@ -198,7 +198,7 @@ pub struct MH160Device<T: MhlibWrapper> {
 #[inline]
 fn mask_from_channels(chs: &[u8]) -> i32 {
     chs.iter()
-    .fold(0i32, |acc, &ch| acc | (1 << i32::from(ch - 1)))
+        .fold(0i32, |acc, &ch| acc | (1 << i32::from(ch - 1)))
 }
 
 #[inline]
