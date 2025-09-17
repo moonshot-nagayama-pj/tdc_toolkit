@@ -14,12 +14,11 @@
 //!
 //! Some actions, such as [`MH160Device::get_device_info()`], do not require configuration.
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, anyhow, bail, ensure};
 
 #[cfg(feature = "python")]
-use pyo3::prelude::*;
+use pyo3::pyclass;
 
-use anyhow::{Context, ensure};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -45,7 +44,9 @@ pub struct MH160DeviceConfig {
     /// Attempting to configure the same channel more than once will cause an error.
     pub input_channels: MH160DeviceInputChannelConfigs,
     #[serde(default)]
-    pub event_filter: Option<EventFilterConfig>,
+    pub main_filter: Option<MainEventFilterConfig>,
+    #[serde(default)]
+    pub row_filter: Option<RowEventFilterConfig>,
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -195,17 +196,6 @@ pub struct MH160Device<T: MhlibWrapper> {
     mhlib_wrapper: T,
 }
 
-#[inline]
-fn mask_from_channels(chs: &[u8]) -> i32 {
-    chs.iter()
-        .fold(0i32, |acc, &ch| acc | (1 << i32::from(ch - 1)))
-}
-
-#[inline]
-fn mask_for_channel(ch: u8) -> i32 {
-    1 << i32::from(ch - 1)
-}
-
 impl<T: MhlibWrapper> MH160Device<T> {
     pub fn from_current_config(mhlib_wrapper: T) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
@@ -213,6 +203,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
         Ok(MH160Device { mhlib_wrapper })
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn from_config(mhlib_wrapper: T, config: MH160DeviceConfig) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
 
@@ -264,74 +255,54 @@ impl<T: MhlibWrapper> MH160Device<T> {
                 mhlib_wrapper.set_input_channel_enable(channel_id.into(), false)?;
             }
         }
+        if let Some(row) = &config.row_filter {
+            ensure!(row.rows.len() <= 4, "too many rows for row filter");
 
-        match &config.event_filter {
-            None | Some(EventFilterConfig::Off) => {
-                let _ = mhlib_wrapper.enable_main_event_filter(false);
-                for rowidx in 0..4 {
-                    let _ = mhlib_wrapper.enable_row_event_filter(rowidx, false);
-                }
-                let _ = mhlib_wrapper.set_filter_test_mode(false);
+            let total_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
+            for (rowidx, rf) in row.rows.iter().enumerate() {
+                let rowidx_i32 = i32::try_from(rowidx)?;
+                ensure!(
+                    1 <= rf.channel && rf.channel <= total_channels,
+                    "invalid channel {}",
+                    rf.channel
+                );
+
+                let time_range_ps: i32 = i32::try_from((rf.width_ps / 2).min(i32::MAX as u64))?;
+                let matchcnt = row.match_count;
+
+                let (usechannels, passchannels) = make_mask(&rf.pass_channels);
+
+                mhlib_wrapper.set_row_event_filter(
+                    rowidx_i32,
+                    time_range_ps,
+                    matchcnt,
+                    rf.invert,
+                    usechannels,
+                    passchannels,
+                )?;
+                mhlib_wrapper.enable_row_event_filter(rowidx_i32, true)?;
             }
 
-            Some(EventFilterConfig::Global {
-                enable,
-                center_ps: _,
-                width_ps,
-                invert,
-            }) => {
-                let time_range_ps: i32 = i32::try_from((*width_ps / 2).min(i32::MAX as u64))
-                    .context("min ensures value fits in i32")?;
-                let match_count: i32 = 1;
-
-                let enabled_channels = input_channels
-                    .iter()
-                    .map(|c| u8::from(c.id))
-                    .collect::<Vec<_>>();
-                let use_bits = mask_from_channels(&enabled_channels);
-                let pass_bits = use_bits;
-
-                mhlib_wrapper.set_main_event_filter_params(time_range_ps, match_count, *invert)?;
-                mhlib_wrapper.set_main_event_filter_channels(0, use_bits, pass_bits)?;
-                mhlib_wrapper.enable_row_event_filter(0, true)?;
+            if row.enable_main {
                 mhlib_wrapper.set_filter_test_mode(false)?;
-                mhlib_wrapper.enable_main_event_filter(*enable)?;
+                mhlib_wrapper.enable_main_event_filter(true)?;
+            }
+        }
+
+        if let Some(main) = &config.main_filter {
+            let time_range_ps: i32 = i32::try_from((main.width_ps / 2).min(i32::MAX as u64))?;
+            let matchcnt = main.match_count;
+
+            mhlib_wrapper.set_main_event_filter_params(time_range_ps, matchcnt, main.invert)?;
+
+            let (usechannels, passchannels) = make_mask(&main.pass_channels);
+            let num_rows = mhlib_wrapper.get_number_of_input_channels()?;
+            for rowidx in 0..num_rows {
+                mhlib_wrapper.set_main_event_filter_channels(rowidx, usechannels, passchannels)?;
             }
 
-            Some(EventFilterConfig::PerChannel { channels }) => {
-                ensure!(channels.len() <= 4, "too many rows for per-channel filter");
-                let total_channels: u8 =
-                    mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
-
-                for (rowidx, c) in channels.iter().enumerate() {
-                    let rowidx_i32: i32 = i32::try_from(rowidx).context("rowidx <= 3")?;
-                    ensure!(
-                        c.channel >= 1 && c.channel <= total_channels,
-                        "per_channel: invalid channel {} (1..={} allowed)",
-                        c.channel,
-                        total_channels
-                    );
-                    let time_range_ps: i32 = i32::try_from((c.width_ps / 2).min(i32::MAX as u64))
-                        .context("min ensures value fits in i32")?;
-                    let match_count: i32 = 1;
-
-                    let use_bits = mask_for_channel(c.channel);
-                    let pass_bits = use_bits;
-
-                    mhlib_wrapper.set_row_event_filter(
-                        rowidx_i32,
-                        time_range_ps,
-                        match_count,
-                        c.invert,
-                        use_bits,
-                        pass_bits,
-                    )?;
-                    mhlib_wrapper.enable_row_event_filter(rowidx_i32, c.enable)?;
-                }
-
-                let any_enabled = channels.iter().any(|c| c.enable);
-                mhlib_wrapper.enable_main_event_filter(any_enabled)?;
-            }
+            mhlib_wrapper.set_filter_test_mode(false)?;
+            mhlib_wrapper.enable_main_event_filter(main.enable)?;
         }
 
         Ok(MH160Device { mhlib_wrapper })
@@ -402,6 +373,27 @@ impl<T: MhlibWrapper> MH160 for MH160Device<T> {
     }
 }
 
+fn bitmask_row(chs: &[u8]) -> i32 {
+    if chs.is_empty() {
+        return 0;
+    }
+    let mut mask: u16 = 0;
+    for &c in chs {
+        assert!(
+            (1..=8).contains(&c),
+            "row-local channel out of range (1..=8): {c}"
+        );
+        mask |= 1u16 << (c - 1);
+    }
+    i32::from(mask)
+}
+
+fn make_mask(chs_pass: &[u8]) -> (i32, i32) {
+    let use_bits: i32 = 0xFF;
+    let pass_bits = bitmask_row(chs_pass);
+    (use_bits, pass_bits)
+}
+
 const ROW_MAX: i32 = 4;
 
 impl<T: MhlibWrapper> Drop for MH160Device<T> {
@@ -418,28 +410,40 @@ impl<T: MhlibWrapper> Drop for MH160Device<T> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "snake_case", tag = "mode")]
-pub enum EventFilterConfig {
-    Off,
-    Global {
-        enable: bool,
-        center_ps: i64,
-        width_ps: u64,
-        #[serde(default)]
-        invert: bool,
-    },
-    PerChannel {
-        channels: Vec<ChannelFilter>,
-    },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ChannelFilter {
-    pub channel: u8,
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct MainEventFilterConfig {
     pub enable: bool,
     pub center_ps: i64,
     pub width_ps: u64,
-    #[serde(default)]
     pub invert: bool,
+    #[serde(default = "default_match_count")]
+    pub match_count: i32,
+    #[serde(default)]
+    pub pass_channels: Vec<u8>,
+}
+
+fn default_match_count() -> i32 {
+    1
+}
+
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RowEventFilterConfig {
+    pub rows: Vec<RowFilter>,
+    #[serde(default)]
+    pub enable_main: bool,
+    #[serde(default = "default_match_count")]
+    pub match_count: i32,
+}
+
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RowFilter {
+    pub channel: u8,
+    pub center_ps: i64,
+    pub width_ps: u64,
+    pub invert: bool,
+    #[serde(default)]
+    pub pass_channels: Vec<u8>,
 }

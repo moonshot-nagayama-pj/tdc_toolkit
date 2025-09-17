@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result};
 use libloading::Symbol;
 use std::os::raw::c_int;
 
@@ -640,23 +640,31 @@ impl MhlibWrapper for MhlibWrapperReal {
         handle_error(rc)
     }
 
-    fn get_row_filtered_rates(&self) -> Result<(i32, Vec<i32>)> {
+    fn get_row_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)> {
+        let n = num_channels.min(MAXINPCHAN as usize);
         let mut sync: i32 = 0;
-        let mut rates = vec![0i32; unsafe { MAXINPCHAN as usize }];
+        let mut rates = vec![0i32; MAXINPCHAN as usize];
+
         let rc = unsafe {
             MH_GetRowFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
         };
         handle_error(rc)?;
+
+        rates.truncate(n);
         Ok((sync, rates))
     }
 
-    fn get_main_filtered_rates(&self) -> Result<(i32, Vec<i32>)> {
+    fn get_main_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)> {
+        let n = num_channels.min(MAXINPCHAN as usize);
         let mut sync: i32 = 0;
-        let mut rates = vec![0i32; unsafe { MAXINPCHAN as usize }];
+        let mut rates = vec![0i32; MAXINPCHAN as usize];
+
         let rc = unsafe {
             MH_GetMainFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
         };
         handle_error(rc)?;
+
+        rates.truncate(n);
         Ok((sync, rates))
     }
 }
