@@ -1,5 +1,4 @@
-use anyhow::{Context, Result};
-use libloading::Symbol;
+use anyhow::{Context, Result, anyhow};
 use std::os::raw::c_int;
 
 mod bindings {

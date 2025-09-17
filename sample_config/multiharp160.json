@@ -25,5 +25,14 @@
             "edge_trigger": "Falling",
             "offset": 0
         }
-    ]
+    ],
+    "event_filter": {
+    "type": "main",
+    "time_range_ps": 500,
+    "match_count": 1,
+    "invert": false,
+    "use_channels": 15,
+    "pass_channels": 0
+  },
+
 }
