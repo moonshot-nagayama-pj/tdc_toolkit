@@ -654,11 +654,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         let mut rates = vec![0i32; MAXINPCHAN as usize];
 
         let rc = unsafe {
-            MH_GetMainFilteredRates(
-                self.device_index.into(),
-                ptr::addr_of_mut!(sync),
-                rates.as_mut_ptr(),
-            )
+            MH_GetMainFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
         };
         handle_error(rc)?;
 
