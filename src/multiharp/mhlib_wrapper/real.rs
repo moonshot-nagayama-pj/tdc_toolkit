@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Result, anyhow};
 use std::os::raw::c_int;
 
 mod bindings {
@@ -57,10 +57,10 @@ impl MhlibWrapperReal {
     }
 
     fn assert_event_filter_supported(&self) -> Result<()> {
-        let mut feat: i32 = 0;
-        let rc = unsafe { MH_GetFeatures(self.device_index.into(), &mut feat) };
-        handle_error(rc)?;
         const FEATURE_EVNT_FILT: i32 = 1 << 7;
+        let mut feat: i32 = 0;
+        let rc = unsafe { MH_GetFeatures(self.device_index.into(), ptr::addr_of_mut!(feat)) };
+        handle_error(rc)?;
         if (feat & FEATURE_EVNT_FILT) == 0 {
             anyhow::bail!("Event filtering not supported by this device/firmware");
         }
@@ -576,7 +576,7 @@ impl MhlibWrapper for MhlibWrapperReal {
                 rowidx,
                 time_range_ps,
                 match_count,
-                if inverse { 1 } else { 0 },
+                i32::from(inverse),
                 use_channels_bits,
                 pass_channels_bits,
             )
@@ -585,9 +585,8 @@ impl MhlibWrapper for MhlibWrapperReal {
     }
 
     fn enable_row_event_filter(&self, rowidx: i32, enable: bool) -> Result<()> {
-        let rc = unsafe {
-            MH_EnableRowEventFilter(self.device_index.into(), rowidx, if enable { 1 } else { 0 })
-        };
+        let rc =
+            unsafe { MH_EnableRowEventFilter(self.device_index.into(), rowidx, i32::from(enable)) };
         handle_error(rc)
     }
 
@@ -602,7 +601,7 @@ impl MhlibWrapper for MhlibWrapperReal {
                 self.device_index.into(),
                 time_range_ps,
                 match_count,
-                if inverse { 1 } else { 0 },
+                i32::from(inverse),
             )
         };
         handle_error(rc)
@@ -626,16 +625,12 @@ impl MhlibWrapper for MhlibWrapperReal {
     }
 
     fn enable_main_event_filter(&self, enable: bool) -> Result<()> {
-        let rc = unsafe {
-            MH_EnableMainEventFilter(self.device_index.into(), if enable { 1 } else { 0 })
-        };
+        let rc = unsafe { MH_EnableMainEventFilter(self.device_index.into(), i32::from(enable)) };
         handle_error(rc)
     }
 
     fn set_filter_test_mode(&self, test_mode: bool) -> Result<()> {
-        let rc = unsafe {
-            MH_SetFilterTestMode(self.device_index.into(), if test_mode { 1 } else { 0 })
-        };
+        let rc = unsafe { MH_SetFilterTestMode(self.device_index.into(), i32::from(enable)) };
         handle_error(rc)
     }
 
@@ -645,7 +640,11 @@ impl MhlibWrapper for MhlibWrapperReal {
         let mut rates = vec![0i32; MAXINPCHAN as usize];
 
         let rc = unsafe {
-            MH_GetRowFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
+            MH_GetRowFilteredRates(
+                self.device_index.into(),
+                ptr::addr_of_mut!(sync),
+                rates.as_mut_ptr(),
+            )
         };
         handle_error(rc)?;
 
@@ -659,7 +658,11 @@ impl MhlibWrapper for MhlibWrapperReal {
         let mut rates = vec![0i32; MAXINPCHAN as usize];
 
         let rc = unsafe {
-            MH_GetMainFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
+            MH_GetMainFilteredRates(
+                self.device_index.into(),
+                ptr::addr_of_mut!(sync),
+                rates.as_mut_ptr(),
+            )
         };
         handle_error(rc)?;
 
