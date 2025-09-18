@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use std::os::raw::c_int;
 
 mod bindings {
@@ -59,7 +59,7 @@ impl MhlibWrapperReal {
     fn assert_event_filter_supported(&self) -> Result<()> {
         const FEATURE_EVNT_FILT: i32 = 1 << 7;
         let mut feat: i32 = 0;
-        let rc = unsafe { MH_GetFeatures(self.device_index.into(), ptr::addr_of_mut!(feat)) };
+        let rc = unsafe { MH_GetFeatures(self.device_index.into(), &mut feat) };
         handle_error(rc)?;
         if (feat & FEATURE_EVNT_FILT) == 0 {
             anyhow::bail!("Event filtering not supported by this device/firmware");
@@ -629,7 +629,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         handle_error(rc)
     }
 
-    fn set_filter_test_mode(&self, test_mode: bool) -> Result<()> {
+    fn set_filter_test_mode(&self, enable: bool) -> Result<()> {
         let rc = unsafe { MH_SetFilterTestMode(self.device_index.into(), i32::from(enable)) };
         handle_error(rc)
     }
@@ -640,11 +640,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         let mut rates = vec![0i32; MAXINPCHAN as usize];
 
         let rc = unsafe {
-            MH_GetRowFilteredRates(
-                self.device_index.into(),
-                ptr::addr_of_mut!(sync),
-                rates.as_mut_ptr(),
-            )
+            MH_GetRowFilteredRates(self.device_index.into(), &mut sync, rates.as_mut_ptr())
         };
         handle_error(rc)?;
 
