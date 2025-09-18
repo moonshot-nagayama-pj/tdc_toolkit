@@ -410,6 +410,7 @@ impl<T: MhlibWrapper> Drop for MH160Device<T> {
     }
 }
 
+#[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct MainEventFilterConfig {
@@ -427,6 +428,7 @@ fn default_match_count() -> i32 {
     1
 }
 
+#[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowEventFilterConfig {
@@ -437,6 +439,7 @@ pub struct RowEventFilterConfig {
     pub match_count: i32,
 }
 
+#[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowFilter {
