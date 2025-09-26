@@ -1,4 +1,5 @@
 use anyhow::{Context, Result, anyhow};
+use core::ptr;
 use std::os::raw::c_int;
 
 mod bindings {
