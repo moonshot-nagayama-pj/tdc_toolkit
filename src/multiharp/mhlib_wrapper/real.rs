@@ -60,7 +60,7 @@ impl MhlibWrapperReal {
     fn assert_event_filter_supported(&self) -> Result<()> {
         const FEATURE_EVNT_FILT: i32 = 1 << 7;
         let mut feat: i32 = 0;
-        let rc = unsafe { MH_GetFeatures(self.device_index.into(), &mut feat as *mut _) };
+        let rc = unsafe { MH_GetFeatures(self.device_index.into(), &raw mut feat) };
         handle_error(rc)?;
         if (feat & FEATURE_EVNT_FILT) == 0 {
             anyhow::bail!("Event filtering not supported by this device/firmware");
