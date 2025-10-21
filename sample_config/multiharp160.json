@@ -26,13 +26,26 @@
             "offset": 0
         }
     ],
-    "event_filter": {
-    "type": "main",
-    "time_range_ps": 500,
-    "match_count": 1,
-    "invert": false,
-    "use_channels": 15,
-    "pass_channels": 0
-  }
-
+    "row_filter": 
+        {
+            "match_count": 1,
+            "enable_main": true,
+            "rows": [
+                { 
+                    "channel": 1, 
+                   "width_ps": 1000, 
+                    "invert": false, 
+                    "pass_channels": [2,3,4] 
+                }
+            ]
+        },
+    "main_filter": 
+        {
+            "enable": true,
+            "width_ps": 1000,
+            "match_count": 4,
+            "invert": false,
+            "use_channels": [1,2,3,4],
+            "pass_channels": [1,2]
+        }
 }

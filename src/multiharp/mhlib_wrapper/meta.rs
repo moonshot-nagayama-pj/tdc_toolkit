@@ -4,6 +4,10 @@
 //!
 //! The original constant names from `mhdefin.h` are preserved as comments.
 
+pub const TIMERANGE_MIN: i32 = 0;
+pub const TIMERANGE_MAX: i32 = 160_000;
+pub const CHANNELS_PER_ROW: i32 = 8;
+
 use anyhow::Result;
 
 #[cfg(feature = "python")]
@@ -191,4 +195,15 @@ pub trait MhlibWrapper: Send + Sync {
     fn get_row_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)>;
 
     fn get_main_filtered_rates(&self, num_channels: usize) -> Result<(i32, Vec<i32>)>;
+
+    fn get_number_of_rows(&self) -> Result<i32> {
+        let ch = self.get_number_of_input_channels()?;
+        anyhow::ensure!(
+            ch % CHANNELS_PER_ROW == 0,
+            "input channels ({}) is not divisible by {}",
+            ch,
+            CHANNELS_PER_ROW
+        );
+        Ok(ch / CHANNELS_PER_ROW)
+    }
 }

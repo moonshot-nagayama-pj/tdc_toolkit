@@ -1240,7 +1240,6 @@ dependencies = [
  "pyo3-build-config",
  "pyo3-ffi",
  "pyo3-macros",
- "serde",
  "unindent",
 ]
 
@@ -1509,7 +1508,6 @@ dependencies = [
  "criterion",
  "humantime",
  "indicatif",
- "libloading",
  "parquet",
  "pyo3",
  "serde",
