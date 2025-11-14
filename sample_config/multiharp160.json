@@ -33,19 +33,18 @@
             "rows": [
                 { 
                     "channel": 1, 
-                   "width_ps": 1000, 
+                    "time_range_ps": 1000, 
                     "invert": false, 
+                    "use_channels": [2,3,4], 
                     "pass_channels": [2,3,4] 
                 }
             ]
         },
     "main_filter": 
         {
-            "enable": true,
-            "width_ps": 1000,
+            "time_range_ps": 1000,
             "match_count": 4,
             "invert": false,
-            "use_channels": [1,2,3,4],
-            "pass_channels": [1,2]
+            "use_channels": [1,2,3,4]
         }
 }
