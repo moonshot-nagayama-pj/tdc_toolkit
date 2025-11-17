@@ -5,7 +5,7 @@
 //! The original constant names from `mhdefin.h` are preserved as comments.
 
 pub const TIMERANGE_MIN: i32 = 0;
-pub const TIMERANGE_MAX: i32 = 160_000;
+pub const TIMERANGE_MAX: i32 = 2_000_000;
 pub const CHANNELS_PER_ROW: i32 = 8;
 pub const MAX_INPUT_CHANNEL: i32 = 64;
 pub const TTREADMAX: usize = 1_048_576;
