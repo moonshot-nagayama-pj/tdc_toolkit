@@ -14,10 +14,10 @@
 //!
 //! Some actions, such as [`MH160Device::get_device_info()`], do not require configuration.
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, anyhow, bail, ensure};
 
 #[cfg(feature = "python")]
-use pyo3::prelude::*;
+use pyo3::pyclass;
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -25,7 +25,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
 
-use super::mhlib_wrapper::meta::{Edge, MhlibWrapper, Mode, RefSource};
+use super::mhlib_wrapper::meta::{CHANNELS_PER_ROW, Edge, MhlibWrapper, Mode, RefSource};
 
 /// MultiHarp 160 device configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -43,6 +43,8 @@ pub struct MH160DeviceConfig {
     ///
     /// Attempting to configure the same channel more than once will cause an error.
     pub input_channels: MH160DeviceInputChannelConfigs,
+    pub main_filter: Option<MainEventFilterConfig>,
+    pub row_filter: Option<RowEventFilterConfig>,
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -192,6 +194,50 @@ pub struct MH160Device<T: MhlibWrapper> {
     mhlib_wrapper: T,
 }
 
+mod defaults {
+    pub fn default_true() -> i32 {
+        1
+    }
+    pub fn default_false() -> i32 {
+        0
+    }
+}
+
+#[allow(clippy::unsafe_derive_deserialize)]
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RowEventFilterConfig {
+    pub row_filters: Vec<RowFilter>,
+}
+
+#[allow(clippy::unsafe_derive_deserialize)]
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RowFilter {
+    pub time_range_ps: i32,
+    #[serde(default = "defaults::default_false")]
+    pub invert: i32,
+    #[serde(default)]
+    pub pass_channels: Vec<MH160ChannelId>,
+    pub use_channels: Vec<MH160ChannelId>,
+    pub match_count: i32,
+}
+
+#[allow(clippy::unsafe_derive_deserialize)]
+#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct MainEventFilterConfig {
+    #[serde(default = "defaults::default_true")]
+    pub enable: i32,
+    pub time_range_ps: i32,
+    #[serde(default = "defaults::default_false")]
+    pub invert: i32,
+    pub match_count: i32,
+    #[serde(default)]
+    pub pass_channels: Vec<MH160ChannelId>,
+    pub use_channels: Vec<MH160ChannelId>,
+}
+
 impl<T: MhlibWrapper> MH160Device<T> {
     pub fn from_current_config(mhlib_wrapper: T) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
@@ -199,6 +245,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
         Ok(MH160Device { mhlib_wrapper })
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn from_config(mhlib_wrapper: T, config: MH160DeviceConfig) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
 
@@ -249,6 +296,61 @@ impl<T: MhlibWrapper> MH160Device<T> {
             if !enabled_channels.contains(&channel_id) {
                 mhlib_wrapper.set_input_channel_enable(channel_id.into(), false)?;
             }
+        }
+        if let Some(row) = &config.row_filter {
+            let rows_hw = mhlib_wrapper.get_number_of_rows()?;
+            let rows_hw_usize =
+                usize::try_from(rows_hw).map_err(|_| anyhow!("rows must be non-negative"))?;
+
+            ensure!(
+                row.row_filters.len() <= rows_hw_usize,
+                "too many rows for row filter (given {}, hw rows = {})",
+                row.row_filters.len(),
+                rows_hw
+            );
+
+            for rowidx_usize in 0..rows_hw_usize {
+                if let Some(rf) = row.row_filters.get(rowidx_usize) {
+                    let rowidx: i32 =
+                        i32::try_from(rowidx_usize).map_err(|_| anyhow!("row index overflow"))?;
+
+                    let use_bits: i32 = make_row_mask(&rf.use_channels, rowidx);
+                    let pass_bits: i32 = make_row_mask(&rf.pass_channels, rowidx);
+
+                    mhlib_wrapper.set_row_event_filter(
+                        rowidx,
+                        rf.time_range_ps,
+                        rf.match_count,
+                        rf.invert,
+                        use_bits,
+                        pass_bits,
+                    )?;
+                    mhlib_wrapper.enable_row_event_filter(rowidx, 1)?;
+                } else {
+                    let rowidx: i32 =
+                        i32::try_from(rowidx_usize).map_err(|_| anyhow!("row index overflow"))?;
+                    let _ = mhlib_wrapper.enable_row_event_filter(rowidx, 0);
+                }
+            }
+        }
+
+        if let Some(main) = &config.main_filter {
+            mhlib_wrapper.set_main_event_filter_params(
+                main.time_range_ps,
+                main.match_count,
+                main.invert,
+            )?;
+            mhlib_wrapper.enable_main_event_filter(1)?;
+
+            let rows = mhlib_wrapper.get_number_of_rows()?;
+            for rowidx in 0..rows {
+                let use_bits = make_row_mask(&main.use_channels, rowidx);
+                let pass_bits = make_row_mask(&main.pass_channels, rowidx);
+                mhlib_wrapper.set_main_event_filter_channels(rowidx, use_bits, pass_bits)?;
+            }
+
+            mhlib_wrapper.set_filter_test_mode(0)?;
+            mhlib_wrapper.enable_main_event_filter(main.enable)?;
         }
 
         Ok(MH160Device { mhlib_wrapper })
@@ -319,10 +421,40 @@ impl<T: MhlibWrapper> MH160 for MH160Device<T> {
     }
 }
 
+fn make_row_mask(channels_global: &[MH160ChannelId], rowidx: i32) -> i32 {
+    let row_start: i32 = rowidx * CHANNELS_PER_ROW + 1;
+    let row_end: i32 = row_start + CHANNELS_PER_ROW - 1;
+    let mut bits: u32 = 0;
+    for &global in channels_global {
+        let global_i32 = i32::from(global.0);
+        if (row_start..=row_end).contains(&global_i32) {
+            let local_i32 = global_i32 - row_start;
+            if let Ok(local) = u32::try_from(local_i32) {
+                bits |= 1u32 << local;
+            }
+        }
+    }
+    i32::try_from(bits).expect("row mask fits in i32")
+}
+
 impl<T: MhlibWrapper> Drop for MH160Device<T> {
     fn drop(&mut self) {
+        if let Ok(rows) = self.mhlib_wrapper.get_number_of_rows() {
+            // Row filters: disable per row
+            for rowidx in 0..rows {
+                let _ = self.mhlib_wrapper.enable_row_event_filter(rowidx, 0);
+            }
+
+            for rowidx in 0..rows {
+                let _ = self
+                    .mhlib_wrapper
+                    .set_main_event_filter_channels(rowidx, 0, 0);
+            }
+        }
+        let _ = self.mhlib_wrapper.enable_main_event_filter(0);
+        let _ = self.mhlib_wrapper.set_filter_test_mode(0);
         if let Err(e) = self.mhlib_wrapper.close_device() {
-            panic!("Error while closing MultiHarp. {e:?}");
+            eprintln!("Warning: error while closing MultiHarp: {e:?}");
         }
     }
 }

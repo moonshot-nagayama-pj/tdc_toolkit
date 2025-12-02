@@ -4,6 +4,12 @@
 //!
 //! The original constant names from `mhdefin.h` are preserved as comments.
 
+pub const TIMERANGE_MIN: i32 = 0;
+pub const TIMERANGE_MAX: i32 = 2_000_000;
+pub const CHANNELS_PER_ROW: i32 = 8;
+pub const MAX_INPUT_CHANNEL: i32 = 64;
+pub const TTREADMAX: usize = 1_048_576;
+
 use anyhow::Result;
 
 #[cfg(feature = "python")]
@@ -13,8 +19,6 @@ use serde::{Deserialize, Serialize};
 use std::convert::Into;
 
 use crate::multiharp::device::MH160ChannelId;
-
-pub const TTREADMAX: usize = 1_048_576;
 
 #[derive(Clone, Debug)]
 #[repr(i32)]
@@ -70,6 +74,12 @@ pub enum MeasurementControl {
 /// This struct is used for low-level APIs that interface directly with mhlib. Higher-level APIs use [`MH160ChannelId`].
 #[derive(PartialEq, Clone, Debug)]
 pub struct MH160InternalChannelId(u8);
+
+#[derive(Debug, Clone)]
+pub struct FilteredRates {
+    pub sync_rate: i32,
+    pub count_rates: Vec<i32>,
+}
 
 impl MH160InternalChannelId {
     #[must_use]
@@ -158,4 +168,48 @@ pub trait MhlibWrapper: Send + Sync {
     fn set_trigger_output(&self, period_100ns: i32) -> Result<()>;
     fn start_measurement(&self, acquisition_time: i32) -> Result<()>;
     fn stop_measurement(&self) -> Result<()>;
+    fn set_row_event_filter(
+        &self,
+        rowidx: i32,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
+
+    fn enable_row_event_filter(&self, rowidx: i32, enable: i32) -> Result<()>;
+
+    fn set_main_event_filter_params(
+        &self,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: i32,
+    ) -> Result<()>;
+
+    fn set_main_event_filter_channels(
+        &self,
+        rowidx: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
+
+    fn enable_main_event_filter(&self, enable: i32) -> Result<()>;
+
+    fn set_filter_test_mode(&self, test_mode: i32) -> Result<()>;
+
+    fn get_row_filtered_rates(&self) -> Result<FilteredRates>;
+
+    fn get_main_filtered_rates(&self) -> Result<FilteredRates>;
+
+    fn get_number_of_rows(&self) -> Result<i32> {
+        let ch = self.get_number_of_input_channels()?;
+        anyhow::ensure!(
+            ch % CHANNELS_PER_ROW == 0,
+            "input channels ({}) is not divisible by {}",
+            ch,
+            CHANNELS_PER_ROW
+        );
+        Ok(ch / CHANNELS_PER_ROW)
+    }
 }

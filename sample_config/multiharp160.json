@@ -25,5 +25,26 @@
             "edge_trigger": "Falling",
             "offset": 0
         }
-    ]
+    ],
+    "row_filter": 
+        {
+            "match_count": 1,
+            "enable_main": true,
+            "rows": [
+                { 
+                    "channel": 1, 
+                    "time_range_ps": 1000, 
+                    "invert": false, 
+                    "use_channels": [2,3,4], 
+                    "pass_channels": [2,3,4] 
+                }
+            ]
+        },
+    "main_filter": 
+        {
+            "time_range_ps": 1000,
+            "match_count": 4,
+            "invert": false,
+            "use_channels": [1,2,3,4]
+        }
 }
