@@ -34,7 +34,7 @@ fn join_and_collect_thread_errors<T>(handles: Vec<thread::JoinHandle<T>>) -> Opt
 }
 
 pub fn record_multiharp_to_parquet(
-    device: Arc<(dyn MH160 + Send + Sync)>,
+    device: Arc<dyn MH160 + Send + Sync>,
     output_dir: PathBuf,
     duration: Duration,
     name: String,

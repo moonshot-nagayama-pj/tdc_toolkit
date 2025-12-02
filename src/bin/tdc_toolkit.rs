@@ -146,9 +146,9 @@ fn main() -> Result<()> {
             device_type,
             name,
         } => {
-            let device = match device_type {
-                DeviceType::MH160Device => {
-                    match device_config {
+            let device =
+                match device_type {
+                    DeviceType::MH160Device => match device_config {
                         Some(device_config) => {
                             let config =
                                 serde_json::from_str(fs::read_to_string(&device_config)?.as_str())
@@ -165,13 +165,13 @@ fn main() -> Result<()> {
                                     Arc::new(MH160Device::from_config(
                                         MhlibWrapperReal::new(mh_device_index),
                                         config,
-                                    )?) as Arc<(dyn MH160)>,
+                                    )?) as Arc<dyn MH160>,
                                 ),
                                 MhWrapperImplementation::Stub => Ok::<Arc<dyn MH160>, Error>(
                                     Arc::new(MH160Device::from_config(
                                         MhlibWrapperStub::new(mh_device_index),
                                         config,
-                                    )?) as Arc<(dyn MH160)>,
+                                    )?) as Arc<dyn MH160>,
                                 ),
                             }
                         }
@@ -181,19 +181,18 @@ fn main() -> Result<()> {
                                 MhWrapperImplementation::Real => Ok::<Arc<dyn MH160>, Error>(
                                     Arc::new(MH160Device::from_current_config(
                                         MhlibWrapperReal::new(mh_device_index),
-                                    )?) as Arc<(dyn MH160)>,
+                                    )?) as Arc<dyn MH160>,
                                 ),
                                 MhWrapperImplementation::Stub => Ok::<Arc<dyn MH160>, Error>(
                                     Arc::new(MH160Device::from_current_config(
                                         MhlibWrapperStub::new(mh_device_index),
-                                    )?) as Arc<(dyn MH160)>,
+                                    )?) as Arc<dyn MH160>,
                                 ),
                             }
                         }
-                    }
-                }
-                DeviceType::MH160StubGenerator => Ok(Arc::new(MH160Stub {}) as Arc<(dyn MH160)>),
-            }?;
+                    },
+                    DeviceType::MH160StubGenerator => Ok(Arc::new(MH160Stub {}) as Arc<dyn MH160>),
+                }?;
 
             let recording_failed = Arc::new(AtomicBool::new(false));
             let recording_failed_thread_clone = recording_failed.clone();
