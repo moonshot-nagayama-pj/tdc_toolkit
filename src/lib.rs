@@ -28,6 +28,7 @@
 //!
 //! For now, the best example of a complete pipeline is probably the `tdc_toolkit` CLI implementation.
 
+pub mod histogram;
 pub mod multiharp;
 pub mod output;
 pub mod types;
