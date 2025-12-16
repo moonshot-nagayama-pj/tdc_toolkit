@@ -2,13 +2,51 @@
 //!
 //! Many of these values are derived from `mhdefin.h`, which is bundled with the MultiHarp driver release. The values are copied here to avoid a hard dependency on downloading the proprietary MultiHarp shared library when using this library on non-x64 platforms or with non-MultiHarp systems.
 //!
-//! The original constant names from `mhdefin.h` are preserved as comments.
+//! The original constant names from `mhdefin.h` are preserved as comments when they have been changed; some comments are also from `mhdefin.h`.
 
-pub const TIMERANGE_MIN: i32 = 0;
-pub const TIMERANGE_MAX: i32 = 2_000_000;
+//limits for MH_SetRowEventFilterXXX and MH_SetMainEventFilter
+
+/// Constant values that are used in `MH_SetRowEventFilter` and `MH_SetMainEventFilter`. Names are the same as in `mhdefin.h`.
+pub mod EventFilter {
+    pub const ROWIDXMIN: i32 = 0;
+
+    /// actual upper limit is smaller, depending on rows present
+    pub const ROWIDXMAX: i32 = 8;
+
+    pub const INVERSEMIN: i32 = 0;
+    pub const INVERSEMAX: i32 = 1;
+
+    /// no channels used
+    pub const USECHANSMIN: i32 = 0x000;
+
+    /// note: sync bit 0x100 will be ignored in T3 mode and in row filter
+    pub const USECHANSMAX: i32 = 0x1FF;
+
+    /// no channels passed
+    pub const PASSCHANSMIN: i32 = 0x000;
+
+    /// note: sync bit 0x100 will be ignored in T3 mode and in row filter
+    pub const PASSCHANSMAX: i32 = 0x1FF;
+
+    /// Minimum number of channels which must have an event within a given time range for the event to pass through the filter.
+    pub const MATCHCNTMIN: i32 = 1;
+
+    /// Maximum number of channels which must have an event within a given time range for the event to pass through the filter.
+    pub const MATCHCNTMAX: i32 = 6;
+
+    /// Minimum time range for event filters in picoseconds, e.g. the shortest possible span of time to use when doing coincidence counting.
+    pub const TIMERANGEMIN: i32 = 0;
+
+    /// Maximum time range for event filters in picoseconds, e.g. the longest possible span of time to use when doing coincidence counting.
+    pub const TIMERANGEMAX: i32 = 160_000;
+}
+
+/// Number of event records that can be read by `MH_ReadFiFo`. The buffer must provide space for this number of dwords.
+pub const TTREADMAX: usize = 1_048_576;
+
+// These constants are not from `mhdefin.h`
 pub const CHANNELS_PER_ROW: i32 = 8;
 pub const MAX_INPUT_CHANNEL: i32 = 64;
-pub const TTREADMAX: usize = 1_048_576;
 
 use anyhow::Result;
 
