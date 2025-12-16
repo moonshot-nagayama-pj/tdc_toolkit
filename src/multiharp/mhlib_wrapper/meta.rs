@@ -7,7 +7,7 @@
 //limits for MH_SetRowEventFilterXXX and MH_SetMainEventFilter
 
 /// Constant values that are used in `MH_SetRowEventFilter` and `MH_SetMainEventFilter`. Names are the same as in `mhdefin.h`.
-pub mod EventFilter {
+pub mod event_filter {
     pub const ROWIDXMIN: i32 = 0;
 
     /// actual upper limit is smaller, depending on rows present
