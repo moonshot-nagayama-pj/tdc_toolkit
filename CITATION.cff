@@ -11,6 +11,7 @@ authors:
   - given-names: Kentaro
     family-names: Teramoto
     orcid: "https://orcid.org/0009-0004-1899-9550"
+doi: 10.5281/zenodo.16932740
 identifiers:
   - type: doi
     value: 10.5281/zenodo.16932740
