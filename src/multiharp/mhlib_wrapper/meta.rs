@@ -28,10 +28,10 @@ pub mod event_filter {
     /// note: sync bit 0x100 will be ignored in T3 mode and in row filter
     pub const PASSCHANSMAX: i32 = 0x1FF;
 
-    /// Minimum number of channels which must have an event within a given time range for the event to pass through the filter.
+    /// Minimum value for the matchcnt parameter; 1 means that coincidences between any 2 used channels will be recorded
     pub const MATCHCNTMIN: i32 = 1;
 
-    /// Maximum number of channels which must have an event within a given time range for the event to pass through the filter.
+    /// Maximum value for the matchcnt parameter; 6 means that coincidences between any 7 used channels will be recorded
     pub const MATCHCNTMAX: i32 = 6;
 
     /// Minimum time range for event filters in picoseconds, e.g. the shortest possible span of time to use when doing coincidence counting.
@@ -239,15 +239,4 @@ pub trait MhlibWrapper: Send + Sync {
     fn get_row_filtered_rates(&self) -> Result<FilteredRates>;
 
     fn get_main_filtered_rates(&self) -> Result<FilteredRates>;
-
-    fn get_number_of_rows(&self) -> Result<i32> {
-        let ch = self.get_number_of_input_channels()?;
-        anyhow::ensure!(
-            ch % CHANNELS_PER_ROW == 0,
-            "input channels ({}) is not divisible by {}",
-            ch,
-            CHANNELS_PER_ROW
-        );
-        Ok(ch / CHANNELS_PER_ROW)
-    }
 }

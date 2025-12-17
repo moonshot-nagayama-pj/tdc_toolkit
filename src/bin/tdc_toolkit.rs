@@ -131,10 +131,7 @@ fn main() -> Result<()> {
                 },
                 DeviceType::MH160StubGenerator => Ok(Box::new(MH160Stub {}) as Box<dyn MH160>),
             }?;
-            println!(
-                "{}",
-                &serde_json::to_string_pretty(&device.get_device_info()?)?
-            );
+            println!("{}", &serde_json::to_string_pretty(&device.device_info())?);
             Ok(())
         }
         Command::Record {
