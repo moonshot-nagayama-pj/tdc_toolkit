@@ -19,8 +19,8 @@ impl MH160Stub {
 }
 
 impl MH160 for MH160Stub {
-    fn get_device_info(&self) -> Result<MH160DeviceInfo> {
-        Ok(MH160DeviceInfo {
+    fn device_info(&self) -> MH160DeviceInfo {
+        MH160DeviceInfo {
             library_version: "1.0".to_string(),
             device_index: 1,
             model: "Base stub device".to_string(),
@@ -30,7 +30,8 @@ impl MH160 for MH160Stub {
             base_resolution: 5.0,
             binsteps: 1,
             num_channels: 8,
-        })
+            num_rows: 1,
+        }
     }
 
     fn stream_measurement(

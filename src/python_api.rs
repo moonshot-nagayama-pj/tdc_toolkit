@@ -35,8 +35,8 @@ impl MH160Stub {
         }
     }
 
-    fn get_device_info(&self) -> Result<MH160DeviceInfo> {
-        self.wrapped.get_device_info()
+    fn device_info(&self) -> MH160DeviceInfo {
+        self.wrapped.device_info()
     }
 }
 
@@ -74,8 +74,8 @@ impl MH160Device {
         Ok(MH160Device { wrapped })
     }
 
-    fn get_device_info(&self) -> Result<MH160DeviceInfo> {
-        self.wrapped.get_device_info()
+    fn device_info(&self) -> MH160DeviceInfo {
+        self.wrapped.device_info()
     }
 }
 

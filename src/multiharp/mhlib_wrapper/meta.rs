@@ -2,7 +2,51 @@
 //!
 //! Many of these values are derived from `mhdefin.h`, which is bundled with the MultiHarp driver release. The values are copied here to avoid a hard dependency on downloading the proprietary MultiHarp shared library when using this library on non-x64 platforms or with non-MultiHarp systems.
 //!
-//! The original constant names from `mhdefin.h` are preserved as comments.
+//! The original constant names from `mhdefin.h` are preserved as comments when they have been changed; some comments are also from `mhdefin.h`.
+
+//limits for MH_SetRowEventFilterXXX and MH_SetMainEventFilter
+
+/// Constant values that are used in `MH_SetRowEventFilter` and `MH_SetMainEventFilter`. Names are the same as in `mhdefin.h`.
+pub mod event_filter {
+    pub const ROWIDXMIN: i32 = 0;
+
+    /// actual upper limit is smaller, depending on rows present
+    pub const ROWIDXMAX: i32 = 8;
+
+    pub const INVERSEMIN: i32 = 0;
+    pub const INVERSEMAX: i32 = 1;
+
+    /// no channels used
+    pub const USECHANSMIN: i32 = 0x000;
+
+    /// note: sync bit 0x100 will be ignored in T3 mode and in row filter
+    pub const USECHANSMAX: i32 = 0x1FF;
+
+    /// no channels passed
+    pub const PASSCHANSMIN: i32 = 0x000;
+
+    /// note: sync bit 0x100 will be ignored in T3 mode and in row filter
+    pub const PASSCHANSMAX: i32 = 0x1FF;
+
+    /// Minimum value for the matchcnt parameter; 1 means that coincidences between any 2 used channels will be recorded
+    pub const MATCHCNTMIN: i32 = 1;
+
+    /// Maximum value for the matchcnt parameter; 6 means that coincidences between any 7 used channels will be recorded
+    pub const MATCHCNTMAX: i32 = 6;
+
+    /// Minimum time range for event filters in picoseconds, e.g. the shortest possible span of time to use when doing coincidence counting.
+    pub const TIMERANGEMIN: i32 = 0;
+
+    /// Maximum time range for event filters in picoseconds, e.g. the longest possible span of time to use when doing coincidence counting.
+    pub const TIMERANGEMAX: i32 = 160_000;
+}
+
+/// Number of event records that can be read by `MH_ReadFiFo`. The buffer must provide space for this number of dwords.
+pub const TTREADMAX: usize = 1_048_576;
+
+// These constants are not from `mhdefin.h`
+pub const CHANNELS_PER_ROW: i32 = 8;
+pub const MAX_INPUT_CHANNEL: i32 = 64;
 
 use anyhow::Result;
 
@@ -13,8 +57,6 @@ use serde::{Deserialize, Serialize};
 use std::convert::Into;
 
 use crate::multiharp::device::MH160ChannelId;
-
-pub const TTREADMAX: usize = 1_048_576;
 
 #[derive(Clone, Debug)]
 #[repr(i32)]
@@ -70,6 +112,12 @@ pub enum MeasurementControl {
 /// This struct is used for low-level APIs that interface directly with mhlib. Higher-level APIs use [`MH160ChannelId`].
 #[derive(PartialEq, Clone, Debug)]
 pub struct MH160InternalChannelId(u8);
+
+#[derive(Debug, Clone)]
+pub struct FilteredRates {
+    pub sync_rate: i32,
+    pub count_rates: Vec<i32>,
+}
 
 impl MH160InternalChannelId {
     #[must_use]
@@ -158,4 +206,37 @@ pub trait MhlibWrapper: Send + Sync {
     fn set_trigger_output(&self, period_100ns: i32) -> Result<()>;
     fn start_measurement(&self, acquisition_time: i32) -> Result<()>;
     fn stop_measurement(&self) -> Result<()>;
+    fn set_row_event_filter(
+        &self,
+        rowidx: i32,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
+
+    fn enable_row_event_filter(&self, rowidx: i32, enable: i32) -> Result<()>;
+
+    fn set_main_event_filter_params(
+        &self,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: i32,
+    ) -> Result<()>;
+
+    fn set_main_event_filter_channels(
+        &self,
+        rowidx: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
+
+    fn enable_main_event_filter(&self, enable: i32) -> Result<()>;
+
+    fn set_filter_test_mode(&self, test_mode: i32) -> Result<()>;
+
+    fn get_row_filtered_rates(&self) -> Result<FilteredRates>;
+
+    fn get_main_filtered_rates(&self) -> Result<FilteredRates>;
 }

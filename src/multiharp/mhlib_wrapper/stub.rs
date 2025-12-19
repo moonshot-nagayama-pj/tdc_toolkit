@@ -1,7 +1,8 @@
 use anyhow::Result;
 
 use super::meta::{
-    Edge, MH160InternalChannelId, MeasurementControl, MhlibWrapper, Mode, RefSource,
+    Edge, FilteredRates, MAX_INPUT_CHANNEL, MH160InternalChannelId, MeasurementControl,
+    MhlibWrapper, Mode, RefSource,
 };
 
 #[derive(PartialEq, Clone, Debug)]
@@ -225,5 +226,61 @@ impl MhlibWrapper for MhlibWrapperStub {
 
     fn is_measurement_running(&self) -> Result<bool> {
         Ok(true)
+    }
+
+    fn set_row_event_filter(
+        &self,
+        _rowidx: i32,
+        _time_range_ps: i32,
+        _match_count: i32,
+        _inverse: i32,
+        _use_channels_bits: i32,
+        _pass_channels_bits: i32,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    fn enable_row_event_filter(&self, _rowidx: i32, _enable: i32) -> Result<()> {
+        Ok(())
+    }
+
+    fn set_main_event_filter_params(
+        &self,
+        _time_range_ps: i32,
+        _match_count: i32,
+        _inverse: i32,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    fn set_main_event_filter_channels(
+        &self,
+        _rowidx: i32,
+        _use_channels_bits: i32,
+        _pass_channels_bits: i32,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    fn enable_main_event_filter(&self, _enable: i32) -> Result<()> {
+        Ok(())
+    }
+
+    fn set_filter_test_mode(&self, _test_mode: i32) -> Result<()> {
+        Ok(())
+    }
+
+    fn get_row_filtered_rates(&self) -> Result<FilteredRates> {
+        Ok(FilteredRates {
+            sync_rate: 0,
+            count_rates: vec![0; MAX_INPUT_CHANNEL as usize],
+        })
+    }
+
+    fn get_main_filtered_rates(&self) -> Result<FilteredRates> {
+        Ok(FilteredRates {
+            sync_rate: 0,
+            count_rates: vec![0; MAX_INPUT_CHANNEL as usize],
+        })
     }
 }

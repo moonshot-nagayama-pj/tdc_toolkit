@@ -1,0 +1,34 @@
+{
+  "sync_channel": null,
+  "input_channels": [
+    {
+      "id": 3,
+      "edge_trigger_level": 250,
+      "edge_trigger": "Rising",
+      "offset": -21530
+    },
+    {
+      "id": 5,
+      "edge_trigger_level": 250,
+      "edge_trigger": "Rising",
+      "offset": 0
+    },
+    {
+      "id": 7,
+      "edge_trigger_level": 250,
+      "edge_trigger": "Rising",
+      "offset": -41895
+    },
+    {
+      "id": 8,
+      "edge_trigger_level": 250,
+      "edge_trigger": "Rising",
+      "offset": -42090
+    }
+  ],
+  "main_filter": {
+    "time_range_ps": 1000,
+    "match_count": 3,
+    "use_channels": [3,5,7,8]
+  }
+}
