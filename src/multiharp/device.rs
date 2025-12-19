@@ -199,9 +199,6 @@ pub struct MH160Device<T: MhlibWrapper> {
 }
 
 mod defaults {
-    pub fn default_true() -> i32 {
-        1
-    }
     pub fn default_false() -> i32 {
         0
     }
@@ -231,8 +228,6 @@ pub struct RowFilter {
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct MainEventFilterConfig {
-    #[serde(default = "defaults::default_true")]
-    pub enable: i32,
     pub time_range_ps: i32,
     #[serde(default = "defaults::default_false")]
     pub invert: i32,
@@ -340,12 +335,14 @@ impl<T: MhlibWrapper> MH160Device<T> {
         }
 
         if let Some(main) = &config.main_filter {
+            mhlib_wrapper.set_filter_test_mode(0)?;
+            mhlib_wrapper.enable_main_event_filter(1)?;
+
             mhlib_wrapper.set_main_event_filter_params(
                 main.time_range_ps,
                 main.match_count,
                 main.invert,
             )?;
-            mhlib_wrapper.enable_main_event_filter(1)?;
 
             let num_rows_i32: i32 = device_info.num_rows.into();
             for rowidx in 0..num_rows_i32 {
@@ -353,9 +350,6 @@ impl<T: MhlibWrapper> MH160Device<T> {
                 let pass_bits = make_row_mask(&main.pass_channels, rowidx);
                 mhlib_wrapper.set_main_event_filter_channels(rowidx, use_bits, pass_bits)?;
             }
-
-            mhlib_wrapper.set_filter_test_mode(0)?;
-            mhlib_wrapper.enable_main_event_filter(main.enable)?;
         }
 
         Ok(MH160Device {
