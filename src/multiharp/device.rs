@@ -24,6 +24,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
+use strum_macros::Display;
 
 use super::mhlib_wrapper::meta::{CHANNELS_PER_ROW, Edge, MhlibWrapper, Mode, RefSource};
 
@@ -198,12 +199,6 @@ pub struct MH160Device<T: MhlibWrapper> {
     mhlib_wrapper: T,
 }
 
-mod defaults {
-    pub fn default_false() -> i32 {
-        0
-    }
-}
-
 #[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -216,8 +211,7 @@ pub struct RowEventFilterConfig {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowFilter {
     pub time_range_ps: i32,
-    #[serde(default = "defaults::default_false")]
-    pub invert: i32,
+    pub inverse: EventFilterInverse,
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelId>,
     pub use_channels: Vec<MH160ChannelId>,
@@ -229,12 +223,23 @@ pub struct RowFilter {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct MainEventFilterConfig {
     pub time_range_ps: i32,
-    #[serde(default = "defaults::default_false")]
-    pub invert: i32,
+    pub inverse: EventFilterInverse,
     pub match_count: i32,
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelId>,
     pub use_channels: Vec<MH160ChannelId>,
+}
+
+/// Used in event filtering configuration.
+#[allow(clippy::unsafe_derive_deserialize)]
+#[repr(i32)]
+#[cfg_attr(feature = "python", pyclass)]
+#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
+pub enum EventFilterInverse {
+    /// When the filter matches, keep the event. Discard non-matching events.
+    Regular = 0,
+    /// When the filter does not match, keep the event. Discard matching events.
+    Inverse = 1,
 }
 
 impl<T: MhlibWrapper> MH160Device<T> {
@@ -323,7 +328,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
                             rowidx_i32,
                             rf.time_range_ps,
                             rf.match_count,
-                            rf.invert,
+                            rf.inverse as i32,
                             use_bits,
                             pass_bits,
                         )?;
@@ -341,7 +346,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
             mhlib_wrapper.set_main_event_filter_params(
                 main.time_range_ps,
                 main.match_count,
-                main.invert,
+                main.inverse as i32,
             )?;
 
             let num_rows_i32: i32 = device_info.num_rows.into();
