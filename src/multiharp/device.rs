@@ -65,7 +65,7 @@ pub struct MH160DeviceInputChannelConfig {
     /// The channel ID, corresponding to the channel ID numbers on the MultiHarp's interface panel. The ID must be greater than or equal to `1`. `0` is reserved for the sync channel.
     ///
     /// Internally, the MultiHarp software counts channel IDs from zero and does not assign an ID to the sync channel.
-    pub id: MH160ChannelId,
+    pub id: MH160ChannelIdNoSync,
     pub edge_trigger_level: i32, // mV
     pub edge_trigger: Edge,
     pub offset: i32, // picoseconds
@@ -125,9 +125,9 @@ impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig>
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
 #[cfg_attr(feature = "python", pyclass)]
 #[serde(try_from = "u8", into = "u8")]
-pub struct MH160ChannelId(u8);
+pub struct MH160ChannelIdNoSync(u8);
 
-impl MH160ChannelId {
+impl MH160ChannelIdNoSync {
     pub fn new(value: u8) -> Result<Self> {
         if value > 0 {
             Ok(Self(value))
@@ -137,7 +137,7 @@ impl MH160ChannelId {
     }
 }
 
-impl TryFrom<u8> for MH160ChannelId {
+impl TryFrom<u8> for MH160ChannelIdNoSync {
     type Error = anyhow::Error;
 
     fn try_from(value: u8) -> Result<Self> {
@@ -145,8 +145,39 @@ impl TryFrom<u8> for MH160ChannelId {
     }
 }
 
-impl From<MH160ChannelId> for u8 {
-    fn from(value: MH160ChannelId) -> Self {
+impl From<MH160ChannelIdNoSync> for u8 {
+    fn from(value: MH160ChannelIdNoSync) -> Self {
+        value.0
+    }
+}
+
+/// When configuring event filters, the sync channel is treated like an ordinary channel. When using the sync channel as an ordinary channel, we usually refer to it as 0.
+///
+/// Even though the mhlib library expects the sync channel to be called channel 8 here (in a row of eight channels numbered from 0 to 7, the sync channel is 8), we continue to refer to it as channel 0 here, because in a multi-row configuration counting from 0, channel 8 would refer to the first channel of the second row.
+///
+/// Do not confuse this type with `MH160InternalChannelId`, which is also 0-based, but can only represent ordinary channels, not the sync channel.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
+#[cfg_attr(feature = "python", pyclass)]
+#[serde(try_from = "u8", into = "u8")]
+pub struct MH160ChannelIdZeroIsSync(u8);
+
+impl MH160ChannelIdZeroIsSync {
+    const SYNC: Self = Self::new(0);
+
+    #[must_use]
+    pub const fn new(value: u8) -> Self {
+        Self(value)
+    }
+}
+
+impl From<u8> for MH160ChannelIdZeroIsSync {
+    fn from(value: u8) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<MH160ChannelIdZeroIsSync> for u8 {
+    fn from(value: MH160ChannelIdZeroIsSync) -> Self {
         value.0
     }
 }
@@ -208,8 +239,8 @@ pub struct RowEventFilterConfig {
     pub time_range_ps: i32,
     pub inverse: EventFilterInverse,
     #[serde(default)]
-    pub pass_channels: Vec<MH160ChannelId>,
-    pub use_channels: Vec<MH160ChannelId>,
+    pub pass_channels: Vec<MH160ChannelIdNoSync>,
+    pub use_channels: Vec<MH160ChannelIdNoSync>,
     pub match_count: i32,
 }
 
@@ -221,8 +252,8 @@ pub struct MainEventFilterConfig {
     pub inverse: EventFilterInverse,
     pub match_count: i32,
     #[serde(default)]
-    pub pass_channels: Vec<MH160ChannelId>,
-    pub use_channels: Vec<MH160ChannelId>,
+    pub pass_channels: Vec<MH160ChannelIdZeroIsSync>,
+    pub use_channels: Vec<MH160ChannelIdZeroIsSync>,
 }
 
 /// Used in event filtering configuration.
@@ -334,7 +365,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
         let total_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
         for channel_id in 1..=total_channels {
             #[expect(clippy::missing_panics_doc)]
-            let channel_id = MH160ChannelId::new(channel_id).expect("This should not happen");
+            let channel_id = MH160ChannelIdNoSync::new(channel_id).expect("This should not happen");
             if !enabled_channels.contains(&channel_id) {
                 mhlib_wrapper.set_input_channel_enable(channel_id.into(), false)?;
             }
@@ -432,8 +463,8 @@ impl<T: MhlibWrapper> MH160Device<T> {
 
             match row_filters.get(rowidx_usize) {
                 Some(rf) => {
-                    let use_bits: i32 = make_row_mask(&rf.use_channels, rowidx_i32);
-                    let pass_bits: i32 = make_row_mask(&rf.pass_channels, rowidx_i32);
+                    let use_bits: i32 = row_filter_row_mask(&rf.use_channels, rowidx_i32);
+                    let pass_bits: i32 = row_filter_row_mask(&rf.pass_channels, rowidx_i32);
                     mhlib_wrapper.set_row_event_filter(
                         rowidx_i32,
                         rf.time_range_ps,
@@ -490,8 +521,8 @@ impl<T: MhlibWrapper> MH160Device<T> {
 
         let num_rows_i32: i32 = device_info.num_rows.into();
         for rowidx in 0..num_rows_i32 {
-            let use_bits = make_row_mask(&main.use_channels, rowidx);
-            let pass_bits = make_row_mask(&main.pass_channels, rowidx);
+            let use_bits = main_filter_row_mask(&main.use_channels, rowidx);
+            let pass_bits = main_filter_row_mask(&main.pass_channels, rowidx);
             mhlib_wrapper.set_main_event_filter_channels(rowidx, use_bits, pass_bits)?;
         }
         Ok(())
@@ -522,25 +553,10 @@ impl<T: MhlibWrapper> MH160 for MH160Device<T> {
     }
 }
 
-fn make_row_mask(channels_global: &[MH160ChannelId], rowidx: i32) -> i32 {
-    let row_start: i32 = rowidx * CHANNELS_PER_ROW + 1;
-    let row_end: i32 = row_start + CHANNELS_PER_ROW - 1;
-    let mut bits: u32 = 0;
-    for &global in channels_global {
-        let global_i32 = i32::from(global.0);
-        if (row_start..=row_end).contains(&global_i32) {
-            let local_i32 = global_i32 - row_start;
-            if let Ok(local) = u32::try_from(local_i32) {
-                bits |= 1u32 << local;
-            }
-        }
-    }
-    i32::try_from(bits).expect("row mask fits in i32")
-}
-
 impl<T: MhlibWrapper> Drop for MH160Device<T> {
     fn drop(&mut self) {
         for rowidx in 0..self.device_info.num_rows {
+            // TODO need to unset filters here and also consolidate the two loops into one
             let _ = self
                 .mhlib_wrapper
                 .enable_row_event_filter(rowidx.into(), RowEventFilterEnabled::Disabled as i32);
@@ -561,3 +577,46 @@ impl<T: MhlibWrapper> Drop for MH160Device<T> {
         }
     }
 }
+
+/// The row filters cannot include the sync channel (or, at least, the official documentation doesn't indicate that they can), so the bitmasking logic is slightly different from that used for the main filter.
+fn row_filter_row_mask(global_1_channels: &[MH160ChannelIdNoSync], rowidx: i32) -> i32 {
+    let mut bits = 0u16;
+    let global_row_start = rowidx * CHANNELS_PER_ROW;
+    let global_row_end = global_row_start + CHANNELS_PER_ROW - 1;
+    for global_1_channel in global_1_channels {
+        let global_1_channel_zero_is_ordinary = i32::from(global_1_channel.0 - 1);
+        if global_1_channel_zero_is_ordinary >= global_row_start
+            && global_1_channel_zero_is_ordinary <= global_row_end
+        {
+            let local_1_channel = global_1_channel_zero_is_ordinary - global_row_start;
+            bits |= 1u16 << local_1_channel;
+        }
+    }
+    i32::from(bits)
+}
+
+/// The main filter can include the sync channel, when the sync channel is being used as an ordinary channel in T2 mode. However, handling the sync channel requires a slightly different bitmask encoding than is used for the row filter.
+fn main_filter_row_mask(global_1_channels: &[MH160ChannelIdZeroIsSync], rowidx: i32) -> i32 {
+    let mut bits = 0u16;
+    if rowidx == 0 && global_1_channels.contains(&MH160ChannelIdZeroIsSync::SYNC) {
+        bits |= 1u16 << 8;
+    }
+
+    let global_row_start = rowidx * CHANNELS_PER_ROW;
+    let global_row_end = global_row_start + CHANNELS_PER_ROW - 1;
+    for global_1_channel in global_1_channels {
+        if global_1_channel == &MH160ChannelIdZeroIsSync::SYNC {
+            continue;
+        }
+        let global_1_channel_zero_is_ordinary = i32::from(global_1_channel.0 - 1);
+        if global_1_channel_zero_is_ordinary >= global_row_start
+            && global_1_channel_zero_is_ordinary <= global_row_end
+        {
+            let local_1_channel = global_1_channel_zero_is_ordinary - global_row_start;
+            bits |= 1u16 << local_1_channel;
+        }
+    }
+    i32::from(bits)
+}
+
+// TODO need to write unit tests for masking

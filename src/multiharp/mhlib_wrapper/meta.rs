@@ -56,7 +56,7 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
 
-use crate::multiharp::device::MH160ChannelId;
+use crate::multiharp::device::MH160ChannelIdNoSync;
 
 #[derive(Clone, Debug)]
 #[repr(i32)]
@@ -109,7 +109,7 @@ pub enum MeasurementControl {
 ///
 /// For example, the channel labeled `1` on the device's front panel is referred to as channel `0` here.
 ///
-/// This struct is used for low-level APIs that interface directly with mhlib. Higher-level APIs use [`MH160ChannelId`].
+/// This struct is used for low-level APIs that interface directly with mhlib. Higher-level APIs use [`MH160ChannelIdNoSync`].
 #[derive(PartialEq, Clone, Debug)]
 pub struct MH160InternalChannelId(u8);
 
@@ -126,8 +126,8 @@ impl MH160InternalChannelId {
     }
 }
 
-impl From<MH160ChannelId> for MH160InternalChannelId {
-    fn from(value: MH160ChannelId) -> Self {
+impl From<MH160ChannelIdNoSync> for MH160InternalChannelId {
+    fn from(value: MH160ChannelIdNoSync) -> Self {
         Self::new(Into::<u8>::into(value) - 1)
     }
 }
