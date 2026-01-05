@@ -148,7 +148,7 @@ fn main() -> Result<()> {
                     DeviceType::MH160Device => match device_config {
                         Some(device_config) => {
                             let config =
-                                serde_json::from_str(fs::read_to_string(&device_config)?.as_str())
+                                &serde_json::from_str(fs::read_to_string(&device_config)?.as_str())
                                     .with_context(|| {
                                         format!(
                                             "Error while parsing config file at {}",

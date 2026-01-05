@@ -59,7 +59,7 @@ pub struct MH160Device {
 #[pymethods]
 impl MH160Device {
     #[staticmethod]
-    pub fn from_config(device_index: u8, config: MH160DeviceConfig) -> Result<MH160Device> {
+    pub fn from_config(device_index: u8, config: &MH160DeviceConfig) -> Result<MH160Device> {
         #[cfg(feature = "multiharp")]
         let wrapped = Arc::new(WrappedMH160Device::from_config(
             MhlibWrapperReal::new(device_index),

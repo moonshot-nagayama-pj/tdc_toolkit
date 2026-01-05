@@ -44,8 +44,8 @@ pub struct MH160DeviceConfig {
     ///
     /// Attempting to configure the same channel more than once will cause an error.
     pub input_channels: MH160DeviceInputChannelConfigs,
-    pub main_filter: Option<MainEventFilterConfig>,
-    pub row_filter: Option<RowEventFilterConfig>,
+    pub main_event_filter: Option<MainEventFilterConfig>,
+    pub row_event_filters: Option<Vec<RowEventFilterConfig>>,
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -77,12 +77,14 @@ pub struct MH160DeviceInputChannelConfig {
     try_from = "Vec<MH160DeviceInputChannelConfig>",
     into = "Vec<MH160DeviceInputChannelConfig>"
 )]
-pub struct MH160DeviceInputChannelConfigs(Vec<MH160DeviceInputChannelConfig>);
+pub struct MH160DeviceInputChannelConfigs {
+    pub channels: Vec<MH160DeviceInputChannelConfig>,
+}
 
 impl MH160DeviceInputChannelConfigs {
-    pub fn new(value: Vec<MH160DeviceInputChannelConfig>) -> Result<Self> {
-        Self::check_duplicates(&value)?;
-        Ok(Self(value))
+    pub fn try_new(channels: Vec<MH160DeviceInputChannelConfig>) -> Result<Self> {
+        Self::check_duplicates(&channels)?;
+        Ok(Self { channels })
     }
 
     fn check_duplicates(configs: &Vec<MH160DeviceInputChannelConfig>) -> Result<()> {
@@ -107,13 +109,13 @@ impl TryFrom<Vec<MH160DeviceInputChannelConfig>> for MH160DeviceInputChannelConf
     type Error = anyhow::Error;
 
     fn try_from(value: Vec<MH160DeviceInputChannelConfig>) -> Result<Self> {
-        Self::new(value)
+        Self::try_new(value)
     }
 }
 
 impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig> {
     fn from(value: MH160DeviceInputChannelConfigs) -> Self {
-        value.0
+        value.channels
     }
 }
 
@@ -203,13 +205,6 @@ pub struct MH160Device<T: MhlibWrapper> {
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowEventFilterConfig {
-    pub row_filters: Vec<RowFilter>,
-}
-
-#[allow(clippy::unsafe_derive_deserialize)]
-#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct RowFilter {
     pub time_range_ps: i32,
     pub inverse: EventFilterInverse,
     #[serde(default)]
@@ -242,6 +237,18 @@ pub enum EventFilterInverse {
     Inverse = 1,
 }
 
+/// Defines whether a row event filter is enabled or disabled, for the definition of "enabled" described below.
+#[allow(clippy::unsafe_derive_deserialize)]
+#[repr(i32)]
+#[cfg_attr(feature = "python", pyclass)]
+#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
+pub enum RowEventFilterEnabled {
+    /// When disabled, all events on this row will pass through the filter.
+    Disabled = 0,
+    /// When enabled, events will be filtered out if filters have been configured for that row. (The official documentation says "When it is enabled, events may be filtered out according to the parameters set with `MH_SetRowEventFilter`"; the "may be" seems to indicate that this is the behavior, but it remains untested).
+    Enabled = 1,
+}
+
 impl<T: MhlibWrapper> MH160Device<T> {
     pub fn from_current_config(mhlib_wrapper: T) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
@@ -254,7 +261,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn from_config(mhlib_wrapper: T, config: MH160DeviceConfig) -> Result<MH160Device<T>> {
+    pub fn from_config(mhlib_wrapper: T, config: &MH160DeviceConfig) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
 
         // TODO in theory we could support T3 mode relatively easily,
@@ -267,13 +274,13 @@ impl<T: MhlibWrapper> MH160Device<T> {
         // mode; more configuration validation is necessary if we want
         // to support those modes. Conversely, we don't need to use
         // sync in T2; in theory we could just permanently disable it.
-        match config.sync_channel {
+        match &config.sync_channel {
             Some(sync_config) => {
                 mhlib_wrapper.set_sync_channel_enable(true)?;
                 mhlib_wrapper.set_sync_divider(sync_config.divider)?;
                 mhlib_wrapper.set_sync_edge_trigger(
                     sync_config.edge_trigger_level,
-                    sync_config.edge_trigger,
+                    sync_config.edge_trigger.clone(),
                 )?;
                 mhlib_wrapper.set_sync_channel_offset(sync_config.offset)?;
             }
@@ -282,8 +289,8 @@ impl<T: MhlibWrapper> MH160Device<T> {
             }
         }
 
-        let input_channels: Vec<MH160DeviceInputChannelConfig> = config.input_channels.into();
-        for input_channel in &input_channels {
+        let input_channels = &config.input_channels.channels;
+        for input_channel in input_channels {
             mhlib_wrapper.set_input_channel_enable(input_channel.id.into(), true)?;
             mhlib_wrapper.set_input_edge_trigger(
                 input_channel.id.into(),
@@ -308,54 +315,8 @@ impl<T: MhlibWrapper> MH160Device<T> {
             }
         }
 
-        let num_rows_usize = usize::from(device_info.num_rows);
-        if let Some(row) = &config.row_filter {
-            ensure!(
-                row.row_filters.len() <= num_rows_usize,
-                "too many rows for row filter (given {}, hw rows = {})",
-                row.row_filters.len(),
-                num_rows_usize,
-            );
-
-            for rowidx_usize in 0..num_rows_usize {
-                let rowidx_i32: i32 = rowidx_usize.try_into()?;
-
-                match row.row_filters.get(rowidx_usize) {
-                    Some(rf) => {
-                        let use_bits: i32 = make_row_mask(&rf.use_channels, rowidx_i32);
-                        let pass_bits: i32 = make_row_mask(&rf.pass_channels, rowidx_i32);
-                        mhlib_wrapper.set_row_event_filter(
-                            rowidx_i32,
-                            rf.time_range_ps,
-                            rf.match_count,
-                            rf.inverse as i32,
-                            use_bits,
-                            pass_bits,
-                        )?;
-                        mhlib_wrapper.enable_row_event_filter(rowidx_i32, 1)?;
-                    }
-                    None => mhlib_wrapper.enable_row_event_filter(rowidx_i32, 0)?,
-                }
-            }
-        }
-
-        if let Some(main) = &config.main_filter {
-            mhlib_wrapper.set_filter_test_mode(0)?;
-            mhlib_wrapper.enable_main_event_filter(1)?;
-
-            mhlib_wrapper.set_main_event_filter_params(
-                main.time_range_ps,
-                main.match_count,
-                main.inverse as i32,
-            )?;
-
-            let num_rows_i32: i32 = device_info.num_rows.into();
-            for rowidx in 0..num_rows_i32 {
-                let use_bits = make_row_mask(&main.use_channels, rowidx);
-                let pass_bits = make_row_mask(&main.pass_channels, rowidx);
-                mhlib_wrapper.set_main_event_filter_channels(rowidx, use_bits, pass_bits)?;
-            }
-        }
+        Self::configure_row_filters(&mhlib_wrapper, config, &device_info)?;
+        Self::configure_main_filter(&mhlib_wrapper, config, &device_info)?;
 
         Ok(MH160Device {
             device_info,
@@ -415,6 +376,91 @@ impl<T: MhlibWrapper> MH160Device<T> {
             num_channels,
             num_rows,
         })
+    }
+
+    fn configure_row_filters(
+        mhlib_wrapper: &T,
+        config: &MH160DeviceConfig,
+        device_info: &MH160DeviceInfo,
+    ) -> Result<()> {
+        match &config.row_event_filters {
+            Some(row_filters) => Self::enable_row_filters(mhlib_wrapper, row_filters, device_info),
+            None => Self::disable_row_filters(mhlib_wrapper, device_info),
+        }
+    }
+
+    fn enable_row_filters(
+        mhlib_wrapper: &T,
+        row_filters: &[RowEventFilterConfig],
+        device_info: &MH160DeviceInfo,
+    ) -> Result<()> {
+        let num_rows_usize = usize::from(device_info.num_rows);
+        let num_row_filters = row_filters.len();
+        ensure!(
+            num_row_filters <= num_rows_usize,
+            "Attempted to configure {num_row_filters} row event filters, but device has only {num_rows_usize} rows.",
+        );
+
+        for rowidx_usize in 0..num_rows_usize {
+            let rowidx_i32: i32 = rowidx_usize.try_into()?;
+
+            match row_filters.get(rowidx_usize) {
+                Some(rf) => {
+                    let use_bits: i32 = make_row_mask(&rf.use_channels, rowidx_i32);
+                    let pass_bits: i32 = make_row_mask(&rf.pass_channels, rowidx_i32);
+                    mhlib_wrapper.set_row_event_filter(
+                        rowidx_i32,
+                        rf.time_range_ps,
+                        rf.match_count,
+                        rf.inverse as i32,
+                        use_bits,
+                        pass_bits,
+                    )?;
+                    mhlib_wrapper.enable_row_event_filter(
+                        rowidx_i32,
+                        RowEventFilterEnabled::Enabled as i32,
+                    )?;
+                }
+                None => mhlib_wrapper
+                    .enable_row_event_filter(rowidx_i32, RowEventFilterEnabled::Disabled as i32)?, // TODO should we enable it and mask all rows to block pass-through, or make this more configurable?
+            }
+        }
+        Ok(())
+    }
+
+    fn disable_row_filters(mhlib_wrapper: &T, device_info: &MH160DeviceInfo) -> Result<()> {
+        for rowidx in 0..device_info.num_rows {
+            mhlib_wrapper.enable_row_event_filter(
+                i32::from(rowidx),
+                RowEventFilterEnabled::Disabled as i32,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn configure_main_filter(
+        mhlib_wrapper: &T,
+        config: &MH160DeviceConfig,
+        device_info: &MH160DeviceInfo,
+    ) -> Result<()> {
+        if let Some(main) = &config.main_event_filter {
+            mhlib_wrapper.set_filter_test_mode(0)?;
+            mhlib_wrapper.enable_main_event_filter(1)?;
+
+            mhlib_wrapper.set_main_event_filter_params(
+                main.time_range_ps,
+                main.match_count,
+                main.inverse as i32,
+            )?;
+
+            let num_rows_i32: i32 = device_info.num_rows.into();
+            for rowidx in 0..num_rows_i32 {
+                let use_bits = make_row_mask(&main.use_channels, rowidx);
+                let pass_bits = make_row_mask(&main.pass_channels, rowidx);
+                mhlib_wrapper.set_main_event_filter_channels(rowidx, use_bits, pass_bits)?;
+            }
+        }
+        Ok(())
     }
 }
 
