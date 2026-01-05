@@ -249,6 +249,31 @@ pub enum RowEventFilterEnabled {
     Enabled = 1,
 }
 
+/// Defines whether the main event filter is enabled or disabled, for the definition of "enabled" described below.
+#[allow(clippy::unsafe_derive_deserialize)]
+#[repr(i32)]
+#[cfg_attr(feature = "python", pyclass)]
+#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
+pub enum MainEventFilterEnabled {
+    /// When disabled, all events will pass through the filter.
+    Disabled = 0,
+    /// When enabled, events on all channels will be filtered according to the main event filter configuration, after first passing through the row event filter, if that is enabled.
+    Enabled = 1,
+}
+
+/// Describes whether the device is in filter test mode. In test mode, no data is copied into the fifo buffer and only filtered rates are available. This is intended to allow evaluation of filter settings when data rates are too high to transfer all data.
+#[allow(clippy::unsafe_derive_deserialize)]
+#[repr(i32)]
+#[cfg_attr(feature = "python", pyclass)]
+#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
+pub enum EventFilterTestMode {
+    /// The device is operating normally.
+    RegularOperation = 0,
+
+    /// The device is operating in filter test mode. Data will not be available from the device.
+    TestMode = 1,
+}
+
 impl<T: MhlibWrapper> MH160Device<T> {
     pub fn from_current_config(mhlib_wrapper: T) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
@@ -315,6 +340,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
             }
         }
 
+        mhlib_wrapper.set_filter_test_mode(EventFilterTestMode::RegularOperation as i32)?;
         Self::configure_row_filters(&mhlib_wrapper, config, &device_info)?;
         Self::configure_main_filter(&mhlib_wrapper, config, &device_info)?;
 
@@ -443,22 +469,30 @@ impl<T: MhlibWrapper> MH160Device<T> {
         config: &MH160DeviceConfig,
         device_info: &MH160DeviceInfo,
     ) -> Result<()> {
-        if let Some(main) = &config.main_event_filter {
-            mhlib_wrapper.set_filter_test_mode(0)?;
-            mhlib_wrapper.enable_main_event_filter(1)?;
+        match &config.main_event_filter {
+            Some(main_filter) => Self::enable_main_filter(mhlib_wrapper, main_filter, device_info),
+            None => mhlib_wrapper.enable_main_event_filter(MainEventFilterEnabled::Disabled as i32),
+        }
+    }
 
-            mhlib_wrapper.set_main_event_filter_params(
-                main.time_range_ps,
-                main.match_count,
-                main.inverse as i32,
-            )?;
+    fn enable_main_filter(
+        mhlib_wrapper: &T,
+        main: &MainEventFilterConfig,
+        device_info: &MH160DeviceInfo,
+    ) -> Result<()> {
+        mhlib_wrapper.enable_main_event_filter(MainEventFilterEnabled::Enabled as i32)?;
 
-            let num_rows_i32: i32 = device_info.num_rows.into();
-            for rowidx in 0..num_rows_i32 {
-                let use_bits = make_row_mask(&main.use_channels, rowidx);
-                let pass_bits = make_row_mask(&main.pass_channels, rowidx);
-                mhlib_wrapper.set_main_event_filter_channels(rowidx, use_bits, pass_bits)?;
-            }
+        mhlib_wrapper.set_main_event_filter_params(
+            main.time_range_ps,
+            main.match_count,
+            main.inverse as i32,
+        )?;
+
+        let num_rows_i32: i32 = device_info.num_rows.into();
+        for rowidx in 0..num_rows_i32 {
+            let use_bits = make_row_mask(&main.use_channels, rowidx);
+            let pass_bits = make_row_mask(&main.pass_channels, rowidx);
+            mhlib_wrapper.set_main_event_filter_channels(rowidx, use_bits, pass_bits)?;
         }
         Ok(())
     }
@@ -507,15 +541,21 @@ fn make_row_mask(channels_global: &[MH160ChannelId], rowidx: i32) -> i32 {
 impl<T: MhlibWrapper> Drop for MH160Device<T> {
     fn drop(&mut self) {
         for rowidx in 0..self.device_info.num_rows {
-            let _ = self.mhlib_wrapper.enable_row_event_filter(rowidx.into(), 0);
+            let _ = self
+                .mhlib_wrapper
+                .enable_row_event_filter(rowidx.into(), RowEventFilterEnabled::Disabled as i32);
         }
         for rowidx in 0..self.device_info.num_rows {
             let _ = self
                 .mhlib_wrapper
                 .set_main_event_filter_channels(rowidx.into(), 0, 0);
         }
-        let _ = self.mhlib_wrapper.enable_main_event_filter(0);
-        let _ = self.mhlib_wrapper.set_filter_test_mode(0);
+        let _ = self
+            .mhlib_wrapper
+            .enable_main_event_filter(MainEventFilterEnabled::Disabled as i32);
+        let _ = self
+            .mhlib_wrapper
+            .set_filter_test_mode(EventFilterTestMode::RegularOperation as i32);
         if let Err(e) = self.mhlib_wrapper.close_device() {
             eprintln!("Warning: error while closing MultiHarp: {e:?}");
         }
