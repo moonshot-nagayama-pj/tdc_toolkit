@@ -130,7 +130,7 @@ impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig>
 pub struct MH160ChannelIdNoSync(u8);
 
 impl MH160ChannelIdNoSync {
-    pub fn new(value: u8) -> Result<Self> {
+    pub fn try_new(value: u8) -> Result<Self> {
         if value > 0 {
             Ok(Self(value))
         } else {
@@ -143,7 +143,7 @@ impl TryFrom<u8> for MH160ChannelIdNoSync {
     type Error = anyhow::Error;
 
     fn try_from(value: u8) -> Result<Self> {
-        Self::new(value)
+        Self::try_new(value)
     }
 }
 
@@ -318,7 +318,8 @@ impl<T: MhlibWrapper> MH160Device<T> {
         let total_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
         for channel_id in 1..=total_channels {
             #[expect(clippy::missing_panics_doc)]
-            let channel_id = MH160ChannelIdNoSync::new(channel_id).expect("This should not happen");
+            let channel_id =
+                MH160ChannelIdNoSync::try_new(channel_id).expect("This should not happen");
             if !enabled_channels.contains(&channel_id) {
                 mhlib_wrapper.set_input_channel_enable(channel_id.into(), false)?;
             }
@@ -527,23 +528,6 @@ impl<T: MhlibWrapper> Drop for MH160Device<T> {
     }
 }
 
-/// The row filters cannot include the sync channel (or, at least, the official documentation doesn't indicate that they can), so the bitmasking logic is slightly different from that used for the main filter.
-fn row_filter_row_mask(global_1_channels: &[MH160ChannelIdNoSync], rowidx: i32) -> i32 {
-    let mut bits = 0u16;
-    let global_row_start = rowidx * CHANNELS_PER_ROW;
-    let global_row_end = global_row_start + CHANNELS_PER_ROW - 1;
-    for global_1_channel in global_1_channels {
-        let global_1_channel_zero_is_ordinary = i32::from(global_1_channel.0 - 1);
-        if global_1_channel_zero_is_ordinary >= global_row_start
-            && global_1_channel_zero_is_ordinary <= global_row_end
-        {
-            let local_1_channel = global_1_channel_zero_is_ordinary - global_row_start;
-            bits |= 1u16 << local_1_channel;
-        }
-    }
-    i32::from(bits)
-}
-
 /// The main filter can include the sync channel, when the sync channel is being used as an ordinary channel in T2 mode. However, handling the sync channel requires a slightly different bitmask encoding than is used for the row filter.
 fn main_filter_row_mask(global_1_channels: &[MH160ChannelIdZeroIsSync], rowidx: i32) -> i32 {
     let mut bits = 0u16;
@@ -568,4 +552,69 @@ fn main_filter_row_mask(global_1_channels: &[MH160ChannelIdZeroIsSync], rowidx: 
     i32::from(bits)
 }
 
-// TODO need to write unit tests for masking
+/// The row filters cannot include the sync channel (or, at least, the official documentation doesn't indicate that they can), so the bitmasking logic is slightly different from that used for the main filter.
+fn row_filter_row_mask(global_1_channels: &[MH160ChannelIdNoSync], rowidx: i32) -> i32 {
+    let mut bits = 0u16;
+    let global_row_start = rowidx * CHANNELS_PER_ROW;
+    let global_row_end = global_row_start + CHANNELS_PER_ROW - 1;
+    for global_1_channel in global_1_channels {
+        let global_1_channel_zero_is_ordinary = i32::from(global_1_channel.0 - 1);
+        if global_1_channel_zero_is_ordinary >= global_row_start
+            && global_1_channel_zero_is_ordinary <= global_row_end
+        {
+            let local_1_channel = global_1_channel_zero_is_ordinary - global_row_start;
+            bits |= 1u16 << local_1_channel;
+        }
+    }
+    i32::from(bits)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use yare::parameterized;
+
+    #[parameterized(
+        nothing_row0 = { &Vec::new(), 0, 0 },
+        nothing_row3 = { &Vec::new(), 3, 0 },
+        sync_row0 = { &[0,], 0, 0b100000000 },
+        sync_row3 = { &[0,], 3, 0 },
+        ch2_row0 = { &[2,], 0, 0b10 },
+        ch2_row3 = { &[2,], 3, 0 },
+        ch8_row0 = { &[8,], 0, 0b10000000 },
+        ch8_row3 = { &[8,], 3, 0 },
+        ch14_row0 = { &[14,], 0, 0 },
+        ch14_row1 = { &[14,], 1, 0b100000 },
+        ch14_row3 = { &[14,], 3, 0 },
+        everything_row0 = { &[0, 1, 2, 3, 4, 5, 6, 7, 8,], 0, 0b111111111 },
+    )]
+    fn test_main_filter_row_mask(global_1_channels_u8: &[u8], rowidx: i32, expected_mask: i32) {
+        let global_1_channels: Vec<MH160ChannelIdZeroIsSync> = global_1_channels_u8
+            .iter()
+            .map(|v| MH160ChannelIdZeroIsSync::new(*v))
+            .collect();
+        let actual_mask = main_filter_row_mask(&global_1_channels, rowidx);
+        assert_eq!(actual_mask, expected_mask);
+    }
+
+    #[parameterized(
+        nothing_row0 = { &Vec::new(), 0, 0 },
+        nothing_row3 = { &Vec::new(), 3, 0 },
+        ch2_row0 = { &[2,], 0, 0b10 },
+        ch2_row3 = { &[2,], 3, 0 },
+        ch8_row0 = { &[8,], 0, 0b10000000 },
+        ch8_row3 = { &[8,], 3, 0 },
+        ch14_row0 = { &[14,], 0, 0 },
+        ch14_row1 = { &[14,], 1, 0b100000 },
+        ch14_row3 = { &[14,], 3, 0 },
+        everything_row0 = { &[1, 2, 3, 4, 5, 6, 7, 8,], 0, 0b11111111 },
+    )]
+    fn test_row_filter_row_mask(global_1_channels_u8: &[u8], rowidx: i32, expected_mask: i32) {
+        let global_1_channels: Vec<MH160ChannelIdNoSync> = global_1_channels_u8
+            .iter()
+            .map(|v| MH160ChannelIdNoSync::try_new(*v).unwrap())
+            .collect();
+        let actual_mask = row_filter_row_mask(&global_1_channels, rowidx);
+        assert_eq!(actual_mask, expected_mask);
+    }
+}
