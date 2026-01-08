@@ -24,7 +24,8 @@ use self::bindings::{
 
 use super::meta;
 use super::meta::{
-    Edge, MH160InternalChannelId, MeasurementControl, MhlibWrapper, Mode, RefSource,
+    Edge, EventFilterInverse, EventFilterTestMode, MH160InternalChannelId, MainEventFilterEnabled,
+    MeasurementControl, MhlibWrapper, Mode, RefSource, RowEventFilterEnabled,
 };
 
 fn handle_error(ret: c_int) -> Result<()> {
@@ -608,7 +609,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         rowidx: i32,
         time_range_ps: i32,
         match_count: i32,
-        inverse: i32,
+        inverse: EventFilterInverse,
         use_channels_bits: i32,
         pass_channels_bits: i32,
     ) -> Result<()> {
@@ -620,7 +621,7 @@ impl MhlibWrapper for MhlibWrapperReal {
                 rowidx,
                 time_range_ps,
                 match_count,
-                inverse,
+                inverse as i32,
                 use_channels_bits,
                 pass_channels_bits,
             );
@@ -630,11 +631,11 @@ impl MhlibWrapper for MhlibWrapperReal {
         Ok(())
     }
 
-    fn enable_row_event_filter(&self, rowidx: i32, enable: i32) -> Result<()> {
+    fn enable_row_event_filter(&self, rowidx: i32, enable: RowEventFilterEnabled) -> Result<()> {
         self.assert_event_filter_supported()?;
 
         unsafe {
-            let ret = MH_EnableRowEventFilter(self.device_index.into(), rowidx, enable);
+            let ret = MH_EnableRowEventFilter(self.device_index.into(), rowidx, enable as i32);
             handle_error(ret)?;
         }
         Ok(())
@@ -644,7 +645,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         &self,
         time_range_ps: i32,
         match_count: i32,
-        inverse: i32,
+        inverse: EventFilterInverse,
     ) -> Result<()> {
         self.assert_event_filter_supported()?;
 
@@ -653,7 +654,7 @@ impl MhlibWrapper for MhlibWrapperReal {
                 self.device_index.into(),
                 time_range_ps,
                 match_count,
-                inverse,
+                inverse as i32,
             );
             handle_error(ret)?;
         }
@@ -679,19 +680,19 @@ impl MhlibWrapper for MhlibWrapperReal {
         Ok(())
     }
 
-    fn enable_main_event_filter(&self, enable: i32) -> Result<()> {
+    fn enable_main_event_filter(&self, enable: MainEventFilterEnabled) -> Result<()> {
         self.assert_event_filter_supported()?;
         unsafe {
-            let ret = MH_EnableMainEventFilter(self.device_index.into(), enable);
+            let ret = MH_EnableMainEventFilter(self.device_index.into(), enable as i32);
             handle_error(ret)?;
         }
         Ok(())
     }
 
-    fn set_filter_test_mode(&self, enable: i32) -> Result<()> {
+    fn set_filter_test_mode(&self, enable: EventFilterTestMode) -> Result<()> {
         self.assert_event_filter_supported()?;
         unsafe {
-            let ret = MH_SetFilterTestMode(self.device_index.into(), enable);
+            let ret = MH_SetFilterTestMode(self.device_index.into(), enable as i32);
             handle_error(ret)?;
         }
         Ok(())

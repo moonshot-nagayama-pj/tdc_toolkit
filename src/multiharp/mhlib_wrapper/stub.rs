@@ -1,8 +1,9 @@
 use anyhow::Result;
 
 use super::meta::{
-    Edge, FilteredRates, MAX_INPUT_CHANNEL, MH160InternalChannelId, MeasurementControl,
-    MhlibWrapper, Mode, RefSource,
+    Edge, EventFilterInverse, EventFilterTestMode, FilteredRates, MAX_INPUT_CHANNEL,
+    MH160InternalChannelId, MainEventFilterEnabled, MeasurementControl, MhlibWrapper, Mode,
+    RefSource, RowEventFilterEnabled,
 };
 
 #[derive(PartialEq, Clone, Debug)]
@@ -233,14 +234,14 @@ impl MhlibWrapper for MhlibWrapperStub {
         _rowidx: i32,
         _time_range_ps: i32,
         _match_count: i32,
-        _inverse: i32,
+        _inverse: EventFilterInverse,
         _use_channels_bits: i32,
         _pass_channels_bits: i32,
     ) -> Result<()> {
         Ok(())
     }
 
-    fn enable_row_event_filter(&self, _rowidx: i32, _enable: i32) -> Result<()> {
+    fn enable_row_event_filter(&self, _rowidx: i32, _enable: RowEventFilterEnabled) -> Result<()> {
         Ok(())
     }
 
@@ -248,7 +249,7 @@ impl MhlibWrapper for MhlibWrapperStub {
         &self,
         _time_range_ps: i32,
         _match_count: i32,
-        _inverse: i32,
+        _inverse: EventFilterInverse,
     ) -> Result<()> {
         Ok(())
     }
@@ -262,11 +263,11 @@ impl MhlibWrapper for MhlibWrapperStub {
         Ok(())
     }
 
-    fn enable_main_event_filter(&self, _enable: i32) -> Result<()> {
+    fn enable_main_event_filter(&self, _enable: MainEventFilterEnabled) -> Result<()> {
         Ok(())
     }
 
-    fn set_filter_test_mode(&self, _test_mode: i32) -> Result<()> {
+    fn set_filter_test_mode(&self, _test_mode: EventFilterTestMode) -> Result<()> {
         Ok(())
     }
 
