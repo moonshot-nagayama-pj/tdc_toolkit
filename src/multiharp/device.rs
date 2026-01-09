@@ -25,6 +25,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
 
+use super::mhlib_wrapper::meta::event_filter::{MATCHCNTMIN, TIMERANGEMIN};
 use super::mhlib_wrapper::meta::{
     CHANNELS_PER_ROW, Edge, EventFilterInverse, EventFilterTestMode, MainEventFilterEnabled,
     MhlibWrapper, Mode, RefSource, RowEventFilterEnabled,
@@ -506,16 +507,27 @@ impl<T: MhlibWrapper> MH160 for MH160Device<T> {
 impl<T: MhlibWrapper> Drop for MH160Device<T> {
     fn drop(&mut self) {
         for rowidx in 0..self.device_info.num_rows {
-            // TODO need to unset filters here and also consolidate the two loops into one
+            let rowidx_i32: i32 = rowidx.into();
+            let _ = self.mhlib_wrapper.set_row_event_filter(
+                rowidx_i32,
+                TIMERANGEMIN,
+                MATCHCNTMIN,
+                EventFilterInverse::Regular,
+                0,
+                0,
+            );
             let _ = self
                 .mhlib_wrapper
-                .enable_row_event_filter(rowidx.into(), RowEventFilterEnabled::Disabled);
-        }
-        for rowidx in 0..self.device_info.num_rows {
+                .enable_row_event_filter(rowidx_i32, RowEventFilterEnabled::Disabled);
             let _ = self
                 .mhlib_wrapper
-                .set_main_event_filter_channels(rowidx.into(), 0, 0);
+                .set_main_event_filter_channels(rowidx_i32, 0, 0);
         }
+        let _ = self.mhlib_wrapper.set_main_event_filter_params(
+            TIMERANGEMIN,
+            MATCHCNTMIN,
+            EventFilterInverse::Regular,
+        );
         let _ = self
             .mhlib_wrapper
             .enable_main_event_filter(MainEventFilterEnabled::Disabled);
