@@ -25,11 +25,10 @@ use std::fmt::{Display, Formatter};
 use std::sync::mpsc;
 use std::time::Duration;
 
-use super::mhlib_wrapper::meta::event_filter::{MATCHCNTMIN, TIMERANGEMIN};
-use super::mhlib_wrapper::meta::{
-    CHANNELS_PER_ROW, Edge, EventFilterInverse, EventFilterTestMode, MainEventFilterEnabled,
-    MhlibWrapper, Mode, RefSource, RowEventFilterEnabled,
+use super::mhlib_wrapper::meta::event_filter::{
+    Inverse, MATCHCNTMIN, MainEnabled, RowEnabled, TIMERANGEMIN, TestMode,
 };
+use super::mhlib_wrapper::meta::{CHANNELS_PER_ROW, Edge, MhlibWrapper, Mode, RefSource};
 
 /// MultiHarp 160 device configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -240,7 +239,7 @@ pub struct MH160Device<T: MhlibWrapper> {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowEventFilterConfig {
     pub time_range_ps: i32,
-    pub inverse: EventFilterInverse,
+    pub inverse: Inverse,
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelIdNoSync>,
     pub use_channels: Vec<MH160ChannelIdNoSync>,
@@ -252,7 +251,7 @@ pub struct RowEventFilterConfig {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct MainEventFilterConfig {
     pub time_range_ps: i32,
-    pub inverse: EventFilterInverse,
+    pub inverse: Inverse,
     pub match_count: i32,
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelIdZeroIsSync>,
@@ -326,7 +325,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
             }
         }
 
-        mhlib_wrapper.set_filter_test_mode(EventFilterTestMode::RegularOperation)?;
+        mhlib_wrapper.set_filter_test_mode(TestMode::RegularOperation)?;
         Self::configure_row_filters(&mhlib_wrapper, config, &device_info)?;
         Self::configure_main_filter(&mhlib_wrapper, config, &device_info)?;
 
@@ -428,11 +427,9 @@ impl<T: MhlibWrapper> MH160Device<T> {
                         use_bits,
                         pass_bits,
                     )?;
-                    mhlib_wrapper
-                        .enable_row_event_filter(rowidx_i32, RowEventFilterEnabled::Enabled)?;
+                    mhlib_wrapper.enable_row_event_filter(rowidx_i32, RowEnabled::Enabled)?;
                 }
-                None => mhlib_wrapper
-                    .enable_row_event_filter(rowidx_i32, RowEventFilterEnabled::Disabled)?, // TODO should we enable it and mask all rows to block pass-through, or make this more configurable?
+                None => mhlib_wrapper.enable_row_event_filter(rowidx_i32, RowEnabled::Disabled)?, // TODO should we enable it and mask all rows to block pass-through, or make this more configurable?
             }
         }
         Ok(())
@@ -440,8 +437,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
 
     fn disable_row_filters(mhlib_wrapper: &T, device_info: &MH160DeviceInfo) -> Result<()> {
         for rowidx in 0..device_info.num_rows {
-            mhlib_wrapper
-                .enable_row_event_filter(i32::from(rowidx), RowEventFilterEnabled::Disabled)?;
+            mhlib_wrapper.enable_row_event_filter(i32::from(rowidx), RowEnabled::Disabled)?;
         }
         Ok(())
     }
@@ -453,7 +449,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
     ) -> Result<()> {
         match &config.main_event_filter {
             Some(main_filter) => Self::enable_main_filter(mhlib_wrapper, main_filter, device_info),
-            None => mhlib_wrapper.enable_main_event_filter(MainEventFilterEnabled::Disabled),
+            None => mhlib_wrapper.enable_main_event_filter(MainEnabled::Disabled),
         }
     }
 
@@ -462,7 +458,7 @@ impl<T: MhlibWrapper> MH160Device<T> {
         main: &MainEventFilterConfig,
         device_info: &MH160DeviceInfo,
     ) -> Result<()> {
-        mhlib_wrapper.enable_main_event_filter(MainEventFilterEnabled::Enabled)?;
+        mhlib_wrapper.enable_main_event_filter(MainEnabled::Enabled)?;
 
         mhlib_wrapper.set_main_event_filter_params(
             main.time_range_ps,
@@ -512,13 +508,13 @@ impl<T: MhlibWrapper> Drop for MH160Device<T> {
                 rowidx_i32,
                 TIMERANGEMIN,
                 MATCHCNTMIN,
-                EventFilterInverse::Regular,
+                Inverse::Regular,
                 0,
                 0,
             );
             let _ = self
                 .mhlib_wrapper
-                .enable_row_event_filter(rowidx_i32, RowEventFilterEnabled::Disabled);
+                .enable_row_event_filter(rowidx_i32, RowEnabled::Disabled);
             let _ = self
                 .mhlib_wrapper
                 .set_main_event_filter_channels(rowidx_i32, 0, 0);
@@ -526,14 +522,14 @@ impl<T: MhlibWrapper> Drop for MH160Device<T> {
         let _ = self.mhlib_wrapper.set_main_event_filter_params(
             TIMERANGEMIN,
             MATCHCNTMIN,
-            EventFilterInverse::Regular,
+            Inverse::Regular,
         );
         let _ = self
             .mhlib_wrapper
-            .enable_main_event_filter(MainEventFilterEnabled::Disabled);
+            .enable_main_event_filter(MainEnabled::Disabled);
         let _ = self
             .mhlib_wrapper
-            .set_filter_test_mode(EventFilterTestMode::RegularOperation);
+            .set_filter_test_mode(TestMode::RegularOperation);
         if let Err(e) = self.mhlib_wrapper.close_device() {
             eprintln!("Warning: error while closing MultiHarp: {e:?}");
         }

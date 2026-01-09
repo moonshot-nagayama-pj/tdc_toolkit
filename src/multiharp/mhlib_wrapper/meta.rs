@@ -4,48 +4,15 @@
 //!
 //! The original constant names from `mhdefin.h` are preserved as comments when they have been changed; some comments are also from `mhdefin.h`.
 
-//limits for MH_SetRowEventFilterXXX and MH_SetMainEventFilter
+pub mod event_filter;
 
-/// Constant values that are used in `MH_SetRowEventFilter` and `MH_SetMainEventFilter`. Names are the same as in `mhdefin.h`.
-pub mod event_filter {
-    pub const ROWIDXMIN: i32 = 0;
-
-    /// actual upper limit is smaller, depending on rows present
-    pub const ROWIDXMAX: i32 = 8;
-
-    pub const INVERSEMIN: i32 = 0;
-    pub const INVERSEMAX: i32 = 1;
-
-    /// no channels used
-    pub const USECHANSMIN: i32 = 0x000;
-
-    /// note: sync bit 0x100 will be ignored in T3 mode and in row filter
-    pub const USECHANSMAX: i32 = 0x1FF;
-
-    /// no channels passed
-    pub const PASSCHANSMIN: i32 = 0x000;
-
-    /// note: sync bit 0x100 will be ignored in T3 mode and in row filter
-    pub const PASSCHANSMAX: i32 = 0x1FF;
-
-    /// Minimum value for the matchcnt parameter; 1 means that coincidences between any 2 used channels will be recorded
-    pub const MATCHCNTMIN: i32 = 1;
-
-    /// Maximum value for the matchcnt parameter; 6 means that coincidences between any 7 used channels will be recorded
-    pub const MATCHCNTMAX: i32 = 6;
-
-    /// Minimum time range for event filters in picoseconds, e.g. the shortest possible span of time to use when doing coincidence counting.
-    pub const TIMERANGEMIN: i32 = 0;
-
-    /// Maximum time range for event filters in picoseconds, e.g. the longest possible span of time to use when doing coincidence counting.
-    pub const TIMERANGEMAX: i32 = 160_000;
-}
-
-/// Number of event records that can be read by `MH_ReadFiFo`. The buffer must provide space for this number of dwords.
+/// Number of event records that can be read by `MH_ReadFiFo`. The buffer must provide space for this number of dwords (32-bit unsigned integers).
 pub const TTREADMAX: usize = 1_048_576;
 
-// These constants are not from `mhdefin.h`
+/// Not from `mhdefin.h`. TODO this can be determined dynamically
 pub const CHANNELS_PER_ROW: i32 = 8;
+
+/// Not from `mhdefin.h`.
 pub const MAX_INPUT_CHANNEL: i32 = 64;
 
 use anyhow::Result;
@@ -55,8 +22,8 @@ use pyo3::prelude::*;
 
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
-use strum_macros::Display;
 
+use super::meta::event_filter::{Inverse, MainEnabled, RowEnabled, TestMode};
 use crate::multiharp::device::MH160ChannelIdNoSync;
 
 #[derive(Clone, Debug)]
@@ -145,55 +112,6 @@ impl From<MH160InternalChannelId> for i32 {
     }
 }
 
-/// Used in event filtering configuration.
-#[allow(clippy::unsafe_derive_deserialize)]
-#[repr(i32)]
-#[cfg_attr(feature = "python", pyclass)]
-#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
-pub enum EventFilterInverse {
-    /// When the filter matches, keep the event. Discard non-matching events.
-    Regular = 0,
-    /// When the filter does not match, keep the event. Discard matching events.
-    Inverse = 1,
-}
-
-/// Describes whether the device is in filter test mode. In test mode, no data is copied into the fifo buffer and only filtered rates are available. This is intended to allow evaluation of filter settings when data rates are too high to transfer all data.
-#[allow(clippy::unsafe_derive_deserialize)]
-#[repr(i32)]
-#[cfg_attr(feature = "python", pyclass)]
-#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
-pub enum EventFilterTestMode {
-    /// The device is operating normally.
-    RegularOperation = 0,
-
-    /// The device is operating in filter test mode. Data will not be available from the device.
-    TestMode = 1,
-}
-
-/// Defines whether a row event filter is enabled or disabled, for the definition of "enabled" described below.
-#[allow(clippy::unsafe_derive_deserialize)]
-#[repr(i32)]
-#[cfg_attr(feature = "python", pyclass)]
-#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
-pub enum RowEventFilterEnabled {
-    /// When disabled, all events on this row will pass through the filter.
-    Disabled = 0,
-    /// When enabled, events will be filtered out if filters have been configured for that row. (The official documentation says "When it is enabled, events may be filtered out according to the parameters set with `MH_SetRowEventFilter`"; the "may be" seems to indicate that this is the behavior, but it remains untested).
-    Enabled = 1,
-}
-
-/// Defines whether the main event filter is enabled or disabled, for the definition of "enabled" described below.
-#[allow(clippy::unsafe_derive_deserialize)]
-#[repr(i32)]
-#[cfg_attr(feature = "python", pyclass)]
-#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
-pub enum MainEventFilterEnabled {
-    /// When disabled, all events will pass through the filter.
-    Disabled = 0,
-    /// When enabled, events on all channels will be filtered according to the main event filter configuration, after first passing through the row event filter, if that is enabled.
-    Enabled = 1,
-}
-
 pub trait MhlibWrapper: Send + Sync {
     fn clear_histogram_memory(&self) -> Result<()>;
     fn close_device(&self) -> Result<()>;
@@ -261,18 +179,18 @@ pub trait MhlibWrapper: Send + Sync {
         rowidx: i32,
         time_range_ps: i32,
         match_count: i32,
-        inverse: EventFilterInverse,
+        inverse: Inverse,
         use_channels_bits: i32,
         pass_channels_bits: i32,
     ) -> Result<()>;
 
-    fn enable_row_event_filter(&self, rowidx: i32, enable: RowEventFilterEnabled) -> Result<()>;
+    fn enable_row_event_filter(&self, rowidx: i32, enable: RowEnabled) -> Result<()>;
 
     fn set_main_event_filter_params(
         &self,
         time_range_ps: i32,
         match_count: i32,
-        inverse: EventFilterInverse,
+        inverse: Inverse,
     ) -> Result<()>;
 
     fn set_main_event_filter_channels(
@@ -282,9 +200,9 @@ pub trait MhlibWrapper: Send + Sync {
         pass_channels_bits: i32,
     ) -> Result<()>;
 
-    fn enable_main_event_filter(&self, enable: MainEventFilterEnabled) -> Result<()>;
+    fn enable_main_event_filter(&self, enable: MainEnabled) -> Result<()>;
 
-    fn set_filter_test_mode(&self, test_mode: EventFilterTestMode) -> Result<()>;
+    fn set_filter_test_mode(&self, test_mode: TestMode) -> Result<()>;
 
     fn get_row_filtered_rates(&self) -> Result<FilteredRates>;
 

@@ -5,8 +5,6 @@ mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 
-use super::meta::{FilteredRates, MAX_INPUT_CHANNEL};
-
 use self::bindings::{
     MH_CTCStatus, MH_ClearHistMem, MH_CloseDevice, MH_EnableMainEventFilter,
     MH_EnableRowEventFilter, MH_GetAllCountRates, MH_GetAllHistograms, MH_GetBaseResolution,
@@ -23,9 +21,10 @@ use self::bindings::{
 };
 
 use super::meta;
+use super::meta::event_filter::{Inverse, MainEnabled, RowEnabled, TestMode};
 use super::meta::{
-    Edge, EventFilterInverse, EventFilterTestMode, MH160InternalChannelId, MainEventFilterEnabled,
-    MeasurementControl, MhlibWrapper, Mode, RefSource, RowEventFilterEnabled,
+    Edge, FilteredRates, MAX_INPUT_CHANNEL, MH160InternalChannelId, MeasurementControl,
+    MhlibWrapper, Mode, RefSource,
 };
 
 fn handle_error(ret: c_int) -> Result<()> {
@@ -609,7 +608,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         rowidx: i32,
         time_range_ps: i32,
         match_count: i32,
-        inverse: EventFilterInverse,
+        inverse: Inverse,
         use_channels_bits: i32,
         pass_channels_bits: i32,
     ) -> Result<()> {
@@ -631,7 +630,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         Ok(())
     }
 
-    fn enable_row_event_filter(&self, rowidx: i32, enable: RowEventFilterEnabled) -> Result<()> {
+    fn enable_row_event_filter(&self, rowidx: i32, enable: RowEnabled) -> Result<()> {
         self.assert_event_filter_supported()?;
 
         unsafe {
@@ -645,7 +644,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         &self,
         time_range_ps: i32,
         match_count: i32,
-        inverse: EventFilterInverse,
+        inverse: Inverse,
     ) -> Result<()> {
         self.assert_event_filter_supported()?;
 
@@ -680,7 +679,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         Ok(())
     }
 
-    fn enable_main_event_filter(&self, enable: MainEventFilterEnabled) -> Result<()> {
+    fn enable_main_event_filter(&self, enable: MainEnabled) -> Result<()> {
         self.assert_event_filter_supported()?;
         unsafe {
             let ret = MH_EnableMainEventFilter(self.device_index.into(), enable as i32);
@@ -689,7 +688,7 @@ impl MhlibWrapper for MhlibWrapperReal {
         Ok(())
     }
 
-    fn set_filter_test_mode(&self, enable: EventFilterTestMode) -> Result<()> {
+    fn set_filter_test_mode(&self, enable: TestMode) -> Result<()> {
         self.assert_event_filter_supported()?;
         unsafe {
             let ret = MH_SetFilterTestMode(self.device_index.into(), enable as i32);
