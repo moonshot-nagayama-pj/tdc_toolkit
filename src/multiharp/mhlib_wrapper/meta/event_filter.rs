@@ -42,9 +42,10 @@ pub const TIMERANGEMAX: i32 = 160_000;
 #[allow(clippy::unsafe_derive_deserialize)]
 #[repr(i32)]
 #[cfg_attr(feature = "python", pyclass)]
-#[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
+#[derive(Copy, Clone, Debug, Default, Deserialize, Display, PartialEq, Serialize)]
 pub enum Inverse {
     /// When the filter matches, keep the event. Discard non-matching events.
+    #[default]
     Regular = 0,
     /// When the filter does not match, keep the event. Discard matching events.
     Inverse = 1,

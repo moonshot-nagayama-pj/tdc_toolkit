@@ -239,11 +239,13 @@ pub struct MH160Device<T: MhlibWrapper> {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowEventFilterConfig {
     pub time_range_ps: i32,
+    pub match_count: i32,
+    pub use_channels: Vec<MH160ChannelIdNoSync>,
+
+    #[serde(default)]
     pub inverse: Inverse,
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelIdNoSync>,
-    pub use_channels: Vec<MH160ChannelIdNoSync>,
-    pub match_count: i32,
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -251,11 +253,13 @@ pub struct RowEventFilterConfig {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct MainEventFilterConfig {
     pub time_range_ps: i32,
-    pub inverse: Inverse,
     pub match_count: i32,
+    pub use_channels: Vec<MH160ChannelIdZeroIsSync>,
+
+    #[serde(default)]
+    pub inverse: Inverse,
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelIdZeroIsSync>,
-    pub use_channels: Vec<MH160ChannelIdZeroIsSync>,
 }
 
 impl<T: MhlibWrapper> MH160Device<T> {
