@@ -123,7 +123,7 @@ pub trait MhlibWrapper: Send + Sync {
     fn get_count_rate(&self, channel: MH160InternalChannelId) -> Result<i32>;
     fn get_debug_info(&self) -> Result<String>;
     fn get_elapsed_measurement_time(&self) -> Result<f64>;
-    fn get_feature(&self) -> Result<i32>;
+    fn get_features(&self) -> Result<i32>;
     fn get_flags(&self) -> Result<i32>;
     fn get_hardware_info(&self) -> Result<(String, String, String)>;
     fn get_histogram(&self, channel: MH160InternalChannelId) -> Result<Vec<u32>>;

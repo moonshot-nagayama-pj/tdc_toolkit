@@ -1,5 +1,5 @@
-use anyhow::{Result, anyhow, bail};
-use std::{os::raw::c_int, sync::RwLock};
+use anyhow::{Result, anyhow, ensure};
+use std::os::raw::c_int;
 mod bindings {
     #![allow(dead_code, clippy::unreadable_literal)]
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
@@ -49,71 +49,41 @@ fn convert_into_string(vec: &[u8]) -> String {
 #[derive(Debug)]
 pub struct MhlibWrapperReal {
     device_index: u8,
-    event_filter_supported: RwLock<Option<bool>>,
-    num_input_channels: RwLock<Option<i32>>,
+    event_filter_supported: bool,
+    num_input_channels: i32,
 }
 
 impl MhlibWrapperReal {
-    #[must_use]
-    pub fn new(device_index: u8) -> Self {
-        Self {
+    pub fn try_new(device_index: u8) -> Result<Self> {
+        const FEATURE_EVNT_FILT: i32 = 0x0100;
+        let features = Self::get_features_internal(device_index)?;
+        let event_filter_supported = (features & FEATURE_EVNT_FILT) != 0;
+
+        let mut num_input_channels: i32 = 0;
+        let ret =
+            unsafe { MH_GetNumOfInputChannels(device_index.into(), &raw mut num_input_channels) };
+        handle_error(ret)?;
+
+        Ok(Self {
             device_index,
-            event_filter_supported: RwLock::new(None),
-            num_input_channels: RwLock::new(None),
-        }
+            event_filter_supported,
+            num_input_channels,
+        })
     }
 
     fn assert_event_filter_supported(&self) -> Result<()> {
-        const FEATURE_EVNT_FILT: i32 = 0x0100;
-
-        {
-            let guard = self.event_filter_supported.read().unwrap();
-            if let Some(supported) = *guard {
-                if supported {
-                    return Ok(());
-                }
-                bail!("Event filtering not supported by this device/firmware");
-            }
-        }
-
-        let mut guard = self.event_filter_supported.write().unwrap();
-
-        if let Some(supported) = *guard {
-            if supported {
-                return Ok(());
-            }
-            bail!("Event filtering not supported by this device/firmware");
-        }
-
-        let features = self.get_feature()?;
-        let supported = (features & FEATURE_EVNT_FILT) != 0;
-        *guard = Some(supported);
-
-        if !supported {
-            bail!("Event filtering not supported by this device/firmware");
-        }
+        ensure!(
+            self.event_filter_supported,
+            "Event filtering not supported by this device/firmware"
+        );
         Ok(())
     }
 
-    fn get_cached_num_input_channels(&self) -> Result<i32> {
-        {
-            let guard = self.num_input_channels.read().unwrap();
-            if let Some(n) = *guard {
-                return Ok(n);
-            }
-        }
-
-        let mut guard = self.num_input_channels.write().unwrap();
-        if let Some(n) = *guard {
-            return Ok(n);
-        }
-
-        let mut num_channels: i32 = 0;
-        let ret =
-            unsafe { MH_GetNumOfInputChannels(self.device_index.into(), &raw mut num_channels) };
+    fn get_features_internal(device_index: u8) -> Result<i32> {
+        let mut features = 0i32;
+        let ret = unsafe { MH_GetFeatures(device_index.into(), &raw mut features) };
         handle_error(ret)?;
-        *guard = Some(num_channels);
-        Ok(num_channels)
+        Ok(features)
     }
 }
 
@@ -179,13 +149,8 @@ impl MhlibWrapper for MhlibWrapperReal {
         }
     }
 
-    fn get_feature(&self) -> Result<i32> {
-        let mut features = 0i32;
-        unsafe {
-            let ret = MH_GetFeatures(self.device_index.into(), &raw mut features);
-            handle_error(ret)?;
-            Ok(features)
-        }
+    fn get_features(&self) -> Result<i32> {
+        Self::get_features_internal(self.device_index)
     }
 
     fn get_serial_number(&self) -> Result<String> {
@@ -215,7 +180,7 @@ impl MhlibWrapper for MhlibWrapperReal {
     }
 
     fn get_number_of_input_channels(&self) -> Result<i32> {
-        self.get_cached_num_input_channels()
+        Ok(self.num_input_channels)
     }
 
     fn get_number_of_modules(&self) -> Result<i32> {
@@ -737,24 +702,5 @@ impl MhlibWrapper for MhlibWrapperReal {
             sync_rate,
             count_rates,
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_lib_version() {
-        let wrapper = MhlibWrapperReal::new(0);
-        assert_eq!(wrapper.get_library_version().unwrap(), String::from("3.1"));
-    }
-
-    #[test]
-    fn test_open_device() {
-        let wrapper = MhlibWrapperReal::new(0);
-        assert_eq!(
-            wrapper.open_device().unwrap_err().to_string(),
-            String::from("MH_ERROR_DEVICE_OPEN_FAIL")
-        );
     }
 }

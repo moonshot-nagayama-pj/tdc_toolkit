@@ -47,7 +47,7 @@ impl MhlibWrapper for MhlibWrapperStub {
         ))
     }
 
-    fn get_feature(&self) -> Result<i32> {
+    fn get_features(&self) -> Result<i32> {
         Ok(0i32)
     }
 

@@ -62,7 +62,7 @@ impl MH160Device {
     pub fn from_config(device_index: u8, config: &MH160DeviceConfig) -> Result<MH160Device> {
         #[cfg(feature = "multiharp")]
         let wrapped = Arc::new(WrappedMH160Device::from_config(
-            MhlibWrapperReal::new(device_index),
+            MhlibWrapperReal::try_new(device_index)?,
             config,
         )?);
         #[cfg(not(feature = "multiharp"))]

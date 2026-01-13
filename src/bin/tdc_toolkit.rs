@@ -122,9 +122,11 @@ fn main() -> Result<()> {
             let device = match device_type {
                 DeviceType::MH160Device => match mh_wrapper_implementation {
                     #[cfg(feature = "multiharp")]
-                    MhWrapperImplementation::Real => Ok::<Box<dyn MH160>, Error>(Box::new(
-                        MH160Device::from_current_config(MhlibWrapperReal::new(mh_device_index))?,
-                    )),
+                    MhWrapperImplementation::Real => {
+                        Ok::<Box<dyn MH160>, Error>(Box::new(MH160Device::from_current_config(
+                            MhlibWrapperReal::try_new(mh_device_index)?,
+                        )?))
+                    }
                     MhWrapperImplementation::Stub => Ok::<Box<dyn MH160>, Error>(Box::new(
                         MH160Device::from_current_config(MhlibWrapperStub::new(mh_device_index))?,
                     )),
@@ -160,7 +162,7 @@ fn main() -> Result<()> {
                                 #[cfg(feature = "multiharp")]
                                 MhWrapperImplementation::Real => Ok::<Arc<dyn MH160>, Error>(
                                     Arc::new(MH160Device::from_config(
-                                        MhlibWrapperReal::new(mh_device_index),
+                                        MhlibWrapperReal::try_new(mh_device_index)?,
                                         config,
                                     )?) as Arc<dyn MH160>,
                                 ),
@@ -177,7 +179,7 @@ fn main() -> Result<()> {
                                 #[cfg(feature = "multiharp")]
                                 MhWrapperImplementation::Real => Ok::<Arc<dyn MH160>, Error>(
                                     Arc::new(MH160Device::from_current_config(
-                                        MhlibWrapperReal::new(mh_device_index),
+                                        MhlibWrapperReal::try_new(mh_device_index)?,
                                     )?) as Arc<dyn MH160>,
                                 ),
                                 MhWrapperImplementation::Stub => Ok::<Arc<dyn MH160>, Error>(
