@@ -27,6 +27,8 @@
 //! ## Examples
 //!
 //! For now, the best example of a complete pipeline is probably the `tdc_toolkit` CLI implementation.
+//!
+//! Example configuration files for the Multiharp, with and without event filtering, are available in the `sample_config` directory of the source distribution.
 
 pub mod multiharp;
 pub mod output;

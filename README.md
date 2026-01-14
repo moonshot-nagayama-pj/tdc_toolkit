@@ -100,7 +100,7 @@ Opens the device, configures it according to the provided configuration file, an
 
 To improve performance, long recordings will result in more than one Parquet file; at intervals of approximately 2 gigabytes, the current output file is closed and a new one opened. Most tools that support reading Parquet can treat a directory of many files as a single data source.
 
-The configuration file format is described in [the API documentation](https://docs.rs/tdc_toolkit/latest/tdc_toolkit/multiharp/device/struct.MH160DeviceConfig.html).
+The configuration file format is described in [the API documentation](https://docs.rs/tdc_toolkit/latest/tdc_toolkit/multiharp/device/struct.MH160DeviceConfig.html). Examples are available in the `sample_config` directory of the source distribution.
 
 ```bash
 $ tdc_toolkit record --device-config=sample_config/multiharp160.json --duration 2s

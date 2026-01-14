@@ -31,22 +31,30 @@ use super::mhlib_wrapper::meta::event_filter::{
 use super::mhlib_wrapper::meta::{CHANNELS_PER_ROW, Edge, MhlibWrapper, Mode, RefSource};
 
 /// MultiHarp 160 device configuration.
+///
+/// For more information about the behavior of these parameters, consult the MHLib Linux manual bundled with [the official MultiHarp 160 software download](https://www.picoquant.com/products/category/tcspc-and-time-tagging-modules/multiharp-160).
+///
+/// This data structure also defines the JSON configuration file format used for the `tdc_toolkit` CLI. For example configuration files, check the `sample_config` directory in the source distribution.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceConfig {
-    /// Configuration for the sync channel. In the MultiHarp's internal representation, the sync channel is unnumbered. However, in TTTR T2 mode, the only mode `tdc_toolkit` currently supports, the sync channel essentially behaves as an extra channel, with no special properties.
-    ///
-    /// `tdc_toolkit` will assign the channel ID `0` to the sync channel during normalization.
-    ///
-    /// When this field is set to [`None`], the sync channel is disabled.
-    pub sync_channel: Option<MH160DeviceSyncChannelConfig>,
-
     /// Configuration for all input channels other than the sync channel. Providing a channel configuration here enables the channel; if no declaration is present for a particular channel, it is disabled.
     ///
     /// Attempting to configure the same channel more than once will cause an error.
     pub input_channels: MH160DeviceInputChannelConfigs,
+
+    /// Configuration for the sync channel. In the MultiHarp's internal representation, the sync channel is unnumbered. However, in TTTR T2 mode, the only mode `tdc_toolkit` currently supports, the sync channel essentially behaves as an extra channel, with no special properties.
+    ///
+    /// `tdc_toolkit` will assign the channel ID `0` to the sync channel during data normalization.
+    ///
+    /// When this field is set to [`None`], the sync channel is disabled.
+    pub sync_channel: Option<MH160DeviceSyncChannelConfig>,
+
+    /// Configuration for the main event filter, which enables filtering of events by coincidence across all channels (including the sync channel). Setting this field to [`None`] disables the main event filter; assuming that there are no row filters enabled, all events will be recorded.
     pub main_event_filter: Option<MainEventFilterConfig>,
+
+    /// Configuration for the row event filter, which enables filtering of events across a single row of channels (excluding the sync channel in the first row). Setting this field to [`None`] disables the row event filter; assuming that the main filter is also disabled, all events will be recorded.
     pub row_event_filters: Option<Vec<RowEventFilterConfig>>,
 }
 
@@ -121,9 +129,11 @@ impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig>
     }
 }
 
-/// The channel ID, corresponding to the channel ID numbers on the MultiHarp's interface panel. The ID must be greater than or equal to `1`. `0` is reserved for the sync channel.
+/// The channel ID, corresponding to the channel ID numbers on the MultiHarp's interface panel. The ID must be greater than or equal to 1.
 ///
-/// Internally, the MultiHarp software counts channel IDs from zero and does not assign an ID to the sync channel. Lower-level APIs which require that internal representation use [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId).
+/// Although the sync channel can be used as an ordinary channel when in T2 mode, it is not possible to represent it using this type. Use [`MH160ChannelIdZeroIsSync`] when the sync channel should be representable as an ordinary channel.
+///
+/// Internally, the MultiHarp software counts channel IDs from zero and does not assign an ID to the sync channel. Lower-level APIs which require that internal representation should use [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId).
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
 #[cfg_attr(feature = "python", pyclass)]
 #[serde(try_from = "u8", into = "u8")]
@@ -153,11 +163,9 @@ impl From<MH160ChannelIdNoSync> for u8 {
     }
 }
 
-/// When configuring event filters, the sync channel is treated like an ordinary channel. When using the sync channel as an ordinary channel, we usually refer to it as 0.
+/// For use in situations where the sync channel is treated like an ordinary channel. When using the sync channel as an ordinary channel, we refer to it as channel 0.
 ///
-/// Even though the mhlib library expects the sync channel to be called channel 8 here (in a row of eight channels numbered from 0 to 7, the sync channel is 8), we continue to refer to it as channel 0 here, because in a multi-row configuration counting from 0, channel 8 would refer to the first channel of the second row.
-///
-/// Do not confuse this type with `MH160InternalChannelId`, which is also 0-based, but can only represent ordinary channels, not the sync channel.
+/// Do not confuse this type with [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId), which is also 0-based. There, 0 refers to the channel labeled 1 on the front of the device.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
 #[cfg_attr(feature = "python", pyclass)]
 #[serde(try_from = "u8", into = "u8")]
@@ -234,30 +242,66 @@ pub struct MH160Device<T: MhlibWrapper> {
     mhlib_wrapper: T,
 }
 
+/// Configuration for the row event filters.
+///
+/// A "row" is a single row of channels as seen on the front panel of the device.
+///
+/// The row event filters observe single rows of channels for events, filter for coincidences, and pass along the result to the main event filter for further processing. They are intended to help reduce the load on the main event filter when event volumes across many channels are too high for that filter alone.
+///
+/// All channels mentioned here must first be enabled and configured using the [`input_channels`](MH160DeviceConfig::input_channels) and [`sync_channel`](MH160DeviceConfig::sync_channel) fields in the parent device configuration.
+///
+/// Most use cases can be handled by the main event filter alone; try using that filter first.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowEventFilterConfig {
+    /// The time range, in picoseconds, within which two events on the used channels should be considered a coincidence. Bounded by [`TIMERANGEMIN`] and [`TIMERANGEMAX`](super::mhlib_wrapper::meta::event_filter::TIMERANGEMAX).
     pub time_range_ps: i32,
+
+    /// The minimum number of channels which must have an event occur at the same time for the events to be recorded, **minus one**. In other words, setting this value to 1 will cause only events which occur on at least 2 channels within `time_range_ps` to be recorded.
+    ///
+    /// Bounded by [`MATCHCNTMIN`] and [`MATCHCNTMAX`](super::mhlib_wrapper::meta::event_filter::MATCHCNTMAX).
     pub match_count: i32,
+
+    /// The channels which the filter should watch for events. The sync channel cannot be used here; it can only be used as part of the main filter.
+    ///
+    /// Although the row filter works on a per-row basis, channel IDs should be provided here in the same form used on the device's front panel. In other words, the first channel in the device's second row should be identified as channel 9, not channel 1.
     pub use_channels: Vec<MH160ChannelIdNoSync>,
 
+    /// Whether to invert the filter.
     #[serde(default)]
     pub inverse: Inverse,
+
+    /// The channels which the filter should always allow events to pass through. All events from these channels will be sent to the main filter for further processing.
+    ///
+    /// Although the row filter works on a per-row basis, channel IDs should be provided here in the same form used on the device's front panel. In other words, the first channel in the device's second row should be identified as channel 9, not channel 1.
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelIdNoSync>,
 }
 
+/// Configuration for the main event filter.
+///
+/// All channels mentioned here must first be enabled and configured using the [`input_channels`](MH160DeviceConfig::input_channels) and [`sync_channel`](MH160DeviceConfig::sync_channel) fields in the parent device configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct MainEventFilterConfig {
+    /// The time range, in picoseconds, within which two events on the used channels should be considered a coincidence. Bounded by [`TIMERANGEMIN`] and [`TIMERANGEMAX`](super::mhlib_wrapper::meta::event_filter::TIMERANGEMAX).
     pub time_range_ps: i32,
+
+    /// The minimum number of channels which must have an event occur at the same time for the events to be recorded, **minus one**. In other words, setting this value to 1 will cause only events which occur on at least 2 channels within `time_range_ps` to be recorded.
+    ///
+    /// Bounded by [`MATCHCNTMIN`] and [`MATCHCNTMAX`](super::mhlib_wrapper::meta::event_filter::MATCHCNTMAX).
     pub match_count: i32,
+
+    /// The channels which the filter should watch for events. If the sync channel is configured for use as an ordinary channel, it can be included here as channel 0.
     pub use_channels: Vec<MH160ChannelIdZeroIsSync>,
 
+    /// Whether to invert the filter.
     #[serde(default)]
     pub inverse: Inverse,
+
+    /// The channels which the filter should always allow events to pass through. All events from these channels will be recorded.
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelIdZeroIsSync>,
 }
