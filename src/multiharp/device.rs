@@ -14,7 +14,7 @@
 //!
 //! Some actions, such as [`MH160Device::device_info()`], do not require configuration.
 
-use anyhow::{Result, anyhow, bail, ensure};
+use anyhow::{Result, anyhow, bail};
 
 #[cfg(feature = "python")]
 use pyo3::pyclass;
@@ -55,7 +55,7 @@ pub struct MH160DeviceConfig {
     pub main_event_filter: Option<MainEventFilterConfig>,
 
     /// Configuration for the row event filter, which enables filtering of events across a single row of channels (excluding the sync channel in the first row). Setting this field to [`None`] disables the row event filter; assuming that the main filter is also disabled, all events will be recorded.
-    pub row_event_filters: Option<Vec<RowEventFilterConfig>>,
+    pub row_event_filter: Option<RowEventFilterConfig>,
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -244,13 +244,19 @@ pub struct MH160Device<T: MhlibWrapper> {
 
 /// Configuration for the row event filters.
 ///
+/// The row event filtering functionality has not been extensively tested, and the official documentation contains ambiguities. If any of the below information is incorrect, please open an issue reporting the actual behavior.
+///
 /// A "row" is a single row of channels as seen on the front panel of the device.
 ///
-/// The row event filters observe single rows of channels for events, filter for coincidences, and pass along the result to the main event filter for further processing. They are intended to help reduce the load on the main event filter when event volumes across many channels are too high for that filter alone.
-///
-/// All channels mentioned here must first be enabled and configured using the [`input_channels`](MH160DeviceConfig::input_channels) and [`sync_channel`](MH160DeviceConfig::sync_channel) fields in the parent device configuration.
+/// The row event filters observe events on a single row of channels, filter for coincidences, and pass along the result to the main event filter for further processing. They are intended to help reduce the load on the main event filter when event volumes across many channels are too high for that filter alone.
 ///
 /// Most use cases can be handled by the main event filter alone; try using that filter first.
+///
+/// If neither `use_channels` nor `pass_channels` contains any values belonging to a specific row, and `inverse` is set to [`Inverse::Regular`], all events from that row will be blocked. If `inverse` is set to [`Inverse::Inverse`], all events from that row will pass through to the main filter.
+///
+/// To simplify configuration, parameters for all rows are set uniformly from this single configuration block. However, the device itself supports per-row configuration of all parameters below; it is theoretically possible to invert a single row filter, for example. If your use case requires this, please open an issue or make a pull request implementing this feature.
+///
+/// All channels mentioned here must first be enabled and configured using the [`input_channels`](MH160DeviceConfig::input_channels) and [`sync_channel`](MH160DeviceConfig::sync_channel) fields in the parent device configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -264,8 +270,6 @@ pub struct RowEventFilterConfig {
     pub match_count: i32,
 
     /// The channels which the filter should watch for events. The sync channel cannot be used here; it can only be used as part of the main filter.
-    ///
-    /// Although the row filter works on a per-row basis, channel IDs should be provided here in the same form used on the device's front panel. In other words, the first channel in the device's second row should be identified as channel 9, not channel 1.
     pub use_channels: Vec<MH160ChannelIdNoSync>,
 
     /// Whether to invert the filter.
@@ -273,8 +277,6 @@ pub struct RowEventFilterConfig {
     pub inverse: Inverse,
 
     /// The channels which the filter should always allow events to pass through. All events from these channels will be sent to the main filter for further processing.
-    ///
-    /// Although the row filter works on a per-row basis, channel IDs should be provided here in the same form used on the device's front panel. In other words, the first channel in the device's second row should be identified as channel 9, not channel 1.
     #[serde(default)]
     pub pass_channels: Vec<MH160ChannelIdNoSync>,
 }
@@ -442,43 +444,43 @@ impl<T: MhlibWrapper> MH160Device<T> {
         config: &MH160DeviceConfig,
         device_info: &MH160DeviceInfo,
     ) -> Result<()> {
-        match &config.row_event_filters {
-            Some(row_filters) => Self::enable_row_filters(mhlib_wrapper, row_filters, device_info),
+        match &config.row_event_filter {
+            Some(row_filter) => Self::enable_row_filters(mhlib_wrapper, row_filter, device_info),
             None => Self::disable_row_filters(mhlib_wrapper, device_info),
         }
     }
 
     fn enable_row_filters(
         mhlib_wrapper: &T,
-        row_filters: &[RowEventFilterConfig],
+        row_filter: &RowEventFilterConfig,
         device_info: &MH160DeviceInfo,
     ) -> Result<()> {
         let num_rows_usize = usize::from(device_info.num_rows);
-        let num_row_filters = row_filters.len();
-        ensure!(
-            num_row_filters <= num_rows_usize,
-            "Attempted to configure {num_row_filters} row event filters, but device has only {num_rows_usize} rows.",
-        );
-
         for rowidx_usize in 0..num_rows_usize {
             let rowidx_i32: i32 = rowidx_usize.try_into()?;
 
-            match row_filters.get(rowidx_usize) {
-                Some(rf) => {
-                    let use_bits: i32 = row_filter_row_mask(&rf.use_channels, rowidx_i32);
-                    let pass_bits: i32 = row_filter_row_mask(&rf.pass_channels, rowidx_i32);
-                    mhlib_wrapper.set_row_event_filter(
-                        rowidx_i32,
-                        rf.time_range_ps,
-                        rf.match_count,
-                        rf.inverse,
-                        use_bits,
-                        pass_bits,
-                    )?;
-                    mhlib_wrapper.enable_row_event_filter(rowidx_i32, RowEnabled::Enabled)?;
-                }
-                None => mhlib_wrapper.enable_row_event_filter(rowidx_i32, RowEnabled::Disabled)?, // TODO should we enable it and mask all rows to block pass-through, or make this more configurable?
+            let use_bits: i32 = row_filter_row_mask(&row_filter.use_channels, rowidx_i32);
+            let pass_bits: i32 = row_filter_row_mask(&row_filter.pass_channels, rowidx_i32);
+            if use_bits == 0 && pass_bits == 0 {
+                mhlib_wrapper.set_row_event_filter(
+                    rowidx_i32,
+                    row_filter.time_range_ps,
+                    row_filter.match_count,
+                    Inverse::Regular,
+                    use_bits,
+                    pass_bits,
+                )?;
+            } else {
+                mhlib_wrapper.set_row_event_filter(
+                    rowidx_i32,
+                    row_filter.time_range_ps,
+                    row_filter.match_count,
+                    row_filter.inverse,
+                    use_bits,
+                    pass_bits,
+                )?;
             }
+            mhlib_wrapper.enable_row_event_filter(rowidx_i32, RowEnabled::Enabled)?;
         }
         Ok(())
     }

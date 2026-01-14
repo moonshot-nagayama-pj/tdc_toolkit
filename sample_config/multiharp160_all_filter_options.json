@@ -33,13 +33,11 @@
     "pass_channels": [0,4],
     "inverse": "Regular"
   },
-  "row_event_filters": [
-    {
+  "row_event_filter": {
       "time_range_ps": 1000,
       "match_count": 3,
       "use_channels": [3,5,7,8],
       "pass_channels": [4],
       "inverse": "Inverse"
-    }
-  ]
+  }
 }
