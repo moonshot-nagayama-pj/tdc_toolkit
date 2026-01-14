@@ -9,10 +9,10 @@ pub mod event_filter;
 /// Number of event records that can be read by `MH_ReadFiFo`. The buffer must provide space for this number of dwords (32-bit unsigned integers).
 pub const TTREADMAX: usize = 1_048_576;
 
-/// Not from `mhdefin.h`. TODO this can be determined dynamically
+/// Not from `mhdefin.h`. However, the MHLib manual strongly implies that all rows have 8 channels; the bitmasking used when configuring the event filter is described in these terms.
 pub const CHANNELS_PER_ROW: i32 = 8;
 
-/// Not from `mhdefin.h`.
+/// Not from `mhdefin.h`. However, MultiHarp 160 specifications indicate that up to 64 channels are supported.
 pub const MAX_INPUT_CHANNEL: i32 = 64;
 
 use anyhow::Result;

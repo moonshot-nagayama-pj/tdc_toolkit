@@ -192,12 +192,11 @@ impl From<MH160ChannelIdZeroIsSync> for u8 {
     }
 }
 
+/// Amalgamation of device-related information collected from several different API calls, for convenience.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[cfg_attr(feature = "python", pyclass(get_all, str))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInfo {
-    // Amalgamation of device-related information collected from
-    // several different API calls, for convenience.
     pub device_index: u8,
 
     // MH_GetLibraryVersion
@@ -323,16 +322,10 @@ impl<T: MhlibWrapper> MH160Device<T> {
     pub fn from_config(mhlib_wrapper: T, config: &MH160DeviceConfig) -> Result<MH160Device<T>> {
         mhlib_wrapper.open_device()?;
 
-        // TODO in theory we could support T3 mode relatively easily,
-        // since the record processing is decoupled from the device
         mhlib_wrapper.initialize(Mode::T2, RefSource::InternalClock)?;
 
         let device_info = Self::get_device_info(&mhlib_wrapper)?;
 
-        // TODO sync channel must be enabled for histogramming and T3
-        // mode; more configuration validation is necessary if we want
-        // to support those modes. Conversely, we don't need to use
-        // sync in T2; in theory we could just permanently disable it.
         match &config.sync_channel {
             Some(sync_config) => {
                 mhlib_wrapper.set_sync_channel_enable(true)?;
