@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use super::meta::event_filter::{Inverse, MainEnabled, RowEnabled, TestMode};
 use super::meta::{
-    Edge, FilteredRates, MAX_INPUT_CHANNEL, MH160InternalChannelId, MeasurementControl,
+    Edge, Features, FilteredRates, MAX_INPUT_CHANNEL, MH160InternalChannelId, MeasurementControl,
     MhlibWrapper, Mode, RefSource,
 };
 
@@ -47,8 +47,8 @@ impl MhlibWrapper for MhlibWrapperStub {
         ))
     }
 
-    fn get_features(&self) -> Result<i32> {
-        Ok(0i32)
+    fn get_features(&self) -> Result<Features> {
+        Ok(Features::EVNT_FILT)
     }
 
     fn get_serial_number(&self) -> Result<String> {

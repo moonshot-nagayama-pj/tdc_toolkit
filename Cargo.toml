@@ -25,6 +25,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 anyhow = "1.0.99"
 arrow = "56.0.0"
+bitflags = "2.10.0"
 chrono = "0.4.41"
 clap = { version = "4.5.45", features = ["derive"] }
 humantime = "2.2.0"

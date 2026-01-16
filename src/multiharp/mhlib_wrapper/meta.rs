@@ -10,12 +10,13 @@ pub mod event_filter;
 pub const TTREADMAX: usize = 1_048_576;
 
 /// Not from `mhdefin.h`. However, the MHLib manual strongly implies that all rows have 8 channels; the bitmasking used when configuring the event filter is described in these terms.
-pub const CHANNELS_PER_ROW: i32 = 8;
+pub const CHANNELS_PER_ROW: u8 = 8;
 
 /// Not from `mhdefin.h`. However, MultiHarp 160 specifications indicate that up to 64 channels are supported.
 pub const MAX_INPUT_CHANNEL: i32 = 64;
 
 use anyhow::Result;
+use bitflags::bitflags;
 
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
@@ -112,6 +113,38 @@ impl From<MH160InternalChannelId> for i32 {
     }
 }
 
+bitflags! {
+    /// Represent the bitmask returned from `MH_GetFeatures`. Names (minus `FEATURE_` prefix) and comments from `mhdefin.h`.
+    pub struct Features: u32 {
+        /// DLL License available
+        const DLL = 0x0001;
+
+        /// TTTR mode available
+        const TTTR = 0x0002;
+
+        /// Markers available
+        const MARKERS = 0x0004;
+
+        /// Long range mode available
+        const LOWRES = 0x0008;
+
+        /// Trigger output available
+        const TRIGOUT = 0x0010;
+
+        /// Programmable deadtime available
+        const PROG_TD = 0x0020;
+
+        /// Interface for external FPGA available
+        const EXT_FPGA = 0x0040;
+
+        /// Programmable input hysteresis available
+        const PROG_HYST = 0x0080;
+
+        /// Coincidence filtering available
+        const EVNT_FILT = 0x0100;
+    }
+}
+
 pub trait MhlibWrapper: Send + Sync {
     fn clear_histogram_memory(&self) -> Result<()>;
     fn close_device(&self) -> Result<()>;
@@ -123,7 +156,7 @@ pub trait MhlibWrapper: Send + Sync {
     fn get_count_rate(&self, channel: MH160InternalChannelId) -> Result<i32>;
     fn get_debug_info(&self) -> Result<String>;
     fn get_elapsed_measurement_time(&self) -> Result<f64>;
-    fn get_features(&self) -> Result<i32>;
+    fn get_features(&self) -> Result<Features>;
     fn get_flags(&self) -> Result<i32>;
     fn get_hardware_info(&self) -> Result<(String, String, String)>;
     fn get_histogram(&self, channel: MH160InternalChannelId) -> Result<Vec<u32>>;

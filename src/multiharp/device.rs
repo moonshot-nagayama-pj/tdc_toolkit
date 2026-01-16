@@ -14,7 +14,7 @@
 //!
 //! Some actions, such as [`MH160Device::device_info()`], do not require configuration.
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, anyhow, bail, ensure};
 
 #[cfg(feature = "python")]
 use pyo3::pyclass;
@@ -28,7 +28,7 @@ use std::time::Duration;
 use super::mhlib_wrapper::meta::event_filter::{
     Inverse, MATCHCNTMIN, MainEnabled, RowEnabled, TIMERANGEMIN, TestMode,
 };
-use super::mhlib_wrapper::meta::{CHANNELS_PER_ROW, Edge, MhlibWrapper, Mode, RefSource};
+use super::mhlib_wrapper::meta::{CHANNELS_PER_ROW, Edge, Features, MhlibWrapper, Mode, RefSource};
 
 /// MultiHarp 160 device configuration.
 ///
@@ -215,10 +215,10 @@ pub struct MH160DeviceInfo {
     pub binsteps: u32,
 
     // MH_GetNumOfInputChannels
-    pub num_channels: u16,
+    pub num_channels: u8,
 
     // Derived value
-    pub num_rows: u16,
+    pub num_rows: u8,
 }
 
 impl Display for MH160DeviceInfo {
@@ -358,16 +358,21 @@ impl<T: MhlibWrapper> MH160Device<T> {
             acc.insert(x.id);
             acc
         });
-        let total_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
-        for channel_id in 1..=total_channels {
+        for channel_id in 1..=device_info.num_channels {
             #[expect(clippy::missing_panics_doc)]
             let channel_id =
-                MH160ChannelIdNoSync::try_new(channel_id).expect("This should not happen");
+                MH160ChannelIdNoSync::try_new(channel_id).expect("This should not happen.");
             if !enabled_channels.contains(&channel_id) {
                 mhlib_wrapper.set_input_channel_enable(channel_id.into(), false)?;
             }
         }
 
+        if config.main_event_filter.is_some() || config.row_event_filter.is_some() {
+            ensure!(
+                mhlib_wrapper.get_features()?.contains(Features::EVNT_FILT),
+                "Attempted to configure an event filter, but this device does not support event filtering."
+            );
+        }
         mhlib_wrapper.set_filter_test_mode(TestMode::RegularOperation)?;
         Self::configure_row_filters(&mhlib_wrapper, config, &device_info)?;
         Self::configure_main_filter(&mhlib_wrapper, config, &device_info)?;
@@ -407,16 +412,15 @@ impl<T: MhlibWrapper> MH160Device<T> {
         let (model, partno, version) = mhlib_wrapper.get_hardware_info()?;
         let (base_resolution, binsteps) = mhlib_wrapper.get_base_resolution()?;
 
-        let num_channels: u16 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
+        let num_channels: u8 = mhlib_wrapper.get_number_of_input_channels()?.try_into()?;
 
-        let channels_per_row = u16::try_from(CHANNELS_PER_ROW)?;
         anyhow::ensure!(
-            num_channels.is_multiple_of(channels_per_row),
+            num_channels.is_multiple_of(CHANNELS_PER_ROW),
             "input channels ({}) is not divisible by the number of channels in each row ({}), this does not make sense",
             num_channels,
             CHANNELS_PER_ROW
         );
-        let num_rows = num_channels / channels_per_row;
+        let num_rows = num_channels / CHANNELS_PER_ROW;
 
         Ok(MH160DeviceInfo {
             device_index: mhlib_wrapper.device_index(),
@@ -586,8 +590,9 @@ fn main_filter_row_mask(global_1_channels: &[MH160ChannelIdZeroIsSync], rowidx: 
         bits |= 1u16 << 8;
     }
 
-    let global_row_start = rowidx * CHANNELS_PER_ROW;
-    let global_row_end = global_row_start + CHANNELS_PER_ROW - 1;
+    let channels_per_row: i32 = CHANNELS_PER_ROW.into();
+    let global_row_start = rowidx * channels_per_row;
+    let global_row_end = global_row_start + channels_per_row - 1;
     for global_1_channel in global_1_channels {
         if global_1_channel == &MH160ChannelIdZeroIsSync::SYNC {
             continue;
@@ -606,8 +611,9 @@ fn main_filter_row_mask(global_1_channels: &[MH160ChannelIdZeroIsSync], rowidx: 
 /// The row filters cannot include the sync channel (or, at least, the official documentation doesn't indicate that they can), so the bitmasking logic is slightly different from that used for the main filter.
 fn row_filter_row_mask(global_1_channels: &[MH160ChannelIdNoSync], rowidx: i32) -> i32 {
     let mut bits = 0u16;
-    let global_row_start = rowidx * CHANNELS_PER_ROW;
-    let global_row_end = global_row_start + CHANNELS_PER_ROW - 1;
+    let channels_per_row: i32 = CHANNELS_PER_ROW.into();
+    let global_row_start = rowidx * channels_per_row;
+    let global_row_end = global_row_start + channels_per_row - 1;
     for global_1_channel in global_1_channels {
         let global_1_channel_zero_is_ordinary = i32::from(global_1_channel.0 - 1);
         if global_1_channel_zero_is_ordinary >= global_row_start
