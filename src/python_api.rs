@@ -35,8 +35,8 @@ impl MH160Stub {
         }
     }
 
-    fn get_device_info(&self) -> Result<MH160DeviceInfo> {
-        self.wrapped.get_device_info()
+    fn device_info(&self) -> MH160DeviceInfo {
+        self.wrapped.device_info()
     }
 }
 
@@ -59,10 +59,10 @@ pub struct MH160Device {
 #[pymethods]
 impl MH160Device {
     #[staticmethod]
-    pub fn from_config(device_index: u8, config: MH160DeviceConfig) -> Result<MH160Device> {
+    pub fn from_config(device_index: u8, config: &MH160DeviceConfig) -> Result<MH160Device> {
         #[cfg(feature = "multiharp")]
         let wrapped = Arc::new(WrappedMH160Device::from_config(
-            MhlibWrapperReal::new(device_index),
+            MhlibWrapperReal::new(device_index)?,
             config,
         )?);
         #[cfg(not(feature = "multiharp"))]
@@ -74,8 +74,8 @@ impl MH160Device {
         Ok(MH160Device { wrapped })
     }
 
-    fn get_device_info(&self) -> Result<MH160DeviceInfo> {
-        self.wrapped.get_device_info()
+    fn device_info(&self) -> MH160DeviceInfo {
+        self.wrapped.device_info()
     }
 }
 

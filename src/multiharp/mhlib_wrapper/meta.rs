@@ -2,9 +2,21 @@
 //!
 //! Many of these values are derived from `mhdefin.h`, which is bundled with the MultiHarp driver release. The values are copied here to avoid a hard dependency on downloading the proprietary MultiHarp shared library when using this library on non-x64 platforms or with non-MultiHarp systems.
 //!
-//! The original constant names from `mhdefin.h` are preserved as comments.
+//! The original constant names from `mhdefin.h` are preserved as comments when they have been changed; some comments are also from `mhdefin.h`.
+
+pub mod event_filter;
+
+/// Number of event records that can be read by `MH_ReadFiFo`. The buffer must provide space for this number of dwords (32-bit unsigned integers).
+pub const TTREADMAX: usize = 1_048_576;
+
+/// Not from `mhdefin.h`. However, the MHLib manual strongly implies that all rows have 8 channels; the bitmasking used when configuring the event filter is described in these terms.
+pub const CHANNELS_PER_ROW: u8 = 8;
+
+/// Not from `mhdefin.h`. However, MultiHarp 160 specifications indicate that up to 64 channels are supported.
+pub const MAX_INPUT_CHANNEL: i32 = 64;
 
 use anyhow::Result;
+use bitflags::bitflags;
 
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
@@ -12,9 +24,8 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
 
-use crate::multiharp::device::MH160ChannelId;
-
-pub const TTREADMAX: usize = 1_048_576;
+use super::meta::event_filter::{Inverse, MainEnabled, RowEnabled, TestMode};
+use crate::multiharp::device::MH160ChannelIdNoSync;
 
 #[derive(Clone, Debug)]
 #[repr(i32)]
@@ -67,9 +78,15 @@ pub enum MeasurementControl {
 ///
 /// For example, the channel labeled `1` on the device's front panel is referred to as channel `0` here.
 ///
-/// This struct is used for low-level APIs that interface directly with mhlib. Higher-level APIs use [`MH160ChannelId`].
+/// This struct is used for low-level APIs that interface directly with mhlib. Higher-level APIs use [`MH160ChannelIdNoSync`].
 #[derive(PartialEq, Clone, Debug)]
 pub struct MH160InternalChannelId(u8);
+
+#[derive(Debug, Clone)]
+pub struct FilteredRates {
+    pub sync_rate: i32,
+    pub count_rates: Vec<i32>,
+}
 
 impl MH160InternalChannelId {
     #[must_use]
@@ -78,8 +95,8 @@ impl MH160InternalChannelId {
     }
 }
 
-impl From<MH160ChannelId> for MH160InternalChannelId {
-    fn from(value: MH160ChannelId) -> Self {
+impl From<MH160ChannelIdNoSync> for MH160InternalChannelId {
+    fn from(value: MH160ChannelIdNoSync) -> Self {
         Self::new(Into::<u8>::into(value) - 1)
     }
 }
@@ -96,6 +113,38 @@ impl From<MH160InternalChannelId> for i32 {
     }
 }
 
+bitflags! {
+    /// Represent the bitmask returned from `MH_GetFeatures`. Names (minus `FEATURE_` prefix) and comments from `mhdefin.h`.
+    pub struct Features: u32 {
+        /// DLL License available
+        const DLL = 0x0001;
+
+        /// TTTR mode available
+        const TTTR = 0x0002;
+
+        /// Markers available
+        const MARKERS = 0x0004;
+
+        /// Long range mode available
+        const LOWRES = 0x0008;
+
+        /// Trigger output available
+        const TRIGOUT = 0x0010;
+
+        /// Programmable deadtime available
+        const PROG_TD = 0x0020;
+
+        /// Interface for external FPGA available
+        const EXT_FPGA = 0x0040;
+
+        /// Programmable input hysteresis available
+        const PROG_HYST = 0x0080;
+
+        /// Coincidence filtering available
+        const EVNT_FILT = 0x0100;
+    }
+}
+
 pub trait MhlibWrapper: Send + Sync {
     fn clear_histogram_memory(&self) -> Result<()>;
     fn close_device(&self) -> Result<()>;
@@ -107,7 +156,7 @@ pub trait MhlibWrapper: Send + Sync {
     fn get_count_rate(&self, channel: MH160InternalChannelId) -> Result<i32>;
     fn get_debug_info(&self) -> Result<String>;
     fn get_elapsed_measurement_time(&self) -> Result<f64>;
-    fn get_feature(&self) -> Result<i32>;
+    fn get_features(&self) -> Result<Features>;
     fn get_flags(&self) -> Result<i32>;
     fn get_hardware_info(&self) -> Result<(String, String, String)>;
     fn get_histogram(&self, channel: MH160InternalChannelId) -> Result<Vec<u32>>;
@@ -158,4 +207,37 @@ pub trait MhlibWrapper: Send + Sync {
     fn set_trigger_output(&self, period_100ns: i32) -> Result<()>;
     fn start_measurement(&self, acquisition_time: i32) -> Result<()>;
     fn stop_measurement(&self) -> Result<()>;
+    fn set_row_event_filter(
+        &self,
+        rowidx: i32,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: Inverse,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
+
+    fn enable_row_event_filter(&self, rowidx: i32, enable: RowEnabled) -> Result<()>;
+
+    fn set_main_event_filter_params(
+        &self,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: Inverse,
+    ) -> Result<()>;
+
+    fn set_main_event_filter_channels(
+        &self,
+        rowidx: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()>;
+
+    fn enable_main_event_filter(&self, enable: MainEnabled) -> Result<()>;
+
+    fn set_filter_test_mode(&self, test_mode: TestMode) -> Result<()>;
+
+    fn get_row_filtered_rates(&self) -> Result<FilteredRates>;
+
+    fn get_main_filtered_rates(&self) -> Result<FilteredRates>;
 }

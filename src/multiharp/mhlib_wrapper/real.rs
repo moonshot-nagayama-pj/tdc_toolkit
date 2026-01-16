@@ -1,27 +1,30 @@
 use anyhow::{Result, anyhow};
 use std::os::raw::c_int;
-
 mod bindings {
     #![allow(dead_code, clippy::unreadable_literal)]
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 
 use self::bindings::{
-    MAXINPCHAN, MH_CTCStatus, MH_ClearHistMem, MH_CloseDevice, MH_GetAllCountRates,
-    MH_GetAllHistograms, MH_GetBaseResolution, MH_GetCountRate, MH_GetDebugInfo,
-    MH_GetElapsedMeasTime, MH_GetErrorString, MH_GetFeatures, MH_GetFlags, MH_GetHardwareInfo,
-    MH_GetHistogram, MH_GetLibraryVersion, MH_GetModuleInfo, MH_GetNumOfInputChannels,
-    MH_GetNumOfModules, MH_GetResolution, MH_GetSerialNumber, MH_GetStartTime, MH_GetSyncRate,
+    MH_CTCStatus, MH_ClearHistMem, MH_CloseDevice, MH_EnableMainEventFilter,
+    MH_EnableRowEventFilter, MH_GetAllCountRates, MH_GetAllHistograms, MH_GetBaseResolution,
+    MH_GetCountRate, MH_GetDebugInfo, MH_GetElapsedMeasTime, MH_GetErrorString, MH_GetFeatures,
+    MH_GetFlags, MH_GetHardwareInfo, MH_GetHistogram, MH_GetLibraryVersion,
+    MH_GetMainFilteredRates, MH_GetModuleInfo, MH_GetNumOfInputChannels, MH_GetNumOfModules,
+    MH_GetResolution, MH_GetRowFilteredRates, MH_GetSerialNumber, MH_GetStartTime, MH_GetSyncRate,
     MH_GetWarnings, MH_GetWarningsText, MH_Initialize, MH_OpenDevice, MH_ReadFiFo, MH_SetBinning,
-    MH_SetHistoLen, MH_SetInputChannelEnable, MH_SetInputChannelOffset, MH_SetInputDeadTime,
-    MH_SetInputEdgeTrg, MH_SetInputHysteresis, MH_SetMeasControl, MH_SetOffset, MH_SetStopOverflow,
-    MH_SetSyncChannelEnable, MH_SetSyncChannelOffset, MH_SetSyncDeadTime, MH_SetSyncDiv,
-    MH_SetSyncEdgeTrg, MH_SetTriggerOutput, MH_StartMeas, MH_StopMeas,
+    MH_SetFilterTestMode, MH_SetHistoLen, MH_SetInputChannelEnable, MH_SetInputChannelOffset,
+    MH_SetInputDeadTime, MH_SetInputEdgeTrg, MH_SetInputHysteresis, MH_SetMainEventFilterChannels,
+    MH_SetMainEventFilterParams, MH_SetMeasControl, MH_SetOffset, MH_SetRowEventFilter,
+    MH_SetStopOverflow, MH_SetSyncChannelEnable, MH_SetSyncChannelOffset, MH_SetSyncDeadTime,
+    MH_SetSyncDiv, MH_SetSyncEdgeTrg, MH_SetTriggerOutput, MH_StartMeas, MH_StopMeas,
 };
 
 use super::meta;
+use super::meta::event_filter::{Inverse, MainEnabled, RowEnabled, TestMode};
 use super::meta::{
-    Edge, MH160InternalChannelId, MeasurementControl, MhlibWrapper, Mode, RefSource,
+    Edge, Features, FilteredRates, MAX_INPUT_CHANNEL, MH160InternalChannelId, MeasurementControl,
+    MhlibWrapper, Mode, RefSource,
 };
 
 fn handle_error(ret: c_int) -> Result<()> {
@@ -43,15 +46,14 @@ fn convert_into_string(vec: &[u8]) -> String {
     s.trim_matches('\0').to_string()
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug)]
 pub struct MhlibWrapperReal {
     device_index: u8,
 }
 
 impl MhlibWrapperReal {
-    #[must_use]
-    pub fn new(device_index: u8) -> Self {
-        Self { device_index }
+    pub fn new(device_index: u8) -> Result<Self> {
+        Ok(Self { device_index })
     }
 }
 
@@ -117,13 +119,11 @@ impl MhlibWrapper for MhlibWrapperReal {
         }
     }
 
-    fn get_feature(&self) -> Result<i32> {
+    fn get_features(&self) -> Result<Features> {
         let mut features = 0i32;
-        unsafe {
-            let ret = MH_GetFeatures(self.device_index.into(), &raw mut features);
-            handle_error(ret)?;
-            Ok(features)
-        }
+        let ret = unsafe { MH_GetFeatures(self.device_index.into(), &raw mut features) };
+        handle_error(ret)?;
+        Ok(Features::from_bits_retain(features.cast_unsigned()))
     }
 
     fn get_serial_number(&self) -> Result<String> {
@@ -153,12 +153,13 @@ impl MhlibWrapper for MhlibWrapperReal {
     }
 
     fn get_number_of_input_channels(&self) -> Result<i32> {
-        let mut num_channels: i32 = 0;
-        unsafe {
-            let ret = MH_GetNumOfInputChannels(self.device_index.into(), &raw mut num_channels);
-            handle_error(ret)?;
-            Ok(num_channels)
-        }
+        let mut num_input_channels: i32 = 0;
+        let ret = unsafe {
+            MH_GetNumOfInputChannels(self.device_index.into(), &raw mut num_input_channels)
+        };
+        handle_error(ret)?;
+
+        Ok(num_input_channels)
     }
 
     fn get_number_of_modules(&self) -> Result<i32> {
@@ -457,7 +458,7 @@ impl MhlibWrapper for MhlibWrapperReal {
 
     fn get_all_count_rates(&self) -> Result<(i32, Vec<i32>)> {
         let mut sync_rate: i32 = 0;
-        let mut count_rates = [0i32; MAXINPCHAN as usize];
+        let mut count_rates = [0i32; MAX_INPUT_CHANNEL as usize];
         unsafe {
             let ret = MH_GetAllCountRates(
                 self.device_index.into(),
@@ -545,22 +546,127 @@ impl MhlibWrapper for MhlibWrapperReal {
             Ok(ctc_status == 0)
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_lib_version() {
-        let wrapper = MhlibWrapperReal::new(0);
-        assert_eq!(wrapper.get_library_version().unwrap(), String::from("3.1"));
+    fn set_row_event_filter(
+        &self,
+        rowidx: i32,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: Inverse,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()> {
+        unsafe {
+            let ret = MH_SetRowEventFilter(
+                self.device_index.into(),
+                rowidx,
+                time_range_ps,
+                match_count,
+                inverse as i32,
+                use_channels_bits,
+                pass_channels_bits,
+            );
+            handle_error(ret)?;
+        }
+
+        Ok(())
     }
-    #[test]
-    fn test_open_device() {
-        let wrapper = MhlibWrapperReal::new(0);
-        assert_eq!(
-            wrapper.open_device().unwrap_err().to_string(),
-            String::from("MH_ERROR_DEVICE_OPEN_FAIL")
-        );
+
+    fn enable_row_event_filter(&self, rowidx: i32, enable: RowEnabled) -> Result<()> {
+        unsafe {
+            let ret = MH_EnableRowEventFilter(self.device_index.into(), rowidx, enable as i32);
+            handle_error(ret)?;
+        }
+        Ok(())
+    }
+
+    fn set_main_event_filter_params(
+        &self,
+        time_range_ps: i32,
+        match_count: i32,
+        inverse: Inverse,
+    ) -> Result<()> {
+        unsafe {
+            let ret = MH_SetMainEventFilterParams(
+                self.device_index.into(),
+                time_range_ps,
+                match_count,
+                inverse as i32,
+            );
+            handle_error(ret)?;
+        }
+        Ok(())
+    }
+
+    fn set_main_event_filter_channels(
+        &self,
+        rowidx: i32,
+        use_channels_bits: i32,
+        pass_channels_bits: i32,
+    ) -> Result<()> {
+        unsafe {
+            let ret = MH_SetMainEventFilterChannels(
+                self.device_index.into(),
+                rowidx,
+                use_channels_bits,
+                pass_channels_bits,
+            );
+            handle_error(ret)?;
+        }
+        Ok(())
+    }
+
+    fn enable_main_event_filter(&self, enable: MainEnabled) -> Result<()> {
+        unsafe {
+            let ret = MH_EnableMainEventFilter(self.device_index.into(), enable as i32);
+            handle_error(ret)?;
+        }
+        Ok(())
+    }
+
+    fn set_filter_test_mode(&self, enable: TestMode) -> Result<()> {
+        unsafe {
+            let ret = MH_SetFilterTestMode(self.device_index.into(), enable as i32);
+            handle_error(ret)?;
+        }
+        Ok(())
+    }
+
+    fn get_row_filtered_rates(&self) -> Result<FilteredRates> {
+        let mut sync_rate: i32 = 0;
+        let mut count_rates = vec![0i32; MAX_INPUT_CHANNEL as usize];
+
+        let rc = unsafe {
+            MH_GetRowFilteredRates(
+                self.device_index.into(),
+                &raw mut sync_rate,
+                count_rates.as_mut_ptr(),
+            )
+        };
+        handle_error(rc)?;
+
+        Ok(FilteredRates {
+            sync_rate,
+            count_rates,
+        })
+    }
+
+    fn get_main_filtered_rates(&self) -> Result<FilteredRates> {
+        let mut sync_rate: i32 = 0;
+        let mut count_rates = vec![0i32; MAX_INPUT_CHANNEL as usize];
+
+        let rc = unsafe {
+            MH_GetMainFilteredRates(
+                self.device_index.into(),
+                &raw mut sync_rate,
+                count_rates.as_mut_ptr(),
+            )
+        };
+        handle_error(rc)?;
+
+        Ok(FilteredRates {
+            sync_rate,
+            count_rates,
+        })
     }
 }

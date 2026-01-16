@@ -123,7 +123,7 @@ fn main() -> Result<()> {
                 DeviceType::MH160Device => match mh_wrapper_implementation {
                     #[cfg(feature = "multiharp")]
                     MhWrapperImplementation::Real => Ok::<Box<dyn MH160>, Error>(Box::new(
-                        MH160Device::from_current_config(MhlibWrapperReal::new(mh_device_index))?,
+                        MH160Device::from_current_config(MhlibWrapperReal::new(mh_device_index)?)?,
                     )),
                     MhWrapperImplementation::Stub => Ok::<Box<dyn MH160>, Error>(Box::new(
                         MH160Device::from_current_config(MhlibWrapperStub::new(mh_device_index))?,
@@ -131,10 +131,7 @@ fn main() -> Result<()> {
                 },
                 DeviceType::MH160StubGenerator => Ok(Box::new(MH160Stub {}) as Box<dyn MH160>),
             }?;
-            println!(
-                "{}",
-                &serde_json::to_string_pretty(&device.get_device_info()?)?
-            );
+            println!("{}", &serde_json::to_string_pretty(&device.device_info())?);
             Ok(())
         }
         Command::Record {
@@ -151,7 +148,7 @@ fn main() -> Result<()> {
                     DeviceType::MH160Device => match device_config {
                         Some(device_config) => {
                             let config =
-                                serde_json::from_str(fs::read_to_string(&device_config)?.as_str())
+                                &serde_json::from_str(fs::read_to_string(&device_config)?.as_str())
                                     .with_context(|| {
                                         format!(
                                             "Error while parsing config file at {}",
@@ -163,7 +160,7 @@ fn main() -> Result<()> {
                                 #[cfg(feature = "multiharp")]
                                 MhWrapperImplementation::Real => Ok::<Arc<dyn MH160>, Error>(
                                     Arc::new(MH160Device::from_config(
-                                        MhlibWrapperReal::new(mh_device_index),
+                                        MhlibWrapperReal::new(mh_device_index)?,
                                         config,
                                     )?) as Arc<dyn MH160>,
                                 ),
@@ -180,7 +177,7 @@ fn main() -> Result<()> {
                                 #[cfg(feature = "multiharp")]
                                 MhWrapperImplementation::Real => Ok::<Arc<dyn MH160>, Error>(
                                     Arc::new(MH160Device::from_current_config(
-                                        MhlibWrapperReal::new(mh_device_index),
+                                        MhlibWrapperReal::new(mh_device_index)?,
                                     )?) as Arc<dyn MH160>,
                                 ),
                                 MhWrapperImplementation::Stub => Ok::<Arc<dyn MH160>, Error>(

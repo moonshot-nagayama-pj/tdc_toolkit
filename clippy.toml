@@ -13,4 +13,4 @@ allowed-duplicate-crates = [
                          "windows_x86_64_gnullvm",
                          "windows_x86_64_msvc",
 ]
-doc-valid-idents = ["MultiHarp", "PicoQuant", ".."]
+doc-valid-idents = ["MHLib", "MultiHarp", "PicoQuant", ".."]
