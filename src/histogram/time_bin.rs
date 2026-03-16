@@ -6,10 +6,7 @@ use crate::types::NormalizedTimeTag;
 
 const BIN_WIDTH_PS: u64 = 1_000_000; // example: 1 microsecond = 1,000,000 ps
 
-pub fn time_bin(
-    receiver: Receiver<Vec<NormalizedTimeTag>>,
-    sender: Sender<TimeBin>,
-) -> Result<()> {
+pub fn time_bin(receiver: Receiver<Vec<NormalizedTimeTag>>, sender: Sender<TimeBin>) -> Result<()> {
     let mut current_bin_start: Option<u64> = None;
     let mut current_counts: HashMap<u16, u64> = HashMap::new();
 
