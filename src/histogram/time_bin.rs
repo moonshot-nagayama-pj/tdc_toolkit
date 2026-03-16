@@ -6,7 +6,10 @@ use crate::types::NormalizedTimeTag;
 
 const BIN_WIDTH_PS: u64 = 1_000_000; // example: 1 microsecond = 1,000,000 ps
 
-pub fn time_bin(receiver: Receiver<Vec<NormalizedTimeTag>>, sender: Sender<TimeBin>) -> Result<()> {
+pub fn time_bin(
+    receiver: Receiver<Vec<NormalizedTimeTag>>,
+    sender: &Sender<TimeBin>,
+) -> Result<()> {
     let mut current_bin_start: Option<u64> = None;
     let mut current_counts: HashMap<u16, u64> = HashMap::new();
 
@@ -44,7 +47,7 @@ pub fn time_bin(receiver: Receiver<Vec<NormalizedTimeTag>>, sender: Sender<TimeB
                 }
                 Some(_) => {
                     // older event arrived after newer ones
-                    // for now, just ignore this case because input is expected to be time-ordered
+                    continue;
                 }
             }
 
@@ -64,6 +67,7 @@ pub fn time_bin(receiver: Receiver<Vec<NormalizedTimeTag>>, sender: Sender<TimeB
     Ok(())
 }
 
+#[derive(Debug)]
 pub struct TimeBin {
     pub start_time_ps: u64,
     pub end_time_ps: u64,
