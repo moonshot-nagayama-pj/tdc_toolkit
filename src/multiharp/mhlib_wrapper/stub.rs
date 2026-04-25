@@ -1,4 +1,7 @@
 use anyhow::Result;
+use std::sync::Mutex;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use super::meta::event_filter::{Inverse, MainEnabled, RowEnabled, TestMode};
 use super::meta::{
@@ -6,15 +9,49 @@ use super::meta::{
     MhlibWrapper, Mode, RefSource,
 };
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug)]
 pub struct MhlibWrapperStub {
     device_index: u8,
+    measurement_end: Mutex<Option<Instant>>,
+}
+
+/// A stub implementation of the `MhlibWrapper` trait for testing purposes.
+/// It simulates the behavior of the real MHLib wrapper without requiring
+/// actual hardware interaction.
+impl PartialEq for MhlibWrapperStub {
+    fn eq(&self, other: &Self) -> bool {
+        self.device_index == other.device_index
+    }
+}
+
+/// The `Clone` implementation allows for creating a new instance of
+/// `MhlibWrapperStub` with the same `device_index`, but with a new
+/// `measurement_end` mutex initialized to `None`.
+impl Clone for MhlibWrapperStub {
+    fn clone(&self) -> Self {
+        Self::new(self.device_index)
+    }
 }
 
 impl MhlibWrapperStub {
     #[must_use]
     pub fn new(device_index: u8) -> Self {
-        Self { device_index }
+        Self {
+            device_index,
+            measurement_end: Mutex::new(None),
+        }
+    }
+
+    /// Returns `true` if the acquisition time set by `start_measurement` has elapsed (measurement complete).
+    /// Returns `false` if no measurement has been started or the time has not yet elapsed (keeps the lock on `measurement_end`).
+    fn measurement_is_complete(&self) -> bool {
+        self.measurement_end
+            // Locks the `measurement_end` mutex to safely access the end time. If the lock is poisoned, it panics.
+            .lock()
+            // If `measurement_end` = `None`, no measurement is running => 'false'
+            .unwrap()
+            // If `measurement_end` = `Some(end)`, return whether current time has passed `end`
+            .is_some_and(|end| Instant::now() >= end)
     }
 }
 
@@ -167,15 +204,26 @@ impl MhlibWrapper for MhlibWrapperStub {
     }
 
     fn start_measurement(&self, _acquisition_time: i32) -> Result<()> {
+        // Sets the measurement end time to the current time plus the acquisition time,
+        // allowing `measurement_is_complete` to return `true` once the acquisition time has elapsed.
+        let end = Instant::now() + Duration::from_millis(_acquisition_time.try_into()?);
+        *self.measurement_end.lock().unwrap() = Some(end);
         Ok(())
     }
 
+    /// Signals no measurement is running which frees the lock on the measurement end time
+    /// and allows `measurement_is_complete` to return `false` until a new measurement
+    /// is started and sets a new end time
     fn stop_measurement(&self) -> Result<()> {
+        *self.measurement_end.lock().unwrap() = None;
         Ok(())
     }
 
+    /// Mirrors the real MHLib `MH_CTCStatus` return value convention:
+    /// `0` means the acquisition time has not yet elapsed (measurement still running),
+    /// non-zero means the acquisition time has elapsed and the measurement is complete.
     fn ctc_status(&self) -> Result<i32> {
-        Ok(0i32)
+        Ok(i32::from(self.measurement_is_complete()))
     }
 
     fn get_histogram(&self, _channel: MH160InternalChannelId) -> Result<Vec<u32>> {
@@ -221,12 +269,24 @@ impl MhlibWrapper for MhlibWrapperStub {
         Ok("warning".to_string())
     }
 
+    /// Returns stub FIFO data while the measurement is still running, and an empty
+    /// buffer once the acquisition time has elapsed, signalling to the caller that
+    /// there is no more data to read.
+    ///
+    /// Sleeps briefly between calls to simulate the real hardware's FIFO fill rate,
+    /// preventing the polling loop in `do_stream_measurement` from spinning at full
+    /// CPU speed and flooding downstream channels with an unbounded backlog.
     fn read_fifo(&self) -> Result<Vec<u32>> {
-        Ok(vec![0u32])
+        if self.measurement_is_complete() {
+            Ok(vec![])
+        } else {
+            thread::sleep(Duration::from_millis(100)); // Sleep justified in function docstring
+            Ok(vec![0u32])
+        }
     }
 
     fn is_measurement_running(&self) -> Result<bool> {
-        Ok(true)
+        Ok(!self.measurement_is_complete())
     }
 
     fn set_row_event_filter(
