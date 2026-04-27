@@ -203,10 +203,10 @@ impl MhlibWrapper for MhlibWrapperStub {
         Ok(())
     }
 
-    fn start_measurement(&self, _acquisition_time: i32) -> Result<()> {
+    fn start_measurement(&self, acquisition_time: i32) -> Result<()> {
         // Sets the measurement end time to the current time plus the acquisition time,
         // allowing `measurement_is_complete` to return `true` once the acquisition time has elapsed.
-        let end = Instant::now() + Duration::from_millis(_acquisition_time.try_into()?);
+        let end = Instant::now() + Duration::from_millis(acquisition_time.try_into()?);
         *self.measurement_end.lock().unwrap() = Some(end);
         Ok(())
     }
