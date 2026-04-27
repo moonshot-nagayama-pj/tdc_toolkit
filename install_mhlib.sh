@@ -99,7 +99,7 @@ function validate_hash() {
 function download() {
   if ! [[ -f "${cached_zip_file}" ]]; then
     mkdir -p "${cache_dir}"
-    curl --output "${cached_zip_file}" 'https://www.picoquant.com/dl_software/MultiHarp150/'"${zip_file}"
+    curl --output "${cached_zip_file}" 'https://downloads.picoquant.com/software/MultiHarp150/'"${zip_file}"
   fi
   validate_hash "${cached_zip_file}" "${zip_sha3_512}"
 }
