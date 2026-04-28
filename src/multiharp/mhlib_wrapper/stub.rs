@@ -241,6 +241,7 @@ impl MhlibWrapper for MhlibWrapperStub {
         Ok("warning".to_string())
     }
 
+    /// Returns one stub record while the measurement is active, then an empty buffer once it completes.
     fn read_fifo(&self) -> Result<Vec<u32>> {
         if self.measurement_is_complete() {
             Ok(vec![])
