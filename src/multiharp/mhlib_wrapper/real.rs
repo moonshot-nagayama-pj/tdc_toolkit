@@ -538,15 +538,6 @@ impl MhlibWrapper for MhlibWrapperReal {
         }
     }
 
-    fn is_measurement_running(&self) -> Result<bool> {
-        let mut ctc_status: i32 = 0;
-        unsafe {
-            let ret = MH_CTCStatus(self.device_index.into(), &raw mut ctc_status);
-            handle_error(ret)?;
-            Ok(ctc_status == 0)
-        }
-    }
-
     fn set_row_event_filter(
         &self,
         rowidx: i32,

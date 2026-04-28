@@ -1,4 +1,7 @@
 use anyhow::Result;
+use std::sync::Mutex;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use super::meta::event_filter::{Inverse, MainEnabled, RowEnabled, TestMode};
 use super::meta::{
@@ -6,15 +9,29 @@ use super::meta::{
     MhlibWrapper, Mode, RefSource,
 };
 
-#[derive(PartialEq, Clone, Debug)]
+/// A stub implementation of the `MhlibWrapper` trait for testing purposes.
+/// It simulates the behavior of the real MHLib wrapper without requiring
+/// actual hardware interaction.
+#[derive(Debug)]
 pub struct MhlibWrapperStub {
     device_index: u8,
+    measurement_end: Mutex<Option<Instant>>,
 }
 
 impl MhlibWrapperStub {
     #[must_use]
     pub fn new(device_index: u8) -> Self {
-        Self { device_index }
+        Self {
+            device_index,
+            measurement_end: Mutex::new(None),
+        }
+    }
+
+    fn measurement_is_complete(&self) -> bool {
+        self.measurement_end
+            .lock()
+            .unwrap()
+            .is_none_or(|end| Instant::now() >= end)
     }
 }
 
@@ -166,16 +183,19 @@ impl MhlibWrapper for MhlibWrapperStub {
         Ok(())
     }
 
-    fn start_measurement(&self, _acquisition_time: i32) -> Result<()> {
+    fn start_measurement(&self, acquisition_time: i32) -> Result<()> {
+        let end = Instant::now() + Duration::from_millis(acquisition_time.try_into()?);
+        *self.measurement_end.lock().unwrap() = Some(end);
         Ok(())
     }
 
     fn stop_measurement(&self) -> Result<()> {
+        *self.measurement_end.lock().unwrap() = None;
         Ok(())
     }
 
     fn ctc_status(&self) -> Result<i32> {
-        Ok(0i32)
+        Ok(i32::from(self.measurement_is_complete()))
     }
 
     fn get_histogram(&self, _channel: MH160InternalChannelId) -> Result<Vec<u32>> {
@@ -221,12 +241,14 @@ impl MhlibWrapper for MhlibWrapperStub {
         Ok("warning".to_string())
     }
 
+    /// Returns one stub record while the measurement is active, then an empty buffer once it completes.
     fn read_fifo(&self) -> Result<Vec<u32>> {
-        Ok(vec![0u32])
-    }
-
-    fn is_measurement_running(&self) -> Result<bool> {
-        Ok(true)
+        if self.measurement_is_complete() {
+            Ok(vec![])
+        } else {
+            thread::sleep(Duration::from_millis(100));
+            Ok(vec![0u32])
+        }
     }
 
     fn set_row_event_filter(

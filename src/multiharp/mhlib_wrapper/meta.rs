@@ -170,7 +170,6 @@ pub trait MhlibWrapper: Send + Sync {
     fn get_sync_rate(&self) -> Result<i32>;
     fn get_warnings(&self) -> Result<String>;
     fn initialize(&self, mode: Mode, ref_source: RefSource) -> Result<()>;
-    fn is_measurement_running(&self) -> Result<bool>;
     fn open_device(&self) -> Result<String>;
     fn read_fifo(&self) -> Result<Vec<u32>>;
     fn set_binning(&self, binning: i32) -> Result<()>;
