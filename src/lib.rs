@@ -33,6 +33,7 @@
 pub mod multiharp;
 pub mod output;
 pub mod types;
+pub mod version;
 
 #[cfg(feature = "python")]
 mod python_api;

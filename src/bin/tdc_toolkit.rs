@@ -84,6 +84,19 @@ enum Command {
         #[arg(long, default_value_t = String::from("record"))]
         name: String,
     },
+
+    /// Print version information
+    ///
+    /// This command outputs a JSON object with the following fields:
+    ///
+    /// * `tdc_toolkit_version`: The version of this CLI
+    ///
+    /// * `tdc_toolkit_git_ref`: The git reference
+    ///
+    /// * `mhlib_version`: The version of MHLib (or "Stub")
+    ///
+    /// * `rust_version`: The rustc compiler version used to build this CLI
+    Version,
 }
 
 #[cfg(feature = "multiharp")]
@@ -244,6 +257,11 @@ fn main() -> Result<()> {
             }
 
             progress_bar.finish_with_message("Recording complete");
+            Ok(())
+        }
+        Command::Version => {
+            let version_info = tdc_toolkit::version::get_version();
+            println!("{}", serde_json::to_string_pretty(&version_info)?);
             Ok(())
         }
     }

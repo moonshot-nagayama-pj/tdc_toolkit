@@ -11,6 +11,25 @@ fn main() {
     let os = env::consts::OS;
     let arch = env::consts::ARCH;
 
+    // Provide compiling information for version command
+    let git_hash = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string());
+    println!("cargo:rustc-env=TDC_TOOLKIT_GIT_REF={git_hash}");
+
+    let rustc_version = Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string());
+    println!("cargo:rustc-env=TDC_TOOLKIT_RUSTC_VERSION={rustc_version}");
+
+    println!("cargo::rerun-if-changed=.git/HEAD");
+
     if cfg!(not(feature = "multiharp")) {
         println!("cargo::warning=Using the mhlib_wrapper stub implementation.");
         return;
