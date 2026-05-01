@@ -19,7 +19,6 @@ pub fn get_version() -> Version {
     }
 }
 
-// TODO: unverified, needs testing on physical hardware
 #[cfg(feature = "multiharp")]
 fn get_mhlib_version_from_wrapper() -> String {
     if let Ok(wrapper) = crate::multiharp::mhlib_wrapper::real::MhlibWrapperReal::new(0) {
