@@ -30,6 +30,7 @@
 //!
 //! Example configuration files for the Multiharp, with and without event filtering, are available in the `sample_config` directory of the source distribution.
 
+pub mod histogram;
 pub mod multiharp;
 pub mod output;
 pub mod types;
