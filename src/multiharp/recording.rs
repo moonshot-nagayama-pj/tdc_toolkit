@@ -1,5 +1,4 @@
-use anyhow::{Error, Result, anyhow};
-use std::fmt::Write;
+use anyhow::Result;
 use std::panic::panic_any;
 use std::path::PathBuf;
 use std::sync::{Arc, mpsc};
@@ -9,29 +8,7 @@ use std::time::Duration;
 use super::device::MH160;
 use super::tttr_record;
 use crate::output::parquet;
-
-fn join_and_collect_thread_errors<T>(handles: Vec<thread::JoinHandle<T>>) -> Option<Error> {
-    let mut error_str = String::new();
-    for handle in handles {
-        let thread_name = handle.thread().name().unwrap_or("unnamed").to_owned();
-        if let Err(thread_panic) = handle.join() {
-            if let Ok(thread_panic_anyhow) = thread_panic.downcast::<Error>() {
-                let _ = write!(
-                    error_str,
-                    "Error returned from thread {thread_name}:\n{thread_panic_anyhow:?}\n----------\n",
-                );
-            } else {
-                panic!(
-                    "Failed downcast to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error."
-                );
-            }
-        }
-    }
-    if error_str.is_empty() {
-        return None;
-    }
-    Some(anyhow!("Error in one or more threads.").context(error_str))
-}
+use crate::util::join_and_collect_thread_errors;
 
 pub fn record_multiharp_to_parquet(
     device: Arc<dyn MH160 + Send + Sync>,
