@@ -1,4 +1,4 @@
-use anyhow::{Context, Error, Result, bail};
+use anyhow::{Context, Error, Result};
 use clap::{Parser, Subcommand, ValueEnum, ValueHint};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
@@ -19,6 +19,7 @@ use tdc_toolkit::multiharp::mhlib_wrapper::real::MhlibWrapperReal;
 
 use tdc_toolkit::multiharp::mhlib_wrapper::stub::MhlibWrapperStub;
 use tdc_toolkit::multiharp::recording;
+use tdc_toolkit::util::join_and_collect_thread_errors;
 
 #[derive(Debug, Parser)]
 #[command(name = "tdc_toolkit")]
@@ -238,24 +239,10 @@ fn main() -> Result<()> {
                 thread::sleep(Duration::from_millis(100));
             }
 
-            let recording_thread_name = recording_thread
-                .thread()
-                .name()
-                .unwrap_or("unnamed")
-                .to_owned();
-            if let Err(recording_panic) = recording_thread.join() {
-                if let Ok(recording_panic_anyhow) = recording_panic.downcast::<Error>() {
-                    bail!(
-                        "Error returned from thread {}:\n{:?}",
-                        recording_thread_name,
-                        recording_panic_anyhow
-                    );
-                }
-                panic!(
-                    "Failed downcast of thread {recording_thread_name} error result to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error."
-                );
-            }
-
+            match join_and_collect_thread_errors(vec![recording_thread]) {
+                None => Ok(()),
+                Some(error) => Err(error),
+            }?;
             progress_bar.finish_with_message("Recording complete");
             Ok(())
         }
