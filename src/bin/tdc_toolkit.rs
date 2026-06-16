@@ -239,10 +239,7 @@ fn main() -> Result<()> {
                 thread::sleep(Duration::from_millis(100));
             }
 
-            match join_and_collect_thread_errors(vec![recording_thread]) {
-                None => Ok(()),
-                Some(error) => Err(error),
-            }?;
+            join_and_collect_thread_errors(vec![recording_thread])?;
             progress_bar.finish_with_message("Recording complete");
             Ok(())
         }

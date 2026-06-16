@@ -55,8 +55,5 @@ pub fn record_multiharp_to_parquet(
             })?;
     handles.push(writer_thread);
 
-    match join_and_collect_thread_errors(handles) {
-        None => Ok(()),
-        Some(error) => Err(error),
-    }
+    join_and_collect_thread_errors(handles)
 }

@@ -1,4 +1,4 @@
-use anyhow::{Error, anyhow};
+use anyhow::{Result, bail};
 use std::fmt::Write;
 use std::thread;
 
@@ -7,26 +7,31 @@ use std::thread;
 /// # Panics
 ///
 /// Panics in threads joined by this function will cause panics here.
-#[must_use]
-pub fn join_and_collect_thread_errors<T>(handles: Vec<thread::JoinHandle<T>>) -> Option<Error> {
+pub fn join_and_collect_thread_errors(handles: Vec<thread::JoinHandle<Result<()>>>) -> Result<()> {
     let mut error_str = String::new();
+    let mut unexpected_panic: Option<Box<dyn std::any::Any + Send>> = None;
+
     for handle in handles {
         let thread_name = handle.thread().name().unwrap_or("unnamed").to_owned();
-        if let Err(thread_panic) = handle.join() {
-            if let Ok(thread_panic_anyhow) = thread_panic.downcast::<Error>() {
-                let _ = write!(
-                    error_str,
-                    "Error returned from thread {thread_name}:\n{thread_panic_anyhow:?}\n----------\n",
-                );
-            } else {
-                panic!(
-                    "Failed downcast to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error."
-                );
+        match handle.join() {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                let _ = write!(error_str, "Error in thread {thread_name}:\n{e:?}\n---\n");
             }
+            Err(payload) => {
+                // Store first unexpected panic; keep joining remaining threads.
+                if unexpected_panic.is_none() {
+                    unexpected_panic = Some(payload);
+                }
+            }
+        }
+
+        if let Some(payload) = unexpected_panic {
+            std::panic::resume_unwind(payload);
         }
     }
     if error_str.is_empty() {
-        return None;
+        return Ok(());
     }
-    Some(anyhow!("Error in one or more threads.").context(error_str))
+    bail!("Errors in one or more threads: {error_str}")
 }
