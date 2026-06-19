@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::panic::panic_any;
 use std::path::PathBuf;
 use std::sync::{Arc, mpsc};
 use std::thread;
@@ -21,25 +20,16 @@ pub fn record_multiharp_to_parquet(
 
     let mut handles = Vec::new();
 
-    let device_thread =
-        thread::Builder::new()
-            .name("device_thread".into())
-            .spawn(move || -> Result<()> {
-                if let Err(error) = device.stream_measurement(&duration, raw_send_channel) {
-                    panic_any(error);
-                }
-                Ok(())
-            })?;
+    let device_thread = thread::Builder::new()
+        .name("device_thread".into())
+        .spawn(move || -> Result<()> { device.stream_measurement(&duration, raw_send_channel) })?;
     handles.push(device_thread);
 
     let processor_thread = thread::Builder::new()
         .name("processor_thread".into())
         .spawn(move || -> Result<()> {
             let mut processor = tttr_record::T2RecordChannelProcessor::new();
-            if let Err(error) = processor.process(raw_receive_channel, processed_send_channel) {
-                panic_any(error);
-            }
-            Ok(())
+            processor.process(raw_receive_channel, processed_send_channel)
         })?;
     handles.push(processor_thread);
 
@@ -48,15 +38,9 @@ pub fn record_multiharp_to_parquet(
             .name("writer_thread".into())
             .spawn(move || -> Result<()> {
                 let writer = parquet::TimeTagStreamParquetWriter::new();
-                if let Err(error) = writer.write(processed_receive_channel, &output_dir, &name) {
-                    panic_any(error);
-                }
-                Ok(())
+                writer.write(processed_receive_channel, &output_dir, &name)
             })?;
     handles.push(writer_thread);
 
-    match join_and_collect_thread_errors(handles) {
-        None => Ok(()),
-        Some(error) => Err(error),
-    }
+    join_and_collect_thread_errors(handles)
 }

@@ -1,5 +1,4 @@
-use anyhow::{Error, anyhow};
-use std::fmt::Write;
+use anyhow::{Result, bail};
 use std::thread;
 
 /// Utility function for keeping track of errors that originate in worker threads.
@@ -7,26 +6,48 @@ use std::thread;
 /// # Panics
 ///
 /// Panics in threads joined by this function will cause panics here.
-#[must_use]
-pub fn join_and_collect_thread_errors<T>(handles: Vec<thread::JoinHandle<T>>) -> Option<Error> {
+pub fn join_and_collect_thread_errors(handles: Vec<thread::JoinHandle<Result<()>>>) -> Result<()> {
     let mut error_str = String::new();
+    let mut panic_str = String::new();
+
     for handle in handles {
         let thread_name = handle.thread().name().unwrap_or("unnamed").to_owned();
-        if let Err(thread_panic) = handle.join() {
-            if let Ok(thread_panic_anyhow) = thread_panic.downcast::<Error>() {
-                let _ = write!(
-                    error_str,
-                    "Error returned from thread {thread_name}:\n{thread_panic_anyhow:?}\n----------\n",
-                );
-            } else {
-                panic!(
-                    "Failed downcast to anyhow::Error. This should not happen. Threads in this application should always return anyhow::Error."
-                );
+        match handle.join() {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                error_str = format!("{error_str}Error in thread {thread_name}:\n{e:?}\n---\n");
             }
+            Err(payload) => match payload.downcast_ref::<String>() {
+                Some(payload_string) => {
+                    panic_str = format!(
+                        "{panic_str}Panic in thread {thread_name}:\n{payload_string}\n---\n"
+                    );
+                }
+                None => match payload.downcast_ref::<&str>() {
+                    Some(payload_string) => {
+                        panic_str = format!(
+                            "{panic_str}Panic in thread {thread_name}:\n{payload_string}\n---\n"
+                        );
+                    }
+                    None => {
+                        panic_str = format!(
+                            "{panic_str}Panic in thread {thread_name}:\nPanic payload was not downcastable to String or &str\n---\n"
+                        );
+                    }
+                },
+            },
+        }
+
+        if !panic_str.is_empty() {
+            if !error_str.is_empty() {
+                panic_str =
+                    format!("{panic_str}Additionally, threads returned errors:\n---\n{error_str}");
+            }
+            std::panic::resume_unwind(Box::new(panic_str));
         }
     }
     if error_str.is_empty() {
-        return None;
+        return Ok(());
     }
-    Some(anyhow!("Error in one or more threads.").context(error_str))
+    bail!("Errors in one or more threads: {}", error_str)
 }

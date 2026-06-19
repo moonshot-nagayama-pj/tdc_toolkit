@@ -2,7 +2,6 @@ use anyhow::{Context, Error, Result};
 use clap::{Parser, Subcommand, ValueEnum, ValueHint};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
-use std::panic::panic_any;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -218,7 +217,7 @@ fn main() -> Result<()> {
                         name,
                     ) {
                         recording_failed_thread_clone.store(true, Ordering::Relaxed);
-                        panic_any(recording_error);
+                        return Err(recording_error);
                     }
                     Ok(())
                 })?;
@@ -239,10 +238,7 @@ fn main() -> Result<()> {
                 thread::sleep(Duration::from_millis(100));
             }
 
-            match join_and_collect_thread_errors(vec![recording_thread]) {
-                None => Ok(()),
-                Some(error) => Err(error),
-            }?;
+            join_and_collect_thread_errors(vec![recording_thread])?;
             progress_bar.finish_with_message("Recording complete");
             Ok(())
         }
