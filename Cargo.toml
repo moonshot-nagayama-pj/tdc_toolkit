@@ -8,7 +8,7 @@ keywords = ["tdc", "multiharp", "physics", "quantum"]
 categories = ["api-bindings", "command-line-utilities", "date-and-time", "science"]
 links = "mhlib"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "1.97"
 exclude = [
     ".devcontainer",
     ".editorconfig",
