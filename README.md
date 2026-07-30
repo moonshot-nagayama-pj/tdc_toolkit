@@ -1,6 +1,6 @@
 # tdc_toolkit
 
-Rust command-line interface and library, as well as Python bindings, for working with [time-to-digital converters (TDCs)](https://en.wikipedia.org/wiki/Time-to-digital_converter) such as the [PicoQuant MultiHarp 160](https://www.picoquant.com/products/category/tcspc-and-time-tagging-modules/multiharp-160).
+Rust command-line interface and library, for working with [time-to-digital converters (TDCs)](https://en.wikipedia.org/wiki/Time-to-digital_converter) such as the [PicoQuant MultiHarp 160](https://www.picoquant.com/products/category/tcspc-and-time-tagging-modules/multiharp-160).
 
 ## Availability
 
@@ -114,25 +114,6 @@ $ tdc_toolkit record --device-config=sample_config/multiharp160.json --duration 
 Consult the [the API documentation on docs.rs](https://docs.rs/tdc_toolkit/latest/tdc_toolkit/) for more information.
 
 When enabling the `multiharp` feature, be sure to note the prerequisite requirements listed in the CLI section above.
-
-## Python bindings
-
-Basic typesafe Python bindings are available to control MultiHarp devices. They are documented in the `.pyi` files in `python/` and have not been extensively tested or released on PyPI. The easiest way to use them is as a [`uv` path dependency](https://docs.astral.sh/uv/concepts/projects/dependencies/#path). By default, the proprietary MultiHarp library is not used; the `features` key in the [`tool.maturin`] section of `pyproject.toml` must be modified to support it.
-
-At the moment, submodules such as `tdc_toolkit.multiharp` are not available as subpackages. This means that the following will not work:
-
-```python
-# This will not work
-from tdc_toolkit.multiharp import MH160Device
-```
-
-Instead, this style is necessary:
-
-```python
-from tdc_toolkit import multiharp
-
-multiharp.MH160Device(...)
-```
 
 ## Contributing
 

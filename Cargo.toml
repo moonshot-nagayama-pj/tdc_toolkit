@@ -1,6 +1,6 @@
 [package]
 name = "tdc_toolkit"
-description = "Rust CLI and library, as well as Python bindings, for working with time-to-digital converters (TDCs) such as the PicoQuant MultiHarp 160."
+description = "Rust CLI and library for working with time-to-digital converters (TDCs) such as the PicoQuant MultiHarp 160."
 version = "0.4.3-alpha.0"
 license = "BSD-3-Clause"
 repository = "https://github.com/moonshot-nagayama-pj/tdc_toolkit"
@@ -31,7 +31,6 @@ clap = { version = "4.5.45", features = ["derive"] }
 humantime = "2.2.0"
 indicatif = "0.18.0"
 parquet = "56.0.0"
-pyo3 = { version = "0.26", features = ["anyhow"], optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.143"
 strum = "0.27.2"
@@ -50,7 +49,6 @@ harness = false
 
 [features]
 multiharp = []
-python = ["dep:pyo3"]
 
 [lints.clippy]
 all = "deny"

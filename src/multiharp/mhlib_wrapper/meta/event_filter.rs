@@ -1,8 +1,5 @@
 //! Values related to event filtering. Names of simple constants are the same as in `mhdefin.h` when values are defined there.
 
-#[cfg(feature = "python")]
-use pyo3::prelude::*;
-
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
@@ -41,7 +38,6 @@ pub const TIMERANGEMAX: i32 = 160_000;
 /// Used in event filtering configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[repr(i32)]
-#[cfg_attr(feature = "python", pyclass)]
 #[derive(Copy, Clone, Debug, Default, Deserialize, Display, PartialEq, Serialize)]
 pub enum Inverse {
     /// When the filter matches, keep the event. Discard non-matching events.
@@ -54,7 +50,6 @@ pub enum Inverse {
 /// Describes whether the device is in filter test mode. In test mode, no data is copied into the fifo buffer and only filtered rates are available. This is intended to allow evaluation of filter settings when data rates are too high to transfer all data.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[repr(i32)]
-#[cfg_attr(feature = "python", pyclass)]
 #[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
 pub enum TestMode {
     /// The device is operating normally.
@@ -67,7 +62,6 @@ pub enum TestMode {
 /// Defines whether a row event filter is enabled or disabled, for the definition of "enabled" described below.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[repr(i32)]
-#[cfg_attr(feature = "python", pyclass)]
 #[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
 pub enum RowEnabled {
     /// When disabled, all events on this row will pass through the filter.
@@ -79,7 +73,6 @@ pub enum RowEnabled {
 /// Defines whether the main event filter is enabled or disabled, for the definition of "enabled" described below.
 #[allow(clippy::unsafe_derive_deserialize)]
 #[repr(i32)]
-#[cfg_attr(feature = "python", pyclass)]
 #[derive(Copy, Clone, Debug, Deserialize, Display, PartialEq, Serialize)]
 pub enum MainEnabled {
     /// When disabled, all events will pass through the filter.
