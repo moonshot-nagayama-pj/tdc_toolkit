@@ -16,9 +16,6 @@
 
 use anyhow::{Result, anyhow, bail, ensure};
 
-#[cfg(feature = "python")]
-use pyo3::pyclass;
-
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -36,7 +33,6 @@ use super::mhlib_wrapper::meta::{CHANNELS_PER_ROW, Edge, Features, MhlibWrapper,
 ///
 /// This data structure also defines the JSON configuration file format used for the `tdc_toolkit` CLI. For example configuration files, check the `sample_config` directory in the source distribution.
 #[allow(clippy::unsafe_derive_deserialize)]
-#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceConfig {
     /// Configuration for all input channels other than the sync channel. Providing a channel configuration here enables the channel; if no declaration is present for a particular channel, it is disabled.
@@ -59,7 +55,6 @@ pub struct MH160DeviceConfig {
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
-#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceSyncChannelConfig {
     pub divider: i32,
@@ -69,7 +64,6 @@ pub struct MH160DeviceSyncChannelConfig {
 }
 
 #[allow(clippy::unsafe_derive_deserialize)]
-#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInputChannelConfig {
     /// The channel ID, corresponding to the channel ID numbers on the MultiHarp's interface panel. The ID must be greater than or equal to `1`. `0` is reserved for the sync channel.
@@ -82,7 +76,6 @@ pub struct MH160DeviceInputChannelConfig {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
-#[cfg_attr(feature = "python", pyclass)]
 #[serde(
     try_from = "Vec<MH160DeviceInputChannelConfig>",
     into = "Vec<MH160DeviceInputChannelConfig>"
@@ -135,7 +128,6 @@ impl From<MH160DeviceInputChannelConfigs> for Vec<MH160DeviceInputChannelConfig>
 ///
 /// Internally, the MultiHarp software counts channel IDs from zero and does not assign an ID to the sync channel. Lower-level APIs which require that internal representation should use [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId).
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
-#[cfg_attr(feature = "python", pyclass)]
 #[serde(try_from = "u8", into = "u8")]
 pub struct MH160ChannelIdNoSync(u8);
 
@@ -167,7 +159,6 @@ impl From<MH160ChannelIdNoSync> for u8 {
 ///
 /// Do not confuse this type with [`MH160InternalChannelId`](super::mhlib_wrapper::meta::MH160InternalChannelId), which is also 0-based. There, 0 refers to the channel labeled 1 on the front of the device.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug)]
-#[cfg_attr(feature = "python", pyclass)]
 #[serde(try_from = "u8", into = "u8")]
 pub struct MH160ChannelIdZeroIsSync(u8);
 
@@ -194,7 +185,6 @@ impl From<MH160ChannelIdZeroIsSync> for u8 {
 
 /// Amalgamation of device-related information collected from several different API calls, for convenience.
 #[allow(clippy::unsafe_derive_deserialize)]
-#[cfg_attr(feature = "python", pyclass(get_all, str))]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct MH160DeviceInfo {
     pub device_index: u8,
@@ -257,7 +247,6 @@ pub struct MH160Device<T: MhlibWrapper> {
 ///
 /// All channels mentioned here must first be enabled and configured using the [`input_channels`](MH160DeviceConfig::input_channels) and [`sync_channel`](MH160DeviceConfig::sync_channel) fields in the parent device configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
-#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowEventFilterConfig {
     /// The time range, in picoseconds, within which two events on the used channels should be considered a coincidence. Bounded by [`TIMERANGEMIN`] and [`TIMERANGEMAX`](super::mhlib_wrapper::meta::event_filter::TIMERANGEMAX).
@@ -284,7 +273,6 @@ pub struct RowEventFilterConfig {
 ///
 /// All channels mentioned here must first be enabled and configured using the [`input_channels`](MH160DeviceConfig::input_channels) and [`sync_channel`](MH160DeviceConfig::sync_channel) fields in the parent device configuration.
 #[allow(clippy::unsafe_derive_deserialize)]
-#[cfg_attr(feature = "python", pyclass(get_all, set_all))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct MainEventFilterConfig {
     /// The time range, in picoseconds, within which two events on the used channels should be considered a coincidence. Bounded by [`TIMERANGEMIN`] and [`TIMERANGEMAX`](super::mhlib_wrapper::meta::event_filter::TIMERANGEMAX).

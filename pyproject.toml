@@ -1,17 +1,8 @@
+# This project configuration is only used to make the cffconvert tool available for the check script. This is not a Python project.
+
 [project]
-dynamic = [
-        "author",
-        "author_email",
-        "description",
-        "description_content_type",
-        "home_page",
-        "keywords",
-        "license",
-        "project_url",
-        "summary",
-        "version",
-]
 name = "tdc_toolkit"
+version = "0.0.1.dev0"
 requires-python = ">= 3.13"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -31,51 +22,7 @@ classifiers = [
 ]
 dependencies = []
 
-[build-system]
-requires = ["maturin>=1.4,<2.0"]
-build-backend = "maturin"
-
 [dependency-groups]
 dev = [
-    "black>=25.1.0",
     "cffconvert>=2.0.0",
-    "isort>=6.0.1",
-    'maturin>=1.9.3 ; platform_system == "Windows"',
-    'maturin[patchelf]>=1.9.3 ; platform_system != "Windows"',
-    "mypy>=1.17.1",
-    "pip>=25.2", # maturin requires pip to be installed to build
-    "pylint>=3.3.8",
-    "ruff>=0.12.9",
 ]
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.isort]
-profile = "black"
-
-# This will build tdc_toolkit without support for the proprietary
-# MultiHarp driver library. To build the Python bindings with
-# MultiHarp support, edit the `features` line to include the
-# `multiharp` feature or directly use the `maturin` command line with
-# `--features` instead of uv.
-[tool.maturin]
-features = ["pyo3/extension-module", "python"]
-module-name = "tdc_toolkit"
-python-source = "python"
-
-[tool.mypy]
-files = ["."]
-exclude = ["^MHLib_.*_64bit/"]
-strict = true
-
-[[tool.mypy.overrides]]
-module = "plotly.*"
-ignore_missing_imports = true
-
-[tool.pylint.format]
-max-line-length = "88"
-
-# See https://pylint.pycqa.org/en/latest/user_guide/messages/index.html
-[tool.pylint."messages control"]
-disable = ["missing-module-docstring", "missing-class-docstring", "missing-function-docstring", "too-few-public-methods"]

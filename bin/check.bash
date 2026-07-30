@@ -31,10 +31,6 @@ trap trap_exit EXIT
 base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd -P)"
 project_dir="$(cd "${base_dir}/.." >/dev/null && pwd -P)"
 
-# Some Python static analysis tools require the target directories to
-# be passed on the command line
-python_source_dirs=(python sample_python)
-
 # cd to the project directory before running anything else
 cd "${project_dir}"
 
@@ -57,36 +53,13 @@ else
   stdmsg "Not on x86_64 Linux, skipping all-features build."
 fi
 
-stdmsg "Running uv sync --dev..."
-uv sync --dev
-
-stdmsg "Activating virtual environment..."
-source .venv/bin/activate
-
-maturin develop
-
-stdmsg "Checking Python type hints with mypy..."
-mypy
-
-stdmsg "Running pylint..."
-pylint --extension-pkg-allow-list=tdc_toolkit "${python_source_dirs[@]}"
-
-stdmsg "Checking import formatting with isort..."
-isort "${python_source_dirs[@]}" --check --diff
-
-stdmsg "Checking Python code formatting with black..."
-black --check --diff "${python_source_dirs[@]}"
-
 # Run shellcheck
 # Recursively loop through all files and find all files with .sh extension and run shellcheck
 stdmsg "Checking shell scripts with shellcheck..."
 find . -type d \( -path ./MHLib_v3.1.0.0_64bit -o -path ./.venv \) -prune -o -type f \( -name "*.sh" -o -name "*.bash" \) -print0 | xargs -0 shellcheck --enable=all --external-sources
 
 stdmsg "Checking shell script formatting with shfmt..."
-shfmt --diff bin "${python_source_dirs[@]}" src
-
-stdmsg "Running ruff..."
-ruff check .
+shfmt --diff bin src
 
 stdmsg "Validating the CFF file..."
-cffconvert --validate
+uv run cffconvert --validate

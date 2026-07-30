@@ -6,19 +6,13 @@ Thank you for your interest in contributing to our project. To make it as easy a
 
 Please see [`development-environment.md`](https://github.com/moonshot-nagayama-pj/public-documents/blob/main/engineering/development-environment.md) for more information.
 
-The easiest way to build all code for development, including both Rust and Python, is to run the check script:
+The easiest way to build all code for development is to run the check script:
 
 ```sh
 bin/check.bash
 ```
 
 This will build the code and then run static analysis and unit tests. The same script runs on all pull requests, and must pass before a pull request is accepted.
-
-If you are not using `direnv` as recommended in [our engineering documentation](https://github.com/moonshot-nagayama-pj/public-documents), be sure to activate the virtual environment before using Python commands such as `uv sync` or `maturin develop`:
-
-```
-source .venv/bin/activate
-```
 
 ## Discussing and proposing changes
 
