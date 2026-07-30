@@ -13,19 +13,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install uv and enable caching
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-          version: "0.8.11"
-
-      - name: Set up Python with uv
-        run: uv python install
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
 
       - name: Cache Cargo dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/
@@ -37,7 +31,7 @@ jobs:
 
       - name: Cache mhlib
         id: cache-mhlib
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             MHLib_v3.1.0.0_64bit
